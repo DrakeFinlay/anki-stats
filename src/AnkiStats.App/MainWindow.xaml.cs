@@ -31,6 +31,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        foreach (var column in LearningCardsGrid.Columns.Concat(LearningFindingsGrid.Columns).OfType<DataGridTextColumn>())
+            column.ElementStyle = (Style)LearningPage.FindResource("LearningCell");
         OverviewMetrics.SizeChanged += (_, _) => OverviewMetrics.Columns = OverviewMetrics.ActualWidth < 900 ? 2 : 4;
         CalendarHeatmap.DaySelected += text => CalendarDay.Text = text;
         DeckGrid.ItemsSource = deckChoices;
@@ -45,7 +47,7 @@ public partial class MainWindow : Window
             if (!busy && data is not null && Today(data.TimeZoneId) != insightDate)
                 await Guard(() => { UpdateInsight(); return Task.CompletedTask; });
             if (!busy && data is not null && Streaks.StudyDay(DateTimeOffset.UtcNow, TimeZoneInfo.FindSystemTimeZoneById(data.TimeZoneId)) != calendarDate)
-                await Guard(async () => { await UpdateCalendar(); await UpdateTimeAnalysis(); });
+                await Guard(async () => { await UpdateCalendar(); await UpdateTimeAnalysis(); await UpdateLearningPatterns(); });
         };
     }
 
@@ -97,6 +99,7 @@ public partial class MainWindow : Window
         RangePicker.IsEnabled = KindPicker.IsEnabled = false;
         ActiveProfilePicker.IsEnabled = false;
         TimeRangePicker.IsEnabled = TimeGroupingPicker.IsEnabled = false;
+        LearningControls.IsEnabled = false;
         Progress.Visibility = Visibility.Visible;
         try { await action(); }
         catch (Exception e)
@@ -111,6 +114,7 @@ public partial class MainWindow : Window
             RangePicker.IsEnabled = KindPicker.IsEnabled = true;
             ActiveProfilePicker.IsEnabled = profileViews.Count > 0;
             TimeRangePicker.IsEnabled = TimeGroupingPicker.IsEnabled = true;
+            LearningControls.IsEnabled = true;
             Progress.Visibility = Visibility.Collapsed;
         }
     }
@@ -155,6 +159,7 @@ public partial class MainWindow : Window
         await UpdateCalendar();
         await UpdateReviews();
         await UpdateTimeAnalysis();
+        await UpdateLearningPatterns();
         Footer.Text = $"{data.TimeZoneId} · current deck membership · {data.UnresolvedReviews:N0} orphaned review events excluded collection-wide · {data.UnknownReviewKinds:N0} unknown events excluded";
     }
     private DateOnly Today(string zone) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.Now, TimeZoneInfo.FindSystemTimeZoneById(zone)).DateTime);
@@ -218,6 +223,7 @@ public partial class MainWindow : Window
         InsightsPage.Visibility = page == "Insights" ? Visibility.Visible : Visibility.Collapsed;
         CalendarPage.Visibility = page == "Calendar" ? Visibility.Visible : Visibility.Collapsed;
         TimeAnalysisPage.Visibility = page == "Time Analysis" ? Visibility.Visible : Visibility.Collapsed;
+        LearningPage.Visibility = page == "Learning Patterns" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPage.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
     }
     private async void RefreshClick(object sender, RoutedEventArgs e) => await Guard(RefreshInternal);

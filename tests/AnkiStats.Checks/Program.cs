@@ -21,6 +21,7 @@ if (args is ["--metadata", var metadataProfile])
     return;
 }
 if (args is ["--seed-ui", var uiRoot]) { UiFixture.Create(uiRoot); Console.WriteLine("Synthetic UI fixture ready."); return; }
+if (args is ["--seed-learning-ui", var learningRoot]) { LearningUiFixture.Create(learningRoot); Console.WriteLine("Synthetic learning-pattern fixture ready."); return; }
 void Check(bool condition, string message)
 {
     if (!condition) throw new Exception("FAILED: " + message);
@@ -69,6 +70,7 @@ try
     StreakChecks.Run(Check);
     ProfileChecks.Run(Check, sandbox);
     TimeChecks.Run(Check);
+    LearningChecks.Run(Check);
     Check(TextNormalizer.Clean("<b>報いる</b>") == "報いる", "markup extraction");
     Check(TextNormalizer.Clean("<ruby>漢字<rt>かんじ</rt></ruby>") == "漢字", "ruby extraction");
     Check(TextNormalizer.Clean("漢字[かんじ]", true) == "漢字", "explicit bracket-reading removal");
@@ -172,6 +174,17 @@ try
     Throws<InvalidDataException>(() => importer.Import(new Settings { ProfileFolder = profile, DeckRules = [new("Language",true)], Mappings = [new() { NoteTypeId=1, Category="Vocabulary", Expression=0, ExpressionName="Renamed field" }] }), "mapping drift rejected");
     Check(SHA256.HashData(File.ReadAllBytes(file)).SequenceEqual(beforeHash), "source bytes unchanged");
     Check(!File.Exists(file+"-wal") && !File.Exists(file+"-shm"), "no source SQLite sidecars");
+    var bracketProfile = Path.Combine(sandbox, "bracket-profile"); Directory.CreateDirectory(bracketProfile);
+    File.Copy(file, Path.Combine(bracketProfile, "collection.anki2"));
+    using (var bracketDb = new SqliteConnection($"Data Source={Path.Combine(bracketProfile, "collection.anki2")};Pooling=False"))
+    {
+        bracketDb.Open(); using var bracketCommand = bracketDb.CreateCommand();
+        bracketCommand.CommandText = "UPDATE notes SET flds='晴れる[はれる]'"; bracketCommand.ExecuteNonQuery();
+    }
+    var bracketData = importer.Import(new Settings { ProfileFolder = bracketProfile, DeckRules = [new("Language", true)],
+        Mappings = [new() { NoteTypeId = 1, Category = "Vocabulary", Expression = 0, StripBracketReadings = true }] });
+    Check(bracketData.Notes[0].Expression == "晴れる" && bracketData.Notes[0].SourceExpression == "晴れる[はれる]", "import preserves furigana separately from stripped inventory expression");
+    Check(!LearningAnalyzer.Readings(bracketData.Notes[0].SourceExpression).Unresolved, "preserved imported furigana remains usable by learning analysis");
     using (var held = new FileStream(file,FileMode.Open,FileAccess.ReadWrite,FileShare.None))
         Throws<IOException>(() => importer.Discover(profile), "locked source rejected");
     File.WriteAllBytes(file+"-wal", [1,2,3]);
@@ -199,6 +212,6 @@ try
     }
     Check(importer.Discover(legacy).NoteTypes[0].Fields[0] == "Expression", "legacy JSON metadata");
     Check(importer.Import(new Settings { ProfileFolder=legacy, DeckRules=[new("Language",true)],Mappings=[new() {NoteTypeId=1,Category="Vocabulary"}] }).Notes[0].Expression == "報う", "legacy full import");
-    Console.WriteLine($"All {checkCount} checks passed: metrics, study time, Japanese entries, deck profiles, event scopes, time zones, CSV, insight rotation, cache, and source safety.");
+    Console.WriteLine($"All {checkCount} checks passed: metrics, study time, learning patterns, Japanese entries, deck profiles, event scopes, time zones, CSV, insight rotation, cache, and source safety.");
 }
 finally { if (Directory.Exists(sandbox)) Directory.Delete(sandbox, true); }

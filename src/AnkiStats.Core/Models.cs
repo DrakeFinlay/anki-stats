@@ -34,7 +34,7 @@ public sealed class Settings
     [System.Text.Json.Serialization.JsonIgnore]
     public string Signature => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { ProfileFolder, DeckRules, Profiles, Mappings, TimeZoneId })));
 }
-public sealed record NoteRecord(long Id, string Expression, string Reading, string Meaning, string Category, string NoteType);
+public sealed record NoteRecord(long Id, string Expression, string Reading, string Meaning, string Category, string NoteType, string SourceExpression = "");
 public sealed record CardRecord(long Id, long NoteId, string Deck, int Queue, int Type, int LifetimeLapses);
 public sealed record ReviewRecord(long Id, long CardId, int Rating, int Milliseconds, int Kind);
 public sealed class ImportedCollection

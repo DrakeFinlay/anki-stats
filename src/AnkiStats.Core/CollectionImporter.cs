@@ -128,7 +128,7 @@ public sealed class CollectionImporter(string temporaryRoot)
             if (!selectedNotes.Contains(id) || !mappings.TryGetValue(mid, out var m) || m.Category == "Ignored") continue;
             var fields = r.GetString(2).Split('\u001f');
             string Field(int index, bool expression = false) => index < 0 || index >= fields.Length ? "" : TextNormalizer.Clean(fields[index], expression && m.StripBracketReadings);
-            data.Notes.Add(new(id, Field(m.Expression, true), Field(m.Reading), Field(m.Meaning), m.Category, metadata.NoteTypes.First(t => t.Id == mid).Name));
+            data.Notes.Add(new(id, Field(m.Expression, true), Field(m.Reading), Field(m.Meaning), m.Category, metadata.NoteTypes.First(t => t.Id == mid).Name, Field(m.Expression)));
         }
         var noteIds = data.Notes.Select(n => n.Id).ToHashSet();
         data.Cards = candidateCards.Where(c => noteIds.Contains(c.NoteId)).ToList();
