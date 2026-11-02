@@ -34,13 +34,14 @@ internal static class UiFixture
             var random = new Random(42);
             var today = DateTimeOffset.UtcNow.Date;
             var ordinal = 0;
-            for (var day = 119; day >= 0; day--)
+            for (var day = 799; day >= 0; day--)
             {
+                if (day is 45 or 90) continue; // Complete gaps for historical streak selection.
                 var count = random.Next(20,160);
                 for (var i = 0; i < count; i++)
                 {
                     cmd.CommandText = "INSERT INTO revlog VALUES($id,$card,$rating,$time,$type)"; cmd.Parameters.Clear();
-                    var date = new DateTimeOffset(today.AddDays(-day).AddHours(random.Next(0,24)),TimeSpan.Zero);
+                    var date = new DateTimeOffset(today.AddDays(-day).AddHours(random.Next(12,20)),TimeSpan.Zero);
                     cmd.Parameters.AddWithValue("$id",date.ToUnixTimeMilliseconds()+ordinal++); cmd.Parameters.AddWithValue("$card",random.Next(1,words.Length+1)); cmd.Parameters.AddWithValue("$rating",random.Next(0,10)==0?1:3); cmd.Parameters.AddWithValue("$time",random.Next(700,9000)); cmd.Parameters.AddWithValue("$type",random.Next(0,15)==0?0:1); cmd.ExecuteNonQuery();
                 }
             }

@@ -25,10 +25,13 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<MappingChoice> mappingChoices = [];
     private readonly DispatcherTimer dayTimer = new() { Interval = TimeSpan.FromMinutes(1) };
     private DateOnly insightDate;
+    private DateOnly calendarDate;
+    private List<ReviewStreak> streaks = [];
 
     public MainWindow()
     {
         InitializeComponent();
+        CalendarHeatmap.DaySelected += text => CalendarDay.Text = text;
         DeckGrid.ItemsSource = deckChoices;
         MappingGrid.ItemsSource = mappingChoices;
         TimeZonePicker.ItemsSource = TimeZoneInfo.GetSystemTimeZones();
@@ -39,6 +42,8 @@ public partial class MainWindow : Window
         {
             if (!busy && data is not null && Today(data.TimeZoneId) != insightDate)
                 await Guard(() => { UpdateInsight(); return Task.CompletedTask; });
+            if (!busy && data is not null && Streaks.StudyDay(DateTimeOffset.UtcNow, TimeZoneInfo.FindSystemTimeZoneById(data.TimeZoneId)) != calendarDate)
+                await Guard(UpdateCalendar);
         };
     }
 
@@ -134,10 +139,38 @@ public partial class MainWindow : Window
         ApplySearch();
         SkippedButton.IsEnabled = overview.Skipped.Count > 0;
         UpdateInsight();
+        await UpdateCalendar();
         await UpdateReviews();
         Footer.Text = $"{data.TimeZoneId} · current deck membership · {data.UnresolvedReviews:N0} orphaned review events excluded collection-wide · {data.UnknownReviewKinds:N0} unknown events excluded";
     }
     private DateOnly Today(string zone) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.Now, TimeZoneInfo.FindSystemTimeZoneById(zone)).DateTime);
+    private async Task UpdateCalendar()
+    {
+        if (data is null) return;
+        var selectedStart = (StreakPicker.SelectedItem as ReviewStreak)?.Start;
+        var now = DateTimeOffset.UtcNow;
+        streaks = await Task.Run(() => Streaks.Analyze(data, now));
+        calendarDate = Streaks.StudyDay(now, TimeZoneInfo.FindSystemTimeZoneById(data.TimeZoneId));
+        StreakPicker.ItemsSource = streaks;
+        StreakPicker.IsEnabled = streaks.Count > 0;
+        StreakPicker.SelectedItem = streaks.Find(s => s.Start == selectedStart) ?? streaks.FirstOrDefault();
+        CalendarStatus.Text = streaks.Count == 0 ? "No rated answers in this selection yet. Review in Anki, then refresh here."
+            : $"{streaks.Sum(s => s.Length):N0} reviewed study days · {streaks.Count:N0} streaks · longest {streaks.Max(s => s.Length):N0} days. "
+                + (streaks[0].IsCurrent ? "Your latest streak is still active." : "No active streak. Your most recent streak is selected by default.");
+        CalendarScope.Text = $"Study days run from 4 AM to 4 AM · {data.TimeZoneId}. Today ({calendarDate:MMM d, yyyy}) stays open until the next 4 AM cutoff. This fixed cutoff matches Anki's default; custom Anki cutoffs are not imported.\n"
+            + $"All available learning, review, relearning and filtered rated answers · included deck rules: {data.Scope}. Administrative and unknown events excluded. Current deck membership; deleted/unresolved cards excluded. Refresh after reviewing to update these results.";
+        DisplayStreak();
+    }
+    private void StreakChanged(object sender, SelectionChangedEventArgs e) { if (ready) DisplayStreak(); }
+    private void DisplayStreak()
+    {
+        var streak = StreakPicker.SelectedItem as ReviewStreak;
+        CalendarHeatmap.SetStreak(streak);
+        CalendarScroll.ScrollToLeftEnd();
+        StreakSummary.Text = streak is null ? "No streak selected" : $"{streak.Length:N0} consecutive days · {streak.Answers:N0} answers\n{streak.Start:MMM d, yyyy} – {streak.End:MMM d, yyyy}";
+        if (streak?.IsCurrent == true && streak.End < calendarDate)
+            StreakSummary.Text += " · Awaiting today's reviews";
+    }
     private void UpdateInsight()
     {
         if (data is null || overview is null) return;
@@ -168,6 +201,7 @@ public partial class MainWindow : Window
         VocabularyPage.Visibility = page == "Vocabulary" ? Visibility.Visible : Visibility.Collapsed;
         ReviewsPage.Visibility = page == "Reviews" ? Visibility.Visible : Visibility.Collapsed;
         InsightsPage.Visibility = page == "Insights" ? Visibility.Visible : Visibility.Collapsed;
+        CalendarPage.Visibility = page == "Calendar" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPage.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
     }
     private async void RefreshClick(object sender, RoutedEventArgs e) => await Guard(RefreshInternal);

@@ -66,6 +66,7 @@ var sandbox = Path.Combine(Path.GetTempPath(), "AnkiStatsChecks-" + Guid.NewGuid
 Directory.CreateDirectory(sandbox);
 try
 {
+    StreakChecks.Run(Check);
     Check(TextNormalizer.Clean("<b>報いる</b>") == "報いる", "markup extraction");
     Check(TextNormalizer.Clean("<ruby>漢字<rt>かんじ</rt></ruby>") == "漢字", "ruby extraction");
     Check(TextNormalizer.Clean("漢字[かんじ]", true) == "漢字", "explicit bracket-reading removal");

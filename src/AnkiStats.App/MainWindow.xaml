@@ -10,6 +10,7 @@
           <Button Content="Vocabulary" Tag="Vocabulary" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Reviews" Tag="Reviews" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Insights" Tag="Insights" Click="Navigate" Margin="0,0,0,8"/>
+          <Button Content="Calendar" Tag="Calendar" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Settings" Tag="Settings" Click="Navigate" Margin="0,20,0,8"/>
         </StackPanel>
         <StackPanel VerticalAlignment="Bottom">
@@ -62,6 +63,25 @@
           </StackPanel></ScrollViewer>
         </Grid>
         <ScrollViewer x:Name="InsightsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="ONE OBSERVATION EACH DAY" Foreground="#8FB8EB" FontSize="11"/><TextBlock x:Name="FeaturedTitle" FontSize="28" Margin="0,14,0,12" TextWrapping="Wrap"/><TextBlock x:Name="FeaturedDetail" FontSize="18" TextWrapping="Wrap" LineHeight="28"/></StackPanel></Border><TextBlock Text="Based on all available rated-answer history and the current inventory. Card rankings use ordinary reviews. Today's topic stays the same when you reopen the app; its values update after refresh. A topic will not repeat within seven calendar days." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,20"/><TextBlock Text="The initial library uses review patterns and vocabulary inventory. Rarity and dictionary coverage will be added in later phases." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,0"/></StackPanel></ScrollViewer>
+        <ScrollViewer x:Name="CalendarPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="0,0,16,0">
+            <TextBlock Text="Review streaks" FontSize="23" Margin="0,0,0,10"/>
+            <TextBlock x:Name="CalendarStatus" Text="Connect and refresh a collection to see your review streaks." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,16"/>
+            <TextBlock Text="Streak range" Margin="0,0,0,6"/>
+            <ComboBox x:Name="StreakPicker" DisplayMemberPath="Label" SelectionChanged="StreakChanged" AutomationProperties.Name="Streak range" HorizontalAlignment="Left" MaxWidth="650" Margin="0,0,0,18" IsEnabled="False"/>
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16"><StackPanel>
+              <TextBlock x:Name="StreakSummary" Text="No streak selected" FontSize="20" TextWrapping="Wrap" Margin="0,0,0,16"/>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,30,0,0"><TextBlock Text="Sun" Height="28"/><TextBlock Text="Mon" Height="28"/><TextBlock Text="Tue" Height="28"/><TextBlock Text="Wed" Height="28"/><TextBlock Text="Thu" Height="28"/><TextBlock Text="Fri" Height="28"/><TextBlock Text="Sat" Height="28"/></StackPanel>
+                <ScrollViewer x:Name="CalendarScroll" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" CanContentScroll="False"><local:StreakCalendar x:Name="CalendarHeatmap" HorizontalAlignment="Left"/></ScrollViewer>
+              </Grid>
+              <StackPanel Orientation="Horizontal" Margin="42,18,0,8"><TextBlock Text="Fewer" Margin="0,0,8,0"/><Border Width="18" Height="18" Background="#B5DCF2" Margin="0,0,4,0"/><Border Width="18" Height="18" Background="#87BDDF" Margin="0,0,4,0"/><Border Width="18" Height="18" Background="#5899C8" Margin="0,0,4,0"/><Border Width="18" Height="18" Background="#326FA9" Margin="0,0,4,0"/><Border Width="18" Height="18" Background="#204B82" Margin="0,0,8,0"/><TextBlock Text="More answers"/></StackPanel>
+              <TextBlock x:Name="CalendarDay" TextWrapping="Wrap" Margin="42,8,0,0"/>
+              <TextBlock Text="Hover or click a day for its count. Use arrow keys when the calendar is focused; Home / End jump to the first / last day. Scroll horizontally to explore long streaks. Colors scale to the busiest day in the selected streak." TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,16,0,0"/>
+            </StackPanel></Border>
+            <TextBlock x:Name="CalendarScope" Text="Study days run from 4 AM to 4 AM in the selected review time zone. A complete day with no rated answers ends a streak. Today stays open until the next 4 AM cutoff." TextWrapping="Wrap" Foreground="{StaticResource Muted}"/>
+          </StackPanel>
+        </ScrollViewer>
         <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
           <StackPanel x:Name="SettingsContent">
             <TextBlock Text="Connect your collection" FontSize="22" Margin="0,0,0,8"/><TextBlock Text="Close Anki before inspecting or refreshing. Select the profile folder that contains collection.anki2." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,16"/>

@@ -93,7 +93,7 @@ Provide manual Refresh, last successful refresh time, source/selection settings,
 
 ### Navigation and appearance
 
-Phase 1A navigation: Overview, Vocabulary, Reviews, Insights, and Settings. Later features gain navigation when implemented; avoid empty placeholder pages.
+Navigation: Overview, Vocabulary, Reviews, Insights, Calendar, and Settings. Calendar is a follow-up feature: it shows current and historical consecutive rated-answer streaks, selected by date range, with seven weekday rows and horizontal scrolling across years. It uses a fixed 4 AM study-day cutoff in the selected time zone; existing review charts and insights retain midnight-based dates. A study day remains open until its next cutoff, so yesterday's streak stays active while today's reviews are pending. Calendar colors scale from light to dark relative to the busiest day in the selected streak. Custom Anki cutoff preferences are not imported. Later features gain navigation when implemented; avoid empty placeholder pages.
 
 The overview contains a distinct-entry total, total rated-answer count with learning/review/relearning/filtered breakdown, ordinary-review Again rate, review-volume chart, and today's featured insight. The review total includes every rated-answer kind, matching the meaning of Anki's overall review total; the Again-rate denominator is explicitly narrower. Each summary links to the relevant detail view. Counts carry their scope and date range. The actual source profile is visible, and isolated/synthetic test sessions must be unmistakably labeled.
 
