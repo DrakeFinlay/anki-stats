@@ -5,6 +5,7 @@ This repository contains a Windows desktop application, a reusable analysis libr
 ```text
 anki-stats/
 ├── .docs/
+│   ├── development-workflow.md
 │   ├── repository-structure.md
 │   ├── tools-used.md
 │   └── program-guide.md
@@ -17,6 +18,7 @@ anki-stats/
 │   └── publish.ps1
 ├── LICENSES/
 ├── .gitignore
+├── AGENTS.md
 ├── DESIGN.md
 ├── Directory.Build.props
 ├── global.json
@@ -77,6 +79,7 @@ Ordinary checks use temporary synthetic collections and clean up afterward. Real
 
 ## Build and project files
 
+- `AGENTS.md` directs coding agents to read `.docs/development-workflow.md` before each task; the workflow defines branching, validation, pull requests, and authorized merges.
 - `scripts/publish.ps1` publishes a self-contained Windows x64 build, copies third-party notices, and creates a shortcut alongside the output folder.
 - `global.json` selects a stable .NET 10 SDK, allowing roll-forward within that SDK generation.
 - `Directory.Build.props` applies shared settings, including nullable-reference checks, deterministic builds, and treating compiler warnings as errors.
