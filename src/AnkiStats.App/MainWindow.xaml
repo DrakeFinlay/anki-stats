@@ -1,0 +1,89 @@
+<Window x:Class="AnkiStats.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:AnkiStats.App" Title="Anki Stats" Width="1320" Height="880" MinWidth="1000" MinHeight="680" WindowStartupLocation="CenterScreen" Style="{StaticResource {x:Type Window}}">
+  <Grid>
+    <Grid.ColumnDefinitions><ColumnDefinition Width="210"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <Border Background="#20232B" Padding="18,30,12,20">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Top">
+          <TextBlock Text="anki stats" FontSize="27" FontWeight="SemiBold" Margin="10,0,0,4"/>
+          <TextBlock Text="A closer look at your learning" Foreground="{StaticResource Muted}" FontSize="11" Margin="10,0,0,36"/>
+          <Button Content="Overview" Tag="Overview" Click="Navigate" HorizontalContentAlignment="Left" Margin="0,0,0,8"/>
+          <Button Content="Vocabulary" Tag="Vocabulary" Click="Navigate" Margin="0,0,0,8"/>
+          <Button Content="Reviews" Tag="Reviews" Click="Navigate" Margin="0,0,0,8"/>
+          <Button Content="Insights" Tag="Insights" Click="Navigate" Margin="0,0,0,8"/>
+          <Button Content="Settings" Tag="Settings" Click="Navigate" Margin="0,20,0,8"/>
+        </StackPanel>
+        <StackPanel VerticalAlignment="Bottom">
+          <TextBlock Text="LOCAL · READ ONLY" Foreground="#8FB8EB" FontSize="11" Margin="10,0,0,10"/>
+          <TextBlock Text="Your collection stays on this PC. Refresh with Anki closed." TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="10,0,8,0"/>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+    <Grid Grid.Column="1" Margin="30,26,24,20">
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <DockPanel Margin="0,0,0,18">
+        <Button x:Name="RefreshButton" DockPanel.Dock="Right" Content="↻  Refresh" Click="RefreshClick" Background="#3D659B" Margin="12,0,0,0"/>
+        <StackPanel><TextBlock x:Name="PageTitle" Text="Overview" FontSize="30" FontWeight="SemiBold"/><TextBlock x:Name="LastRefresh" Text="Connect a collection to get started" Foreground="{StaticResource Muted}" Margin="0,6,0,0"/><TextBlock x:Name="SourceInfo" Foreground="{StaticResource Muted}" TextWrapping="Wrap" FontSize="12" Margin="0,6,0,0"/><TextBlock x:Name="TestDataBanner" Text="TEST SESSION · isolated app data. These results may be synthetic; they are not your normal connected collection." Foreground="#FFD28F" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,8,0,0" Visibility="Collapsed"/></StackPanel>
+      </DockPanel>
+      <Border x:Name="StatusPanel" Grid.Row="1" Background="#283446" CornerRadius="6" Padding="12" Margin="0,0,0,14"><TextBlock x:Name="StatusText" Text="Choose your profile in Settings. No Anki data is modified." TextWrapping="Wrap"/></Border>
+      <ProgressBar x:Name="Progress" Grid.Row="2" Height="3" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,0,12"/>
+      <Grid Grid.Row="3">
+        <ScrollViewer x:Name="OverviewPage" VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <TextBlock x:Name="OverviewScope" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,18"/>
+            <UniformGrid Columns="3">
+              <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Vocabulary entries" Foreground="{StaticResource Muted}"/><TextBlock x:Name="VocabularyCount" Text="—" FontSize="40" Margin="0,8"/><TextBlock x:Name="InventoryBreakdown" Text="Distinct entries · all card states" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}"/><Button Content="Explore vocabulary →" Tag="Vocabulary" Click="Navigate" Margin="0,18,0,0"/></StackPanel></Border>
+              <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Total review answers" Foreground="{StaticResource Muted}"/><TextBlock x:Name="ReviewCount" Text="—" FontSize="40" Margin="0,8"/><TextBlock x:Name="ReviewBreakdown" Text="Learning + review + relearning + filtered" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}"/><Button Content="Explore review history →" Tag="Reviews" Click="Navigate" Margin="0,18,0,0"/></StackPanel></Border>
+              <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Again rate" Foreground="{StaticResource Muted}"/><TextBlock x:Name="AgainRate" Text="—" FontSize="40" Margin="0,8"/><TextBlock Text="Again ÷ ordinary review answers" FontSize="12" Foreground="{StaticResource Muted}"/><TextBlock Text="A record of answers, not a fluency score." TextWrapping="Wrap" FontSize="12" Margin="0,20,0,0" Foreground="{StaticResource Muted}"/></StackPanel></Border>
+            </UniformGrid>
+            <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="TODAY'S DISCOVERY" Foreground="#8FB8EB" FontSize="11"/><TextBlock x:Name="InsightTitle" Text="Connect your collection for a daily observation" FontSize="23" Margin="0,10,0,8"/><TextBlock x:Name="InsightDetail" Text="Refresh a collection to uncover your first observation." TextWrapping="Wrap" FontSize="16" LineHeight="25"/><TextBlock x:Name="InsightMethod" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,12,0,0" LineHeight="20"/></StackPanel></Border>
+            <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Review rhythm" FontSize="20"/><TextBlock Text="All rated answers · all history · midnight-based calendar weeks" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,6,0,12"/><local:ReviewChart x:Name="OverviewChart" Height="180"/></StackPanel></Border>
+            <TextBlock Text="Inventory means present in the selected decks, including unstudied and suspended cards. Dictionary coverage and stem families arrive in Phase 1B." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,12"/>
+          </StackPanel>
+        </ScrollViewer>
+        <Grid x:Name="VocabularyPage" Visibility="Collapsed">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <DockPanel Margin="0,0,0,14"><Button DockPanel.Dock="Right" Content="Export CSV" Click="ExportVocabulary"/><TextBox x:Name="VocabularySearch" TextChanged="SearchChanged" ToolTip="Search expression, reading, meaning, or deck" AutomationProperties.Name="Search vocabulary" Margin="0,0,12,0"/></DockPanel>
+          <DataGrid x:Name="VocabularyGrid" Grid.Row="1" MouseDoubleClick="VocabularyDetails"><DataGrid.Columns><DataGridTextColumn Header="Expression" Binding="{Binding Expression}" Width="160"/><DataGridTextColumn Header="Reading" Binding="{Binding Reading}" Width="160"/><DataGridTextColumn Header="Meaning" Binding="{Binding Meaning}" Width="*"/><DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="65"/><DataGridTextColumn Header="Cards" Binding="{Binding Cards}" Width="65"/><DataGridTextColumn Header="Decks" Binding="{Binding Decks}" Width="180"/></DataGrid.Columns></DataGrid>
+          <StackPanel Grid.Row="2" Margin="0,12,0,0"><TextBlock x:Name="VocabularySummary" Foreground="{StaticResource Muted}"/><Button x:Name="SkippedButton" Content="Inspect skipped expressions" Click="ShowSkipped" HorizontalAlignment="Left" Margin="0,8,0,0"/><TextBlock Text="Double-click an entry for supporting note/card IDs. Click column headers to sort." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,8,0,0"/></StackPanel>
+        </Grid>
+        <Grid x:Name="ReviewsPage" Visibility="Collapsed">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <WrapPanel Margin="0,0,0,14"><TextBlock Text="Range" VerticalAlignment="Center" Margin="0,0,8,0"/><ComboBox x:Name="RangePicker" SelectionChanged="ReviewFilterChanged" SelectedIndex="0" Margin="0,0,18,0"><ComboBoxItem Content="All history"/><ComboBoxItem Content="Last 30 days"/><ComboBoxItem Content="Last 90 days"/></ComboBox><TextBlock Text="Events" VerticalAlignment="Center" Margin="0,0,8,0"/><ComboBox x:Name="KindPicker" SelectionChanged="ReviewFilterChanged" SelectedIndex="0" Margin="0,0,18,0"><ComboBoxItem Content="Ordinary review"/><ComboBoxItem Content="Learning"/><ComboBoxItem Content="Relearning"/><ComboBoxItem Content="Filtered / cram"/><ComboBoxItem Content="All rated answers"/></ComboBox><ComboBox x:Name="GranularityPicker" SelectionChanged="ChartGroupingChanged" SelectedIndex="1" Margin="0,0,18,0"><ComboBoxItem Content="Daily chart"/><ComboBoxItem Content="Weekly chart"/></ComboBox><Button Content="Export CSV" Click="ExportReviews"/></WrapPanel>
+          <TextBlock x:Name="ReviewSummary" Grid.Row="1" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+          <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"><StackPanel>
+            <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Answers over time" FontSize="20" Margin="0,0,0,14"/><local:ReviewChart x:Name="HistoryChart" Height="180"/></StackPanel></Border>
+            <TextBlock Text="Time of day" FontSize="20" Margin="0,0,0,10"/>
+            <DataGrid x:Name="BucketGrid" Height="184" Margin="0,0,16,12"><DataGrid.Columns><DataGridTextColumn Header="Period" Binding="{Binding Period}" Width="*"/><DataGridTextColumn Header="Answers" Binding="{Binding Answers}" Width="100"/><DataGridTextColumn Header="Again" Binding="{Binding Again}" Width="80"/><DataGridTextColumn Header="Again rate" Binding="{Binding AgainDisplay}" Width="110"/><DataGridTextColumn Header="Median answer" Binding="{Binding TimeDisplay}" Width="125"/><DataGridTextColumn Header="Sample" Binding="{Binding Confidence}" Width="120"/></DataGrid.Columns></DataGrid>
+            <TextBlock Text="Recorded answer durations may be capped by Anki. Time buckets are descriptive; smaller Again rates do not prove a better time to study." TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,0,16,18"/>
+            <DockPanel Margin="0,0,16,10"><ComboBox x:Name="RankingPicker" DockPanel.Dock="Right" SelectionChanged="RankingChanged" SelectedIndex="0"><ComboBoxItem Content="Most reviewed"/><ComboBoxItem Content="Most Again answers"/></ComboBox><TextBlock Text="Card rankings" FontSize="20"/></DockPanel>
+            <TextBlock Text="Rankings always use ordinary reviews in the selected date range. Lifetime lapses come from current card state." Foreground="{StaticResource Muted}" TextWrapping="Wrap" FontSize="12" Margin="0,0,16,10"/>
+            <DataGrid x:Name="RankingGrid" Height="300" Margin="0,0,16,18"><DataGrid.Columns><DataGridTextColumn Header="Expression" Binding="{Binding Expression}" Width="*"/><DataGridTextColumn Header="Deck" Binding="{Binding Deck}" Width="200"/><DataGridTextColumn Header="Reviews" Binding="{Binding Reviews}" Width="95"/><DataGridTextColumn Header="Again" Binding="{Binding Again}" Width="90"/><DataGridTextColumn Header="Lifetime lapses" Binding="{Binding LifetimeLapses}" Width="125"/><DataGridTextColumn Header="Card ID" Binding="{Binding CardId}" Width="150"/></DataGrid.Columns></DataGrid>
+            <Expander Header="Daily answer counts" Foreground="#EFF1F6" Margin="0,0,16,18"><DataGrid x:Name="DailyGrid" Height="240"><DataGrid.Columns><DataGridTextColumn Header="Date" Binding="{Binding Day}" Width="*"/><DataGridTextColumn Header="Answers" Binding="{Binding Answers}" Width="150"/></DataGrid.Columns></DataGrid></Expander>
+          </StackPanel></ScrollViewer>
+        </Grid>
+        <ScrollViewer x:Name="InsightsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="ONE OBSERVATION EACH DAY" Foreground="#8FB8EB" FontSize="11"/><TextBlock x:Name="FeaturedTitle" FontSize="28" Margin="0,14,0,12" TextWrapping="Wrap"/><TextBlock x:Name="FeaturedDetail" FontSize="18" TextWrapping="Wrap" LineHeight="28"/></StackPanel></Border><TextBlock Text="Based on all available rated-answer history and the current inventory. Card rankings use ordinary reviews. Today's topic stays the same when you reopen the app; its values update after refresh. A topic will not repeat within seven calendar days." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,20"/><TextBlock Text="The initial library uses review patterns and vocabulary inventory. Rarity and dictionary coverage will be added in later phases." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,0"/></StackPanel></ScrollViewer>
+        <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+          <StackPanel x:Name="SettingsContent">
+            <TextBlock Text="Connect your collection" FontSize="22" Margin="0,0,0,8"/><TextBlock Text="Close Anki before inspecting or refreshing. Select the profile folder that contains collection.anki2." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,16"/>
+            <DockPanel Margin="0,0,0,18"><Button Content="Browse…" DockPanel.Dock="Right" Click="BrowseProfile"/><Button Content="Inspect profile" DockPanel.Dock="Right" Click="InspectProfile"/><TextBox x:Name="ProfilePath" IsReadOnly="True" Margin="0,0,12,0" AutomationProperties.Name="Anki profile folder"/></DockPanel>
+            <TextBlock Text="Deck selection" FontSize="21" Margin="0,0,0,8"/><TextBlock Text="Include a parent to include its descendants. Exclude a subtree to omit it. Inherit follows the nearest parent rule; the default is excluded. Counts shown are direct card counts." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,12"/>
+            <DataGrid x:Name="DeckGrid" Height="200" IsReadOnly="False" Margin="0,0,16,20"><DataGrid.Columns><DataGridTextColumn Header="Deck" Binding="{Binding Name}" Width="*" IsReadOnly="True"/><DataGridTextColumn Header="Cards" Binding="{Binding Cards}" Width="90" IsReadOnly="True"/><DataGridTemplateColumn Header="Rule" Width="140"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode, UpdateSourceTrigger=PropertyChanged}" Padding="5,0"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn></DataGrid.Columns></DataGrid>
+            <TextBlock Text="Note types and fields" FontSize="21" Margin="0,0,0,8"/><TextBlock Text="Only vocabulary types contribute to the inventory. Kanji and grammar types contribute reviews. Suggestions need your confirmation. Bracket readings is an explicit option for fields such as 漢字[かんじ]." Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,16,12"/>
+            <DataGrid x:Name="MappingGrid" Height="270" IsReadOnly="False" Margin="0,0,16,20"><DataGrid.Columns>
+              <DataGridTextColumn Header="Note type" Binding="{Binding Name}" Width="160" IsReadOnly="True"/>
+              <DataGridTemplateColumn Header="Category" Width="135"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Padding="5,0"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Expression" Width="150"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox ItemsSource="{Binding RequiredFields}" SelectedItem="{Binding Expression, UpdateSourceTrigger=PropertyChanged}" Padding="5,0"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Reading" Width="150"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox ItemsSource="{Binding OptionalFields}" SelectedItem="{Binding Reading, UpdateSourceTrigger=PropertyChanged}" Padding="5,0"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="Meaning" Width="150"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox ItemsSource="{Binding OptionalFields}" SelectedItem="{Binding Meaning, UpdateSourceTrigger=PropertyChanged}" Padding="5,0"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+              <DataGridCheckBoxColumn Header="Bracket readings" Binding="{Binding StripBracketReadings, UpdateSourceTrigger=PropertyChanged}" Width="125"/>
+            </DataGrid.Columns></DataGrid>
+            <DockPanel Margin="0,0,16,20"><TextBlock Text="Review time zone" VerticalAlignment="Center" Margin="0,0,12,0"/><ComboBox x:Name="TimeZonePicker" DisplayMemberPath="DisplayName" SelectedValuePath="Id"/></DockPanel>
+            <WrapPanel Margin="0,0,0,16"><Button Content="Preview selection" Click="PreviewSelection"/><Button Content="Save and refresh" Click="SaveSettings" Background="#3D659B"/><Button Content="Open app data folder" Click="OpenDataFolder"/></WrapPanel>
+            <Border Style="{StaticResource Card}"><TextBlock x:Name="PreviewText" Text="Inspect a profile, choose your decks and mappings, then preview before saving." TextWrapping="Wrap" LineHeight="23"/></Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+      <TextBlock x:Name="Footer" Grid.Row="4" Text="Phase 1A · local collection analysis" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,12,0,0" TextWrapping="Wrap"/>
+    </Grid>
+  </Grid>
+</Window>

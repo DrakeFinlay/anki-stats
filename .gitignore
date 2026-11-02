@@ -1,0 +1,14 @@
+.tools/
+artifacts/
+**/bin/
+**/obj/
+.vs/
+*.user
+*.anki2*
+*.apkg
+*.colpkg
+*.db
+*.db-*
+*.sqlite*
+*.csv
+local-data/

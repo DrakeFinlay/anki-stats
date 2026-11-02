@@ -1,0 +1,22 @@
+param([string]$OutputDirectory = "artifacts\AnkiStats")
+$ErrorActionPreference = 'Stop'
+$projectRoot = Split-Path -Parent $PSScriptRoot
+Push-Location $projectRoot
+try {
+    $dotnetPath = if (Test-Path -LiteralPath '.tools\dotnet\dotnet.exe') { Join-Path $projectRoot '.tools\dotnet\dotnet.exe' } else { (Get-Command dotnet -ErrorAction Stop).Source }
+    $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+    $env:DOTNET_CLI_HOME = Join-Path $projectRoot '.tools\cli'
+    $env:NUGET_PACKAGES = Join-Path $projectRoot '.tools\packages'
+    & $dotnetPath publish src/AnkiStats.App/AnkiStats.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o $OutputDirectory
+    if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
+    $output = (Resolve-Path -LiteralPath $OutputDirectory).Path
+    Copy-Item -LiteralPath 'THIRD-PARTY-NOTICES.md' -Destination $output
+    Copy-Item -LiteralPath 'LICENSES' -Destination $output -Recurse -Force
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut((Join-Path (Split-Path $output -Parent) 'Anki Stats.lnk'))
+    $shortcut.TargetPath = Join-Path $output 'AnkiStats.exe'
+    $shortcut.WorkingDirectory = $output
+    $shortcut.Description = 'Local, read-only Anki collection analysis'
+    $shortcut.Save()
+    Write-Output "Ready: $output\AnkiStats.exe"
+} finally { Pop-Location }
