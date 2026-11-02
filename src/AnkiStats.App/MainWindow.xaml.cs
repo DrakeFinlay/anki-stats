@@ -33,6 +33,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         CalendarHeatmap.DaySelected += text => CalendarDay.Text = text;
         DeckGrid.ItemsSource = deckChoices;
+        ProfilesGrid.ItemsSource = editorProfiles;
         MappingGrid.ItemsSource = mappingChoices;
         TimeZonePicker.ItemsSource = TimeZoneInfo.GetSystemTimeZones();
         TimeZonePicker.SelectedValue = TimeZoneInfo.Local.Id;
@@ -59,13 +60,13 @@ public partial class MainWindow : Window
             if (settings is null || string.IsNullOrWhiteSpace(settings.ProfileFolder)) { ShowPage("Settings"); return; }
             ProfilePath.Text = settings.ProfileFolder;
             TimeZonePicker.SelectedValue = settings.TimeZoneId;
-            try { data = await Task.Run(() => store.LoadCache(settings.CollectionKey)); }
+            try { importedData = await Task.Run(() => store.LoadCache(settings.CollectionKey)); }
             catch (Exception e) when (e is IOException or InvalidDataException or System.Text.Json.JsonException or Microsoft.Data.Sqlite.SqliteException)
             { SetStatus("The previous cache could not be read. Attempting a fresh import.", true); }
-            if (data is not null)
+            if (importedData is not null)
             {
-                PopulateSettings(data.Metadata, settings);
-                await AnalyzeAndDisplay();
+                PopulateSettings(importedData.Metadata, settings);
+                await DisplayImport(importedData);
                 SetStatus("Showing the last successful import while refreshing…");
             }
             await RefreshInternal();
@@ -93,6 +94,7 @@ public partial class MainWindow : Window
         if (busy) return;
         busy = true; RefreshButton.IsEnabled = false; SettingsContent.IsEnabled = false;
         RangePicker.IsEnabled = KindPicker.IsEnabled = false;
+        ActiveProfilePicker.IsEnabled = false;
         Progress.Visibility = Visibility.Visible;
         try { await action(); }
         catch (Exception e)
@@ -105,6 +107,7 @@ public partial class MainWindow : Window
         {
             busy = false; RefreshButton.IsEnabled = true; SettingsContent.IsEnabled = true;
             RangePicker.IsEnabled = KindPicker.IsEnabled = true;
+            ActiveProfilePicker.IsEnabled = profileViews.Count > 0;
             Progress.Visibility = Visibility.Collapsed;
         }
     }
@@ -113,14 +116,22 @@ public partial class MainWindow : Window
         if (settings is null) { ShowPage("Settings"); SetStatus("Choose a profile, select decks, and preview the field mappings first."); return; }
         SetStatus("Acquiring a safe private copy of the collection…");
         var progress = new Progress<string>(s => SetStatus(s));
-        var next = await Task.Run(() => new CollectionImporter(store.TemporaryRoot).Import(settings, progress));
+        var draft = DeckProfiles.Copy(settings);
+        if (draft.Profiles.Count == 0)
+        {
+            var found = await Task.Run(() => new CollectionImporter(store.TemporaryRoot).Discover(draft.ProfileFolder));
+            DeckProfiles.Ensure(draft, found);
+            foreach (var type in found.NoteTypes.Where(t => draft.Mappings.All(m => m.NoteTypeId != t.Id)))
+                draft.Mappings.Add(new MappingChoice(type, null).ToMapping());
+        }
+        var next = await Task.Run(() => new CollectionImporter(store.TemporaryRoot).Import(draft, progress));
         // Validate and compute before replacing the last successful persistent result.
-        var nextOverview = await Task.Run(() => Analyzer.Analyze(next, kind: null));
-        await Task.Run(() => store.SaveCache(next));
-        data = next; overview = nextOverview;
+        var prepared = await Task.Run(() => PrepareProfiles(next));
+        await Task.Run(() => store.SaveCache(next, draft));
+        settings = draft;
         PopulateSettings(next.Metadata, settings);
-        await AnalyzeAndDisplay(nextOverview);
-        SetStatus($"Up to date. {next.Cards.Count:N0} included cards · {next.Notes.Count:N0} included notes. Anki was read without modification.");
+        await DisplayImport(next, prepared);
+        SetStatus($"Up to date. {prepared.Count:N0} enabled deck profiles · {next.Cards.Count:N0} unique included cards. Switch profiles without refreshing. Anki was read without modification.");
     }
     private async Task AnalyzeAndDisplay(AnalysisResult? computed = null)
     {
@@ -133,9 +144,8 @@ public partial class MainWindow : Window
         InventoryBreakdown.Text = $"{data.Notes.Count(n => n.Category == "Vocabulary"):N0} vocabulary notes → {overview.Vocabulary.Count:N0} distinct entries\nGrammar and kanji notes excluded; all card states included";
         UpdateSourceIndicator();
         AgainRate.Text = overview.AgainDisplay;
-        OverviewScope.Text = "Included deck rules: " + data.Scope;
+        OverviewScope.Text = "Active profile: " + data.Scope;
         LastRefresh.Text = "Last successful refresh · " + data.RefreshedAt.ToLocalTime().ToString("MMM d, yyyy · HH:mm");
-        OverviewChart.SetRows(overview.Daily, true);
         ApplySearch();
         SkippedButton.IsEnabled = overview.Skipped.Count > 0;
         UpdateInsight();
@@ -147,7 +157,7 @@ public partial class MainWindow : Window
     private async Task UpdateCalendar()
     {
         if (data is null) return;
-        var selectedStart = (StreakPicker.SelectedItem as ReviewStreak)?.Start;
+        var selectedStart = selectedStreaks.GetValueOrDefault(ActiveProfileId);
         var now = DateTimeOffset.UtcNow;
         streaks = await Task.Run(() => Streaks.Analyze(data, now));
         calendarDate = Streaks.StudyDay(now, TimeZoneInfo.FindSystemTimeZoneById(data.TimeZoneId));
@@ -165,6 +175,7 @@ public partial class MainWindow : Window
     private void DisplayStreak()
     {
         var streak = StreakPicker.SelectedItem as ReviewStreak;
+        if (streak is not null) selectedStreaks[ActiveProfileId] = streak.Start;
         CalendarHeatmap.SetStreak(streak);
         CalendarScroll.ScrollToLeftEnd();
         StreakSummary.Text = streak is null ? "No streak selected" : $"{streak.Length:N0} consecutive days · {streak.Answers:N0} answers\n{streak.Start:MMM d, yyyy} – {streak.End:MMM d, yyyy}";
@@ -175,7 +186,7 @@ public partial class MainWindow : Window
     {
         if (data is null || overview is null) return;
         insightDate = Today(data.TimeZoneId);
-        var insight = store.SelectInsight(data.CollectionKey, insightDate, overview.Insights);
+        var insight = store.SelectInsight(data.CollectionKey + ":" + ActiveProfileId, insightDate, overview.Insights);
         InsightTitle.Text = FeaturedTitle.Text = insight.Title;
         InsightDetail.Text = FeaturedDetail.Text = insight.Detail;
         InsightMethod.Text = "How this is measured: " + insight.Explanation + $"\nScope: {data.Scope} · all available history · all rated answers unless ordinary reviews are specified · {data.TimeZoneId}.";
@@ -191,7 +202,7 @@ public partial class MainWindow : Window
         DailyGrid.ItemsSource = reviews.Daily;
         UpdateRanking();
         HistoryChart.SetRows(reviews.Daily, GranularityPicker.SelectedIndex == 1);
-        ReviewSummary.Text = $"{reviews.TotalAnswers:N0} selected answers · {reviews.Daily.Count:N0} active calendar days · {data.TimeZoneId}. Administrative and unknown events excluded. Missing durations excluded from medians.";
+        ReviewSummary.Text = $"{data.Scope}\n{reviews.TotalAnswers:N0} selected answers · {reviews.Daily.Count:N0} active calendar days · {data.TimeZoneId}. Administrative and unknown events excluded. Missing durations excluded from medians.";
     }
     private void Navigate(object sender, RoutedEventArgs e) => ShowPage((string)((Button)sender).Tag);
     private void ShowPage(string page)
@@ -246,6 +257,7 @@ public partial class MainWindow : Window
         {
             ProfilePath.Text = picker.FolderName;
             metadata = null; previewSignature = null; deckChoices.Clear(); mappingChoices.Clear();
+            populatingProfiles = true; editorProfiles.Clear(); editingProfile = null; populatingProfiles = false;
             PreviewText.Text = "Inspect this profile to choose decks and map fields.";
         }
     }
@@ -261,23 +273,21 @@ public partial class MainWindow : Window
     private void PopulateSettings(CollectionMetadata found, Settings? previous)
     {
         metadata = found; previewSignature = null;
-        deckChoices.Clear(); mappingChoices.Clear();
-        foreach (var deck in found.Decks)
-        {
-            var rule = previous?.DeckRules.Find(r => r.Name == deck.Name);
-            deckChoices.Add(new() { Name = deck.Name, Cards = deck.Cards, Mode = rule is null ? "Inherit" : rule.Include ? "Include" : "Exclude" });
-        }
+        PopulateProfiles(found, previous);
+        mappingChoices.Clear();
         foreach (var type in found.NoteTypes) mappingChoices.Add(new(type, previous?.Mappings.Find(m => m.NoteTypeId == type.Id)));
         if (previous is not null) TimeZonePicker.SelectedValue = previous.TimeZoneId;
     }
     private Settings DraftSettings()
     {
-        DeckGrid.CommitEdit(); MappingGrid.CommitEdit();
+        ProfilesGrid.CommitEdit(); MappingGrid.CommitEdit(); SaveEditingRules();
         if (metadata is null) throw new InvalidDataException("Inspect the profile before setting up your selection.");
         var draft = new Settings { ProfileFolder = ProfilePath.Text, TimeZoneId = (string?)TimeZonePicker.SelectedValue ?? TimeZoneInfo.Local.Id,
-            DeckRules = deckChoices.Where(d => d.Mode != "Inherit").Select(d => new DeckRule(d.Name, d.Mode == "Include")).ToList(),
+            Profiles = DeckProfiles.Copy(editorProfiles.ToList()),
+            ActiveProfileId = ActiveProfileId,
             Mappings = mappingChoices.Select(m => m.ToMapping()).ToList() };
-        if (!metadata.Decks.Any(d => draft.Includes(d.Name))) throw new InvalidDataException("Include at least one deck. Child decks inherit the nearest parent rule.");
+        DeckProfiles.Validate(draft, metadata);
+        if (!draft.Profiles.Any(p => p.Enabled && p.Id == draft.ActiveProfileId)) draft.ActiveProfileId = draft.Profiles.First(p => p.Enabled).Id;
         if (!draft.Mappings.Any(m => m.Category != "Ignored")) throw new InvalidDataException("Map at least one note type to Vocabulary, Grammar, or Kanji.");
         return draft;
     }
@@ -285,9 +295,11 @@ public partial class MainWindow : Window
     {
         var draft = DraftSettings(); SetStatus("Previewing your selection without saving…");
         var imported = await Task.Run(() => new CollectionImporter(store.TemporaryRoot).Import(draft));
-        var result = await Task.Run(() => Analyzer.Analyze(imported));
+        var prepared = await Task.Run(() => PrepareProfiles(imported));
+        var result = prepared.First(p => p.Profile.Id == draft.ActiveProfileId).Analysis;
         previewSignature = draft.Signature;
-        PreviewText.Text = $"Preview: {result.Vocabulary.Count:N0} distinct vocabulary entries · {imported.Notes.Count:N0} notes · {imported.Cards.Count:N0} cards\n{result.Skipped.Count:N0} skipped expressions · {result.OrdinaryReviews:N0} ordinary reviews\n\nSample extracted expressions:\n" + string.Join("\n", result.Vocabulary.Take(5).Select(v => $"{v.Expression}  {v.Reading}  {v.Meaning}"));
+        PreviewText.Text = string.Join("\n", prepared.Select(p => $"{p.Profile.Name}: {p.Analysis.TotalAnswers:N0} rated answers · {p.Data.Cards.Count:N0} cards · {p.Analysis.Vocabulary.Count:N0} vocabulary entries"))
+            + $"\n\nActive profile sample ({prepared.First(p => p.Profile.Id == draft.ActiveProfileId).Profile.Name}):\n" + string.Join("\n", result.Vocabulary.Take(5).Select(v => $"{v.Expression}  {v.Reading}  {v.Meaning}"));
         SetStatus("Preview complete. Check extraction and counts, then save and refresh.");
     });
     private async void SaveSettings(object sender, RoutedEventArgs e) => await Guard(async () =>
@@ -297,11 +309,11 @@ public partial class MainWindow : Window
         // Keep current results and settings intact until the new selection is imported.
         SetStatus("Applying the previewed selection…");
         var next = await Task.Run(() => new CollectionImporter(store.TemporaryRoot).Import(draft));
-        var analyzed = await Task.Run(() => Analyzer.Analyze(next, kind: null));
+        var prepared = await Task.Run(() => PrepareProfiles(next));
         await Task.Run(() => store.SaveCache(next, draft));
-        settings = draft; data = next;
-        await AnalyzeAndDisplay(analyzed);
-        SetStatus("Connected. Future launches refresh this selection automatically with Anki closed.");
+        settings = draft;
+        await DisplayImport(next, prepared);
+        SetStatus("Connected. Saved deck profiles refresh together with Anki closed. Switch the active profile without changing deck rules.");
         ShowPage("Overview");
     });
     private void OpenDataFolder(object sender, RoutedEventArgs e) => Process.Start(new ProcessStartInfo("explorer.exe", store.Root) { UseShellExecute = true });

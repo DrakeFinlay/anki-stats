@@ -24,20 +24,22 @@ public sealed class Settings
 {
     public string ProfileFolder { get; set; } = "";
     public List<DeckRule> DeckRules { get; set; } = [];
+    public List<DeckProfile> Profiles { get; set; } = [];
+    public string ActiveProfileId { get; set; } = "";
     public List<FieldMapping> Mappings { get; set; } = [];
     public string TimeZoneId { get; set; } = TimeZoneInfo.Local.Id;
     [System.Text.Json.Serialization.JsonIgnore]
     public string CollectionKey => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(ProfileFolder).ToUpperInvariant())));
-    public bool Includes(string name) => DeckRules.Where(r => name == r.Name || name.StartsWith(r.Name + "::", StringComparison.Ordinal))
-        .OrderByDescending(r => r.Name.Length).FirstOrDefault()?.Include ?? false;
+    public bool Includes(string name) => Profiles.Count > 0 ? Profiles.Any(p => p.Includes(name)) : DeckProfiles.Includes(DeckRules, name);
     [System.Text.Json.Serialization.JsonIgnore]
-    public string Signature => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { ProfileFolder, DeckRules, Mappings, TimeZoneId })));
+    public string Signature => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { ProfileFolder, DeckRules, Profiles, Mappings, TimeZoneId })));
 }
 public sealed record NoteRecord(long Id, string Expression, string Reading, string Meaning, string Category, string NoteType);
 public sealed record CardRecord(long Id, long NoteId, string Deck, int Queue, int Type, int LifetimeLapses);
 public sealed record ReviewRecord(long Id, long CardId, int Rating, int Milliseconds, int Kind);
 public sealed class ImportedCollection
 {
+    public List<DeckProfile> Profiles { get; set; } = [];
     public string CollectionKey { get; set; } = "";
     public string Signature { get; set; } = "";
     public string Scope { get; set; } = "";

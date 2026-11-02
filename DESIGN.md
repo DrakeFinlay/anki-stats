@@ -85,6 +85,8 @@ Deck selections must be editable. Selecting a parent includes its descendants; u
 
 ### Subsequent launches
 
+Saved deck profiles are a follow-up capability. Each profile has a stable identifier, name, enabled state, and independent deck rules. The app imports their union in one protected acquisition, then filters the imported cards, notes, and reviews per profile. Overlapping profiles do not duplicate records within a combined profile. Disabled profiles remain in the import but have no overview chart or active analysis option. A header selector scopes summary cards, drilldowns, insights, exports, and Calendar; the Calendar selector is synchronized with it. Overview shows one Review rhythm chart per enabled profile. The combined profile treats a rated answer in either constituent deck as activity on that study day. Profiles share field mappings and time zone. Existing single selections migrate without losing their rules; the requested Japanese, Kanji, and combined presets are suggested when those deck trees exist. Profile settings are saved with the successful cache, which retains its own profile definitions for failed-refresh recovery. Active-profile changes persist without reimporting. Daily discovery rotation is separate per profile.
+
 Open a responsive application window, show refresh progress, and then present the overview. If cached results exist, they may remain visible during refresh with their timestamp and a refreshing indicator. Replace results together only after successful analysis.
 
 Provide manual Refresh, last successful refresh time, source/selection settings, and visible error recovery. No background polling, system tray process, or desktop notifications are required initially.
@@ -144,7 +146,7 @@ Initial candidates include the most-reviewed card, card with the most review Aga
 
 Select one template for the local calendar date and persist that selection. Reopening the app on the same day retains the template while refresh updates its values. Persist the previous seven dates' selections and exclude those template IDs from selection. This history is separate from deferred knowledge snapshots.
 
-Skip templates without enough data. If no eligible unseen template remains, show an explanation or a neutral summary rather than violating the no-repeat rule or inventing a result. Keep insight history across restarts and refreshes. History is collection-specific; changing filters recomputes values without resetting repetition protection.
+Skip templates without enough data. If no eligible unseen template remains, show an explanation or a neutral summary rather than violating the no-repeat rule or inventing a result. Keep insight history across restarts and refreshes. History is specific to the collection and saved deck-profile identifier; renaming a profile or changing its rules recomputes values without resetting repetition protection.
 
 Rarest-word insights require a documented frequency source and are deferred until dictionary/frequency support exists. Common status alone is not an adequate ranking of rarity. A leech tag, a lapse count, and repeated Again answers are distinct concepts and must be labeled accurately.
 

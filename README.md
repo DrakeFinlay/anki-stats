@@ -27,6 +27,14 @@ On first launch:
 
 Subsequent launches refresh the saved selection automatically. Close Anki before refreshing. A failed refresh leaves the latest successful import available with its original scope and timestamp.
 
+## Deck profiles
+
+Use **Active profile** in the header to switch the summary cards, Vocabulary, Reviews, Insights, Calendar, and exports together. Switching uses the last imported data and does not require Anki to be closed. Overview displays a separate Review rhythm chart for every enabled profile. Calendar also has a profile dropdown above its streak ranges; it stays synchronized with the header.
+
+In Settings, select a row under **Deck profiles** to edit that profile's include/exclude rules. You can rename, add, remove, or enable profiles. Preview and save after changing profiles. Field mappings and review time zone are shared. Refresh imports the union of saved profiles once, including disabled profiles, while disabled profiles stay out of the analysis pickers and overview charts.
+
+When upgrading an existing selection, the app creates **日本語**, **漢字**, and **日本語 + 漢字** if those deck trees exist, preserving descendant exclusions and the previous active selection. Other existing selections are retained as **Saved selection**. The combined profile counts each card and answer once; activity in either deck keeps its streak going, and daily counts include both decks. Vocabulary entries still exclude notes mapped as Kanji or Grammar. Failed refreshes retain the previous imported profile definitions and results. Daily insight rotation is saved separately for each deck profile.
+
 ## Measurements
 
 - Calendar shows consecutive review streaks with seven weekday rows, review-count heat colors (blue 1–499, purple 500–999, gold 1,000+; darker means more within each band, with gold scaling to the streak maximum), and a dropdown of historical ranges. Streaks span years and scroll horizontally. All rated answer kinds count within the selected decks; a complete day without answers breaks the streak. Calendar uses a fixed 4 AM cutoff in the selected review time zone (Anki's default; custom Anki cutoffs are not imported). The current study day remains open until the next cutoff. Hover or select a day for counts; arrow keys and Home/End navigate the calendar.

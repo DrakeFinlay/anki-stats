@@ -9,6 +9,7 @@ The current version is Phase 1A. It measures collection inventory and recorded s
 | Term | Meaning |
 | --- | --- |
 | Profile | The local folder containing an Anki user's collection and related files. |
+| Deck profile | An app-specific named deck selection, such as 日本語, 漢字, or 日本語 + 漢字. These all read the same connected Anki collection. |
 | Collection | The database containing notes, cards, decks, and review history. The main file is `collection.anki2`. |
 | Note | Stored information, such as a word and its meaning. |
 | Card | A question generated from a note. A note can generate more than one card. |
@@ -49,6 +50,10 @@ The discovery topic stays the same for a day while refreshed values can change. 
 Always check the source profile, included deck rules, and last successful refresh time. A test-session banner identifies isolated development data; those numbers must not be interpreted as your collection's statistics.
 
 ## Explore details and export data
+
+Use **Active profile** in the header to choose the named deck selection for all summary cards, detail pages, discoveries, and exports. Overview keeps a separate Review rhythm chart for every enabled deck profile. Calendar has a synchronized profile selector and remembers the chosen streak range per profile while the app is open. A combined profile adds answers from both decks, and either deck can keep its streak active.
+
+Manage deck profiles in Settings: select a profile row, edit its include/exclude rules below, and preview and save. Names and enabled states can be edited in the table; Add profile copies the selected rules as a starting point. Turning a profile off removes its chart and active-selection option. Switching between saved profiles uses cached data; Refresh is only needed to obtain new Anki activity. Field mappings and time zone apply to all profiles.
 
 In **Vocabulary**, search by expression, reading, meaning, or deck. Click column headings to sort. Double-click an entry to inspect its supporting note and card IDs. The skipped-expression view identifies mapped vocabulary notes whose extracted expression is empty. Export CSV saves the current search results and sort order.
 

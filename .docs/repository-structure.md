@@ -39,6 +39,7 @@ This project produces the executable. It references the core library and uses Wi
 | `App.xaml.cs` | English formatting and a last-resort UI exception handler. |
 | `MainWindow.xaml` | Layout for Overview, Vocabulary, Reviews, Insights, and Settings. |
 | `MainWindow.xaml.cs` | Connects controls to setup, importing, analysis, searching, daily discoveries, and exports. Contains the editable deck and field-mapping choices. |
+| `MainWindow.Profiles.cs` | Coordinates saved deck-profile editing, active selection, scoped results, and overview comparison charts. |
 | `ReviewChart.cs` | Draws review-volume bars directly with WPF; groups dates for daily or weekly views. |
 | `app.manifest` | Declares normal user privileges and Windows compatibility. |
 
@@ -51,6 +52,7 @@ This library contains the work that does not require a window. Keeping it separa
 | File | Responsibility |
 | --- | --- |
 | `Models.cs` | Data types for settings, deck rules, field mappings, imported records, and calculated results. |
+| `DeckProfiles.cs` | Migrates and validates named deck profiles and filters imported data to a profile without duplicating records. |
 | `CollectionImporter.cs` | Safely acquires a private collection copy, reads supported schemas, applies selections, and extracts notes, cards, and review events. |
 | `Analysis.cs` | Cleans field text, groups vocabulary entries, calculates review statistics, generates discovery candidates, and writes CSV exports. |
 | `LocalStore.cs` | Stores settings, the latest imported result, and daily discovery history in an app-owned SQLite database. The imported result is serialized as compressed JSON inside that database. |
