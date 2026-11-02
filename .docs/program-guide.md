@@ -9,6 +9,7 @@ The current version is Phase 1A. It measures collection inventory and recorded s
 | Term | Meaning |
 | --- | --- |
 | Profile | The local folder containing an Anki user's collection and related files. |
+| Deck profile | An app-specific named deck selection, such as 日本語, 漢字, or 日本語 + 漢字. These all read the same connected Anki collection. |
 | Collection | The database containing notes, cards, decks, and review history. The main file is `collection.anki2`. |
 | Note | Stored information, such as a word and its meaning. |
 | Card | A question generated from a note. A note can generate more than one card. |
@@ -49,6 +50,14 @@ The discovery topic stays the same for a day while refreshed values can change. 
 Always check the source profile, included deck rules, and last successful refresh time. A test-session banner identifies isolated development data; those numbers must not be interpreted as your collection's statistics.
 
 ## Explore details and export data
+
+**Learning Patterns** has three views: Difficulty candidates, Cross-deck comparison, and Shared patterns. The card list follows the active profile and can be filtered to three historical lapses, active cards, recovery/suspended cards, recent recurrence, or unresolved character readings. Shared groups also follow the active profile. Cross-deck comparisons deliberately use both imported 日本語 and 漢字 trees; known vocabulary is supporting context and never a difficulty ranking. Select a finding to see its explanation and cards; double-click a card for IDs and ordinary review history. A repeated word or reading is a possible connection to inspect, not proof of confusion. The page's expandable measurement guide explains the deck exclusions, recovery roles, and unresolved readings. No dictionary or grammar inference is performed.
+
+**Time Analysis** shows recorded review hours, daily/weekly time charts, mean and median seconds per answer, and weekday/hour breakdowns for the active deck profile. Its Last 6 months filter uses six calendar months rather than a fixed 180 days. The comparison table always shows all-history and six-month results alongside one another, regardless of the selected chart range. Gray and gold chart lines mark the corresponding average daily or seven-day time. Exact period totals are available below the breakdowns. Calendar averages include zero-review dates; the first available answer limits how far back those averages extend. Today and edge weeks may be incomplete. Time uses the same 4 AM study-day cutoff as Calendar. Anki can cap recorded answer durations, and missing durations cannot be reconstructed, so the hours card measures recorded answer time rather than all elapsed study time.
+
+Use **Active profile** in the header to choose the named deck selection for all summary cards, detail pages, discoveries, and exports. Overview keeps a separate Review rhythm chart for every enabled deck profile. Calendar has a synchronized profile selector and remembers the chosen streak range per profile while the app is open. A combined profile adds answers from both decks, and either deck can keep its streak active.
+
+Manage deck profiles in Settings: select a profile row, edit its include/exclude rules below, and preview and save. Names and enabled states can be edited in the table; Add profile copies the selected rules as a starting point. Turning a profile off removes its chart and active-selection option. Switching between saved profiles uses cached data; Refresh is only needed to obtain new Anki activity. Field mappings and time zone apply to all profiles.
 
 In **Vocabulary**, search by expression, reading, meaning, or deck. Click column headings to sort. Double-click an entry to inspect its supporting note and card IDs. The skipped-expression view identifies mapped vocabulary notes whose extracted expression is empty. Export CSV saves the current search results and sort order.
 

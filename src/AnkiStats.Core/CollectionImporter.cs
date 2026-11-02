@@ -104,8 +104,9 @@ public sealed class CollectionImporter(string temporaryRoot)
                 if (index >= 0 && name.Length > 0 && type.Fields[index] != name)
                     throw new InvalidDataException("A mapped field was renamed or reordered. Inspect the profile, update its mappings, and preview again.");
         }
-        var data = new ImportedCollection { Metadata = metadata, CollectionKey = settings.CollectionKey, Signature = settings.Signature, TimeZoneId = settings.TimeZoneId,
-            Scope = string.Join(", ", settings.DeckRules.Select(r => (r.Include ? "+ " : "− ") + r.Name)), SourceProfileFolder = settings.ProfileFolder,
+        var data = new ImportedCollection { Profiles = DeckProfiles.Copy(settings.Profiles), Metadata = metadata, CollectionKey = settings.CollectionKey, Signature = settings.Signature, TimeZoneId = settings.TimeZoneId,
+            Scope = settings.Profiles.Count > 0 ? "Saved deck profiles: " + string.Join(", ", settings.Profiles.Select(p => p.Name))
+                : string.Join(", ", settings.DeckRules.Select(r => (r.Include ? "+ " : "− ") + r.Name)), SourceProfileFolder = settings.ProfileFolder,
             IsSynthetic = File.Exists(Path.Combine(settings.ProfileFolder, ".ankistats-test-data")), RefreshedAt = DateTimeOffset.UtcNow };
         var deckNames = metadata.Decks.Where(d => settings.Includes(d.Name)).ToDictionary(d => d.Id, d => d.Name);
         var selectedNotes = new HashSet<long>();
@@ -127,7 +128,7 @@ public sealed class CollectionImporter(string temporaryRoot)
             if (!selectedNotes.Contains(id) || !mappings.TryGetValue(mid, out var m) || m.Category == "Ignored") continue;
             var fields = r.GetString(2).Split('\u001f');
             string Field(int index, bool expression = false) => index < 0 || index >= fields.Length ? "" : TextNormalizer.Clean(fields[index], expression && m.StripBracketReadings);
-            data.Notes.Add(new(id, Field(m.Expression, true), Field(m.Reading), Field(m.Meaning), m.Category, metadata.NoteTypes.First(t => t.Id == mid).Name));
+            data.Notes.Add(new(id, Field(m.Expression, true), Field(m.Reading), Field(m.Meaning), m.Category, metadata.NoteTypes.First(t => t.Id == mid).Name, Field(m.Expression)));
         }
         var noteIds = data.Notes.Select(n => n.Id).ToHashSet();
         data.Cards = candidateCards.Where(c => noteIds.Contains(c.NoteId)).ToList();

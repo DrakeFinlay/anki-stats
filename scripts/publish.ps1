@@ -18,5 +18,6 @@ try {
     $shortcut.WorkingDirectory = $output
     $shortcut.Description = 'Local, read-only Anki collection analysis'
     $shortcut.Save()
+    & (Join-Path $PSScriptRoot 'create-shortcut.ps1')
     Write-Output "Ready: $output\AnkiStats.exe"
 } finally { Pop-Location }

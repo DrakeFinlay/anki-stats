@@ -5,6 +5,7 @@ This repository contains a Windows desktop application, a reusable analysis libr
 ```text
 anki-stats/
 ├── .docs/
+│   ├── development-workflow.md
 │   ├── repository-structure.md
 │   ├── tools-used.md
 │   └── program-guide.md
@@ -14,9 +15,12 @@ anki-stats/
 ├── tests/
 │   └── AnkiStats.Checks/
 ├── scripts/
-│   └── publish.ps1
+│   ├── publish.ps1
+│   ├── launch.ps1
+│   └── create-shortcut.ps1
 ├── LICENSES/
 ├── .gitignore
+├── AGENTS.md
 ├── DESIGN.md
 ├── Directory.Build.props
 ├── global.json
@@ -33,8 +37,12 @@ This project produces the executable. It references the core library and uses Wi
 | `AnkiStats.App.csproj` | Defines the Windows desktop project and its core-library reference. |
 | `App.xaml` | Shared colors, control styles, and application startup window. |
 | `App.xaml.cs` | English formatting and a last-resort UI exception handler. |
-| `MainWindow.xaml` | Layout for Overview, Vocabulary, Reviews, Insights, and Settings. |
+| `MainWindow.xaml` | Layout for Overview, Vocabulary, Reviews, Insights, Calendar, Time Analysis, Learning Patterns, and Settings. |
 | `MainWindow.xaml.cs` | Connects controls to setup, importing, analysis, searching, daily discoveries, and exports. Contains the editable deck and field-mapping choices. |
+| `MainWindow.Profiles.cs` | Coordinates saved deck-profile editing, active selection, scoped results, and overview comparison charts. |
+| `MainWindow.Time.cs` | Connects recorded hours, time-range filters, comparison metrics, time charts, and weekday/hour tables to the active profile. |
+| `MainWindow.Learning.cs` | Filters difficulty cohorts, cross-deck comparisons, shared patterns, and supporting review evidence. |
+| `TimeChart.cs` | Draws recorded minutes by day or week with all-history and six-month average reference lines. |
 | `ReviewChart.cs` | Draws review-volume bars directly with WPF; groups dates for daily or weekly views. |
 | `app.manifest` | Declares normal user privileges and Windows compatibility. |
 
@@ -47,6 +55,9 @@ This library contains the work that does not require a window. Keeping it separa
 | File | Responsibility |
 | --- | --- |
 | `Models.cs` | Data types for settings, deck rules, field mappings, imported records, and calculated results. |
+| `DeckProfiles.cs` | Migrates and validates named deck profiles and filters imported data to a profile without duplicating records. |
+| `TimeAnalysis.cs` | Calculates recorded time, mean/median answer duration, six-month comparisons, and study-day/week/hour aggregates. |
+| `LearningPatterns.cs` | Applies deck-role rules and three-lapse history criteria; produces cross-deck and explicit reading/written-form/gloss candidates. |
 | `CollectionImporter.cs` | Safely acquires a private collection copy, reads supported schemas, applies selections, and extracts notes, cards, and review events. |
 | `Analysis.cs` | Cleans field text, groups vocabulary entries, calculates review statistics, generates discovery candidates, and writes CSV exports. |
 | `LocalStore.cs` | Stores settings, the latest imported result, and daily discovery history in an app-owned SQLite database. The imported result is serialized as compressed JSON inside that database. |
@@ -77,7 +88,10 @@ Ordinary checks use temporary synthetic collections and clean up afterward. Real
 
 ## Build and project files
 
-- `scripts/publish.ps1` publishes a self-contained Windows x64 build, copies third-party notices, and creates a shortcut alongside the output folder.
+- `AGENTS.md` directs coding agents to read `.docs/development-workflow.md` before each task; the workflow defines branching, validation, pull requests, and authorized merges.
+- `scripts/publish.ps1` publishes a self-contained Windows x64 build, copies third-party notices, and creates packaged and root development shortcuts.
+- `scripts/launch.ps1` rebuilds the current checkout into `artifacts/AnkiStats`, then opens it with normal saved settings. Build failures show a message and write `.tools/launch.log`; inherited test-data overrides are removed from the app's environment.
+- `scripts/create-shortcut.ps1` creates the ignored root `Anki Stats.lnk` pointing to the launcher. Run it again after moving the repository.
 - `global.json` selects a stable .NET 10 SDK, allowing roll-forward within that SDK generation.
 - `Directory.Build.props` applies shared settings, including nullable-reference checks, deterministic builds, and treating compiler warnings as errors.
 - `DESIGN.md` records product intent, scope, metric definitions, and acceptance criteria.

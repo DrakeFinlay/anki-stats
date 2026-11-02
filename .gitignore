@@ -12,3 +12,4 @@ artifacts/
 *.sqlite*
 *.csv
 local-data/
+/Anki Stats.lnk

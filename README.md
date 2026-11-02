@@ -6,13 +6,16 @@ This project was **vibe coded with Codex**, with human direction and review guid
 
 ## Documentation
 
+- [Development workflow](.docs/development-workflow.md) — branch, validation, pull request, and merge rules for contributors and coding agents.
 - [Repository structure](.docs/repository-structure.md) — where the code, checks, build scripts, and documentation live.
 - [Tools used](.docs/tools-used.md) — languages, libraries, development tools, and build commands.
 - [Program guide](.docs/program-guide.md) — a beginner-to-intermediate explanation of what the app does, how it was written, and how to use it.
 
 ## Run
 
-Open `AnkiStats.exe` in a published build, or use its Anki Stats shortcut. No terminal, browser, Anki add-on, or separately installed .NET runtime is required for a self-contained build.
+During development, use **Anki Stats.lnk in the repository root**. It builds and packages the current checkout before opening, including uncommitted source changes, so it stays current as we iterate. It uses your normal saved profile and clears inherited test-data overrides. Startup may take a few seconds; a failed build shows a message and records details in `.tools/launch.log` instead of opening an old version. Close the app before launching after code changes. This development shortcut requires the project-local or an installed .NET 10 SDK. Regenerate it with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1` if the repository moves.
+
+For a standalone packaged build, open `artifacts/AnkiStats/AnkiStats.exe`. Published executables are snapshots: other artifact folders can contain older versions and do not update themselves. No terminal, browser, Anki add-on, or separately installed .NET runtime is required for a self-contained build.
 
 On first launch:
 
@@ -24,8 +27,19 @@ On first launch:
 
 Subsequent launches refresh the saved selection automatically. Close Anki before refreshing. A failed refresh leaves the latest successful import available with its original scope and timestamp.
 
+## Deck profiles
+
+Use **Active profile** in the header to switch the summary cards, Vocabulary, Reviews, Insights, Calendar, and exports together. Switching uses the last imported data and does not require Anki to be closed. Overview displays a separate Review rhythm chart for every enabled profile. Calendar also has a profile dropdown above its streak ranges; it stays synchronized with the header.
+
+In Settings, select a row under **Deck profiles** to edit that profile's include/exclude rules. You can rename, add, remove, or enable profiles. Preview and save after changing profiles. Field mappings and review time zone are shared. Refresh imports the union of saved profiles once, including disabled profiles, while disabled profiles stay out of the analysis pickers and overview charts.
+
+When upgrading an existing selection, the app creates **日本語**, **漢字**, and **日本語 + 漢字** if those deck trees exist, preserving descendant exclusions and the previous active selection. Other existing selections are retained as **Saved selection**. The combined profile counts each card and answer once; activity in either deck keeps its streak going, and daily counts include both decks. Vocabulary entries still exclude notes mapped as Kanji or Grammar. Failed refreshes retain the previous imported profile definitions and results. Daily insight rotation is saved separately for each deck profile.
+
 ## Measurements
 
+- **Learning Patterns** ranks difficulty candidates in the active profile using three or more recorded Again answers during ordinary reviews. Historical counts, current Anki lapse counters, and six-month counts are shown separately. 日本語::永遠 is known and excluded from difficulty rankings; Seen in Immersion is ignored. 日本語::Suspended and 漢字::Relearn are recovery groups, including new/suspended cards, while 漢字::Unused is reference data excluded from rankings. Recovery placement is a separate signal, not proof of repeated failure. Cross-deck comparison uses both imported Japanese/Kanji trees and includes known words only as context. Shared patterns cover explicit same readings, single-kanji reading families, one-character written-form differences, and English-gloss overlap. Findings are candidate associations, not diagnoses; Japanese failures may involve reading or meaning. Ambiguous compound readings remain unresolved without a dictionary. Double-click a card for IDs and its latest ordinary review evidence. Grammar is excluded.
+- Overview's **Recorded review time** sums positive Anki answer durations for the active profile across all history. **Time Analysis** adds All history, Last 30 days, Last 90 days, and Last 6 months filters; daily/weekly time charts with all-history and recent average lines; mean/median seconds per answer; weekday/hour breakdowns; and exact daily/weekly tables. Six months runs inclusively from the current study date minus six calendar months through today. Study days use Calendar's 4 AM cutoff, while hour buckets use local clock hours. Daily averages include zero-review dates from the later of the selected start or first available answer through today; weekly averages are daily averages × 7. Current days and edge weeks may be partial. Missing/nonpositive durations do not contribute to time metrics but retain their activity counts. These are recorded, potentially capped answer times, not uncapped wall-clock study time.
+- Calendar shows consecutive review streaks with seven weekday rows, review-count heat colors (blue 1–499, purple 500–999, gold 1,000+; darker means more within each band, with gold scaling to the streak maximum), and a dropdown of historical ranges. Streaks span years and scroll horizontally. All rated answer kinds count within the selected decks; a complete day without answers breaks the streak. Calendar uses a fixed 4 AM cutoff in the selected review time zone (Anki's default; custom Anki cutoffs are not imported). The current study day remains open until the next cutoff. Hover or select a day for counts; arrow keys and Home/End navigate the calendar.
 - Vocabulary entries are distinct normalized expression/reading pairs. Repeated notes and reverse cards do not multiply an entry; all card states count by default.
 - 報う, 報いる, and 報われる stay separate inventory entries. Grouping their shared stem family is future work.
 - Reviews show daily/weekly volume, Again rate and median recorded answer time by period of day, plus card rankings. Ordinary review, learning, relearning, and filtered/cram events are distinct.
@@ -55,7 +69,7 @@ dotnet run --project tests/AnkiStats.Checks -c Release
 .\scripts\publish.ps1
 ```
 
-Publish creates a self-contained x64 executable in the ignored `artifacts/AnkiStats` folder and a shortcut alongside that folder. Keep the packaged license/notice files with the executable. Build dependencies are restored from NuGet; see [third-party notices](THIRD-PARTY-NOTICES.md).
+Publish creates a self-contained x64 executable in the ignored `artifacts/AnkiStats` folder, a shortcut alongside that folder, and the development shortcut in the repository root. The root shortcut always rebuilds the canonical `artifacts/AnkiStats` output regardless of any custom publish folder. Keep the packaged license/notice files with the executable. Build dependencies are restored from NuGet; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
 The focused checks use synthetic collections and cover vocabulary deduplication, Japanese entry distinctions, event scopes, time boundaries and daylight saving, CSV escaping, daily rotation, cache isolation, locked/WAL sources, schema rejection, and source integrity. Optional local importer validation accepts a profile folder through the check runner's `--inspect` argument; it prints only verification status and timing, and removes its temporary private copies.
 

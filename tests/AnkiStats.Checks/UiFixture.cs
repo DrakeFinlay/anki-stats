@@ -15,13 +15,14 @@ internal static class UiFixture
             db.Open(); using var cmd = db.CreateCommand();
             cmd.CommandText = """
             CREATE TABLE col(ver INTEGER); INSERT INTO col VALUES(18);
-            CREATE TABLE decks(id INTEGER PRIMARY KEY,name TEXT); INSERT INTO decks VALUES(1,'Japanese'),(2,'Japanese::Grammar'),(3,'Later');
-            CREATE TABLE notetypes(id INTEGER PRIMARY KEY,name TEXT); INSERT INTO notetypes VALUES(1,'Vocabulary'),(2,'Conjugation');
+            CREATE TABLE decks(id INTEGER PRIMARY KEY,name TEXT); INSERT INTO decks VALUES(1,'日本語'),(2,'日本語::文法'),(3,'Later'),(4,'漢字');
+            CREATE TABLE notetypes(id INTEGER PRIMARY KEY,name TEXT); INSERT INTO notetypes VALUES(1,'Vocabulary'),(2,'Conjugation'),(3,'Kanji');
             CREATE TABLE fields(ntid INTEGER,ord INTEGER,name TEXT,PRIMARY KEY(ntid,ord));
-            INSERT INTO fields VALUES(1,0,'Expression'),(1,1,'Reading'),(1,2,'Meaning'),(2,0,'Prompt');
+            INSERT INTO fields VALUES(1,0,'Expression'),(1,1,'Reading'),(1,2,'Meaning'),(2,0,'Prompt'),(3,0,'Character');
             CREATE TABLE notes(id INTEGER PRIMARY KEY,mid INTEGER,flds TEXT);
             CREATE TABLE cards(id INTEGER PRIMARY KEY,nid INTEGER,did INTEGER,odid INTEGER,queue INTEGER,type INTEGER,lapses INTEGER);
             CREATE TABLE revlog(id INTEGER PRIMARY KEY,cid INTEGER,ease INTEGER,time INTEGER,type INTEGER);
+            INSERT INTO notes VALUES(13,3,'字'); INSERT INTO cards VALUES(13,13,4,0,2,2,0);
             """;
             cmd.ExecuteNonQuery();
             var words = new[] { ("報う", "むくう", "to reward"), ("報いる", "むくいる", "to repay; to reward"), ("報われる", "むくわれる", "to be rewarded"), ("学ぶ", "まなぶ", "to learn"), ("続ける", "つづける", "to continue"), ("言葉", "ことば", "word; language"), ("昨日", "きのう", "yesterday"), ("明日", "あした", "tomorrow"), ("本", "ほん", "book"), ("読む", "よむ", "to read"), ("日本語", "にほんご", "Japanese language"), ("時間", "じかん", "time") };
@@ -34,19 +35,32 @@ internal static class UiFixture
             var random = new Random(42);
             var today = DateTimeOffset.UtcNow.Date;
             var ordinal = 0;
-            for (var day = 119; day >= 0; day--)
+            for (var day = 799; day >= 0; day--)
             {
-                var count = random.Next(20,160);
+                // Kanji fills the vocabulary gaps, so combined streaks demonstrate either-deck activity.
+                if (day % 3 == 0)
+                    for (var i = 0; i < 75; i++)
+                    {
+                        cmd.CommandText = "INSERT INTO revlog VALUES($id,13,3,1500,1)"; cmd.Parameters.Clear();
+                        cmd.Parameters.AddWithValue("$id", new DateTimeOffset(today.AddDays(-day).AddHours(12).AddMinutes(30), TimeSpan.Zero).ToUnixTimeMilliseconds() + i);
+                        cmd.ExecuteNonQuery();
+                    }
+                if (day is 45 or 90) continue; // Complete gaps for historical streak selection.
+                var count = (day % 15) switch
+                {
+                    1 => 499, 2 => 500, 3 => 999, 4 => 1000, 5 => 1500, 6 => 2500,
+                    _ => random.Next(20,160)
+                };
                 for (var i = 0; i < count; i++)
                 {
                     cmd.CommandText = "INSERT INTO revlog VALUES($id,$card,$rating,$time,$type)"; cmd.Parameters.Clear();
-                    var date = new DateTimeOffset(today.AddDays(-day).AddHours(random.Next(0,24)),TimeSpan.Zero);
+                    var date = new DateTimeOffset(today.AddDays(-day).AddHours(random.Next(12,20)),TimeSpan.Zero);
                     cmd.Parameters.AddWithValue("$id",date.ToUnixTimeMilliseconds()+ordinal++); cmd.Parameters.AddWithValue("$card",random.Next(1,words.Length+1)); cmd.Parameters.AddWithValue("$rating",random.Next(0,10)==0?1:3); cmd.Parameters.AddWithValue("$time",random.Next(700,9000)); cmd.Parameters.AddWithValue("$type",random.Next(0,15)==0?0:1); cmd.ExecuteNonQuery();
                 }
             }
             tx.Commit();
         }
-        var settings = new Settings { ProfileFolder=profile, DeckRules=[new("Japanese",true)], Mappings=[new() { NoteTypeId=1,Category="Vocabulary",Expression=0,Reading=1,Meaning=2 },new() { NoteTypeId=2,Category="Grammar",Expression=0 }] };
+        var settings = new Settings { ProfileFolder=profile, DeckRules=[new("日本語",true)], Mappings=[new() { NoteTypeId=1,Category="Vocabulary",Expression=0,Reading=1,Meaning=2 },new() { NoteTypeId=2,Category="Grammar",Expression=0 },new() { NoteTypeId=3,Category="Kanji",Expression=0 }] };
         var store = new LocalStore(root);
         store.SaveCache(new CollectionImporter(store.TemporaryRoot).Import(settings),settings);
     }
