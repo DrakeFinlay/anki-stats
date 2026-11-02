@@ -68,6 +68,7 @@ try
 {
     StreakChecks.Run(Check);
     ProfileChecks.Run(Check, sandbox);
+    TimeChecks.Run(Check);
     Check(TextNormalizer.Clean("<b>報いる</b>") == "報いる", "markup extraction");
     Check(TextNormalizer.Clean("<ruby>漢字<rt>かんじ</rt></ruby>") == "漢字", "ruby extraction");
     Check(TextNormalizer.Clean("漢字[かんじ]", true) == "漢字", "explicit bracket-reading removal");
@@ -198,6 +199,6 @@ try
     }
     Check(importer.Discover(legacy).NoteTypes[0].Fields[0] == "Expression", "legacy JSON metadata");
     Check(importer.Import(new Settings { ProfileFolder=legacy, DeckRules=[new("Language",true)],Mappings=[new() {NoteTypeId=1,Category="Vocabulary"}] }).Notes[0].Expression == "報う", "legacy full import");
-    Console.WriteLine($"All {checkCount} checks passed: metrics, Japanese entries, event scopes, time zones, CSV, insight rotation, cache, and source safety.");
+    Console.WriteLine($"All {checkCount} checks passed: metrics, study time, Japanese entries, deck profiles, event scopes, time zones, CSV, insight rotation, cache, and source safety.");
 }
 finally { if (Directory.Exists(sandbox)) Directory.Delete(sandbox, true); }

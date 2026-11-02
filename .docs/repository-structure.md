@@ -37,9 +37,11 @@ This project produces the executable. It references the core library and uses Wi
 | `AnkiStats.App.csproj` | Defines the Windows desktop project and its core-library reference. |
 | `App.xaml` | Shared colors, control styles, and application startup window. |
 | `App.xaml.cs` | English formatting and a last-resort UI exception handler. |
-| `MainWindow.xaml` | Layout for Overview, Vocabulary, Reviews, Insights, and Settings. |
+| `MainWindow.xaml` | Layout for Overview, Vocabulary, Reviews, Insights, Calendar, Time Analysis, and Settings. |
 | `MainWindow.xaml.cs` | Connects controls to setup, importing, analysis, searching, daily discoveries, and exports. Contains the editable deck and field-mapping choices. |
 | `MainWindow.Profiles.cs` | Coordinates saved deck-profile editing, active selection, scoped results, and overview comparison charts. |
+| `MainWindow.Time.cs` | Connects recorded hours, time-range filters, comparison metrics, time charts, and weekday/hour tables to the active profile. |
+| `TimeChart.cs` | Draws recorded minutes by day or week with all-history and six-month average reference lines. |
 | `ReviewChart.cs` | Draws review-volume bars directly with WPF; groups dates for daily or weekly views. |
 | `app.manifest` | Declares normal user privileges and Windows compatibility. |
 
@@ -53,6 +55,7 @@ This library contains the work that does not require a window. Keeping it separa
 | --- | --- |
 | `Models.cs` | Data types for settings, deck rules, field mappings, imported records, and calculated results. |
 | `DeckProfiles.cs` | Migrates and validates named deck profiles and filters imported data to a profile without duplicating records. |
+| `TimeAnalysis.cs` | Calculates recorded time, mean/median answer duration, six-month comparisons, and study-day/week/hour aggregates. |
 | `CollectionImporter.cs` | Safely acquires a private collection copy, reads supported schemas, applies selections, and extracts notes, cards, and review events. |
 | `Analysis.cs` | Cleans field text, groups vocabulary entries, calculates review statistics, generates discovery candidates, and writes CSV exports. |
 | `LocalStore.cs` | Stores settings, the latest imported result, and daily discovery history in an app-owned SQLite database. The imported result is serialized as compressed JSON inside that database. |

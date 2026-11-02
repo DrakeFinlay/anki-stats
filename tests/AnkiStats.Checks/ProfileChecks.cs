@@ -34,6 +34,7 @@ internal static class ProfileChecks
         var analysis = Analyzer.Analyze(combined, kind: null, clock: now);
         check(analysis.TotalAnswers == 4 && analysis.Daily.Single(d => d.Day.Day == 3).Answers == 2, "combined daily volume sums both decks and excludes administration");
         check(analysis.Vocabulary.Count == 1 && analysis.Vocabulary[0].Cards == 2 && combined.Notes.Count == 2, "shared notes deduplicate and kanji stays out of vocabulary count");
+        check(TimeAnalyzer.Analyze(combined, clock: now).AllHistory.Milliseconds == 4000 && TimeAnalyzer.Analyze(vocabulary, clock: now).AllHistory.Milliseconds == 2000, "recorded time follows active profile and combined totals do not duplicate reviews");
         check(Streaks.Analyze(vocabulary, now).Count == 2, "individual profile has separate streak gaps");
         var streak = Streaks.Analyze(combined, now).Single();
         check(streak.Length == 3 && streak.Answers == 4 && streak.IsCurrent, "either deck keeps combined streak active and answer totals include both");
