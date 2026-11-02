@@ -39,7 +39,7 @@ internal static class UiFixture
                 if (day is 45 or 90) continue; // Complete gaps for historical streak selection.
                 var count = (day % 15) switch
                 {
-                    1 => 200, 2 => 201, 3 => 1000, 4 => 1001, 5 => 1500, 6 => 2500,
+                    1 => 499, 2 => 500, 3 => 999, 4 => 1000, 5 => 1500, 6 => 2500,
                     _ => random.Next(20,160)
                 };
                 for (var i = 0; i < count; i++)

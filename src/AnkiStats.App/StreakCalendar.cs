@@ -71,11 +71,11 @@ public sealed class StreakCalendar : FrameworkElement
     }
     private static (int Band, int Level) Density(int answers, int maximum)
     {
-        if (answers <= 200) return (0, Math.Clamp((answers - 1) / 40, 0, 4));
-        if (answers <= 1000) return (1, (answers - 201) / 160);
+        if (answers <= 499) return (0, Math.Clamp((answers - 1) * 5 / 499, 0, 4));
+        if (answers <= 999) return (1, (answers - 500) / 100);
         // Gold is relative to this streak's busiest day, with no fixed upper limit.
-        if (maximum <= 1001) return (2, 4);
-        return (2, Math.Min(4, (int)((long)(answers - 1001) * 5 / (maximum - 1000))));
+        if (maximum <= 1000) return (2, 4);
+        return (2, Math.Min(4, (int)((long)(answers - 1000) * 5 / (maximum - 999))));
     }
     private int Hit(Point point)
     {
