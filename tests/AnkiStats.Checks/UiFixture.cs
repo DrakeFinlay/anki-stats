@@ -37,7 +37,11 @@ internal static class UiFixture
             for (var day = 799; day >= 0; day--)
             {
                 if (day is 45 or 90) continue; // Complete gaps for historical streak selection.
-                var count = random.Next(20,160);
+                var count = (day % 15) switch
+                {
+                    1 => 200, 2 => 201, 3 => 1000, 4 => 1001, 5 => 1500, 6 => 2500,
+                    _ => random.Next(20,160)
+                };
                 for (var i = 0; i < count; i++)
                 {
                     cmd.CommandText = "INSERT INTO revlog VALUES($id,$card,$rating,$time,$type)"; cmd.Parameters.Clear();

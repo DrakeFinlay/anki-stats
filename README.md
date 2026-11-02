@@ -29,7 +29,7 @@ Subsequent launches refresh the saved selection automatically. Close Anki before
 
 ## Measurements
 
-- Calendar shows consecutive review streaks with seven weekday rows, review-count heat colors, and a dropdown of historical ranges. Streaks span years and scroll horizontally. All rated answer kinds count within the selected decks; a complete day without answers breaks the streak. Calendar uses a fixed 4 AM cutoff in the selected review time zone (Anki's default; custom Anki cutoffs are not imported). The current study day remains open until the next cutoff. Hover or select a day for counts; arrow keys and Home/End navigate the calendar.
+- Calendar shows consecutive review streaks with seven weekday rows, review-count heat colors (blue 1–200, purple 201–1,000, gold 1,001+; darker means more within each band, with gold scaling to the streak maximum), and a dropdown of historical ranges. Streaks span years and scroll horizontally. All rated answer kinds count within the selected decks; a complete day without answers breaks the streak. Calendar uses a fixed 4 AM cutoff in the selected review time zone (Anki's default; custom Anki cutoffs are not imported). The current study day remains open until the next cutoff. Hover or select a day for counts; arrow keys and Home/End navigate the calendar.
 - Vocabulary entries are distinct normalized expression/reading pairs. Repeated notes and reverse cards do not multiply an entry; all card states count by default.
 - 報う, 報いる, and 報われる stay separate inventory entries. Grouping their shared stem family is future work.
 - Reviews show daily/weekly volume, Again rate and median recorded answer time by period of day, plus card rankings. Ordinary review, learning, relearning, and filtered/cram events are distinct.

@@ -13,7 +13,11 @@ public sealed class StreakCalendar : FrameworkElement
     protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() =>
         new System.Windows.Automation.Peers.FrameworkElementAutomationPeer(this);
     private const double Step = 28, Top = 30;
-    private static readonly Brush[] Heat = [Brush("#B5DCF2"), Brush("#87BDDF"), Brush("#5899C8"), Brush("#326FA9"), Brush("#204B82")];
+    private static readonly Brush[][] Heat = [
+        [Brush("#B5DCF2"), Brush("#87BDDF"), Brush("#5899C8"), Brush("#326FA9"), Brush("#204B82")],
+        [Brush("#E0C9F5"), Brush("#C6A0E7"), Brush("#AA78D3"), Brush("#8B51BA"), Brush("#69358F")],
+        [Brush("#FFF0B3"), Brush("#F5D778"), Brush("#E7BA43"), Brush("#CC9826"), Brush("#A87717")]
+    ];
     private static readonly Brush Text = Brush("#A8AFBF");
     private ReviewStreak? streak;
     private int selected;
@@ -59,11 +63,19 @@ public sealed class StreakCalendar : FrameworkElement
                     new Typeface("Segoe UI"), 11, Text, VisualTreeHelper.GetDpi(this).PixelsPerDip), new Point(x, 2));
                 lastMonth = month;
             }
-            var level = Math.Min(4, (int)((long)(day.Answers - 1) * 5 / maximum));
-            dc.DrawRoundedRectangle(Heat[level], null, new Rect(x + 2, y + 2, 23, 23), 2, 2);
+            var (band, level) = Density(day.Answers, maximum);
+            dc.DrawRoundedRectangle(Heat[band][level], null, new Rect(x + 2, y + 2, 23, 23), 2, 2);
             if (i == selected && IsKeyboardFocusWithin)
                 dc.DrawRectangle(null, new Pen(Brushes.White, 2), new Rect(x, y, 27, 27));
         }
+    }
+    private static (int Band, int Level) Density(int answers, int maximum)
+    {
+        if (answers <= 200) return (0, Math.Clamp((answers - 1) / 40, 0, 4));
+        if (answers <= 1000) return (1, (answers - 201) / 160);
+        // Gold is relative to this streak's busiest day, with no fixed upper limit.
+        if (maximum <= 1001) return (2, 4);
+        return (2, Math.Min(4, (int)((long)(answers - 1001) * 5 / (maximum - 1000))));
     }
     private int Hit(Point point)
     {
