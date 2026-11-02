@@ -24,7 +24,12 @@ The app also uses standard .NET libraries for JSON serialization, gzip compressi
 
 A self-contained published build includes the required .NET runtime. To use it, open the executable or shortcut on Windows; no SDK, terminal, browser, Anki add-on, or separately launched server is needed.
 
-The running app works locally without a network connection. Internet access may be needed to download the SDK and NuGet dependencies when building from source. No Japanese dictionary or media service is integrated in Phase 1A.
+Analysis works locally without a network connection. Word Coverage installs pinned,
+checksum-verified JMdict and OpenJLPT reference data through an explicit download;
+subsequent matching and reporting work offline. No Anki content is transmitted.
+The reference engine uses standard .NET JSON, HTTP, compression, and SHA-256
+libraries, with no morphology runtime. Internet access may also be needed for SDK
+and NuGet dependencies when building from source. No media service is integrated.
 
 ## What developers need
 

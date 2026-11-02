@@ -2,7 +2,10 @@
 
 Anki Stats is a Windows desktop app that helps you explore the Japanese vocabulary and review history in a local Anki collection. It answers questions such as: how many different vocabulary entries are in the decks you selected, when you tend to review, which cards receive the most reviews, and which cards receive the most Again answers.
 
-The current version is Phase 1A. It measures collection inventory and recorded study activity. Dictionary coverage, shared stem families, JLPT lists, grammar-pattern analysis, and media recommendations have not been implemented yet.
+The app measures collection inventory, recorded study activity, and local
+dictionary coverage. Word Coverage adds common-word and corrected OpenJLPT N5–N1
+statistics, missing-word reports, match corrections, and conservative stem-family
+grouping. Grammar-pattern analysis and media recommendations remain future work.
 
 ## A few Anki terms
 
@@ -37,7 +40,9 @@ The app remembers this configuration. Later launches refresh automatically. A re
 
 **Vocabulary entries** counts distinct normalized expression/reading pairs in mapped vocabulary notes. Repeated notes with the same pair count once, even when they generate several cards. New, learning, review, suspended, and buried cards are included by default within the chosen scope.
 
-This is an inventory count, not a claim that every entry is mastered. 報う, 報いる, and 報われる remain three entries. Grouping them into a shared stem family is planned for a later phase.
+This is an inventory count, not a claim that every entry is mastered. 報う,
+報いる, and 報われる remain three entries; Word Coverage groups them as one
+explicitly curated stem family without collapsing their dictionary identities.
 
 **Total review answers** includes rated learning, ordinary review, relearning, and filtered/cram events. The breakdown explains how the total was formed. Manual scheduling operations and other administrative records are excluded. Ordinary reviews alone are a smaller subset, so comparing that subset with Anki's overall answer total would be misleading.
 
@@ -48,6 +53,33 @@ This is an inventory count, not a claim that every entry is mastered. 報う, �
 The discovery topic stays the same for a day while refreshed values can change. A template cannot repeat within seven calendar days. Collections with too little data may show an explanation instead of a new observation.
 
 Always check the source profile, included deck rules, and last successful refresh time. A test-session banner identifies isolated development data; those numbers must not be interpreted as your collection's statistics.
+
+## Inspect common-word and JLPT coverage
+
+Open **Word Coverage**, download the reference data once, then use it offline.
+**Known** means supported by vocabulary cards in 永遠; **Familiar** means cards
+in 勉強してる. **Combined** counts their union once. Suspended-deck vocabulary
+contributes only to **In database**, which includes the active imported selection
+rather than excluded decks. Raw card/note totals are separate from dictionary-entry
+coverage. Ambiguous and unmatched notes receive no coverage credit.
+
+Every reference row shows a numerator, denominator, and percentage. N5–N1 are
+independent lists; Through N3 combines N5, N4, and N3 without duplicating entries.
+The app uses corrected OpenJLPT memberships, so live Jisho tags can differ.
+Source versions and excluded unlinked rows are disclosed.
+
+Select a list and export a Markdown report to see words outside Known/Familiar,
+or words with no confirmed match anywhere in the imported database. Reports show
+word, reading, meaning, dictionary ID, and database status. A word may appear
+missing because its Anki note needs matching review.
+
+Use **Review selected match** to resolve candidates, enter a verified dictionary
+ID, exclude a note, or reset a correction. The first save previews the entry; the
+next confirms it. Decisions survive imports but require review when the target
+expression/reading changes or a saved dictionary ID disappears. Anki is unchanged.
+Optional shared family labels group related dictionary entries conservatively;
+the displayed rules explain the limited initial automatic grouping. See the
+[README's Word Coverage section](../README.md#word-coverage) for details.
 
 ## Explore details and export data
 
@@ -144,7 +176,7 @@ For a file-by-file map, read [repository structure](repository-structure.md). Fo
 
 The app opens the source file with read-only file access and denies concurrent access while making a private copy. SQLite queries run against the copy, not the original. The importer refuses active journals or an unavailable source instead of attempting to repair or alter Anki's files. Temporary copies are removed after the operation.
 
-The app never changes Anki tags, schedules, or cards and never executes HTML or JavaScript from note fields. The running app has no telemetry or network dependency.
+The app never changes Anki tags, schedules, or cards and never executes HTML or JavaScript from note fields. It has no telemetry. Only explicitly requested reference-data installation uses the network; subsequent analysis works offline.
 
 Settings and imported data live in the per-user local application-data `AnkiStats` folder, available through **Open app data folder** in Settings. The cache holds the latest successful import; it is not a historical snapshot archive or a substitute for an Anki backup. CSV files go wherever you choose to save them.
 

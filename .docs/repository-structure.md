@@ -42,6 +42,7 @@ This project produces the executable. It references the core library and uses Wi
 | `MainWindow.Profiles.cs` | Coordinates saved deck-profile editing, active selection, scoped results, and overview comparison charts. |
 | `MainWindow.Time.cs` | Connects recorded hours, time-range filters, comparison metrics, time charts, and weekday/hour tables to the active profile. |
 | `MainWindow.Learning.cs` | Filters difficulty cohorts, cross-deck comparisons, shared patterns, and supporting review evidence. |
+| `MainWindow.Coverage.cs` | Connects local reference installation, common/JLPT coverage, missing-word reports, and persistent match/family corrections to the active profile. |
 | `TimeChart.cs` | Draws recorded minutes by day or week with all-history and six-month average reference lines. |
 | `ReviewChart.cs` | Draws review-volume bars directly with WPF; groups dates for daily or weekly views. |
 | `app.manifest` | Declares normal user privileges and Windows compatibility. |
@@ -60,6 +61,8 @@ This library contains the work that does not require a window. Keeping it separa
 | `LearningPatterns.cs` | Applies deck-role rules and three-lapse history criteria; produces cross-deck and explicit reading/written-form/gloss candidates. |
 | `CollectionImporter.cs` | Safely acquires a private collection copy, reads supported schemas, applies selections, and extracts notes, cards, and review events. |
 | `Analysis.cs` | Cleans field text, groups vocabulary entries, calculates review statistics, generates discovery candidates, and writes CSV exports. |
+| `VocabularyCoverage.cs` | Matches expression/reading pairs to restricted dictionary forms, aggregates named-deck cohorts and entry coverage, groups conservative families, and produces Markdown missing-word reports. |
+| `CoverageReferenceStore.cs` | Downloads checksum-verified reference snapshots, builds a local dictionary index, and atomically replaces compressed reference data independently of personal corrections. |
 | `LocalStore.cs` | Stores settings, the latest imported result, and daily discovery history in an app-owned SQLite database. The imported result is serialized as compressed JSON inside that database. |
 | `AnkiStats.Core.csproj` | Defines the library and its SQLite dependencies. |
 
@@ -83,6 +86,8 @@ This is an executable check runner, rather than a project using a separate unit-
 - `Program.cs` checks calculations, Japanese entry distinctions, event scopes, date boundaries, daylight saving, CSV behavior, discovery rotation, cache isolation, and importer safety. It also provides optional local inspection commands.
 - `UiFixture.cs` generates a marked synthetic collection for isolated interface checks.
 - `LocalAudit.cs` provides explicitly invoked local audit/connection helpers. It reports aggregate counts and can save a selection to normal per-user app storage; it does not modify Anki.
+- `CoverageChecks.cs` validates dictionary identities, homographs, furigana, named-deck cohorts, persistent corrections, reference replacement, family rules, and Markdown reports. Its optional audit reads an existing app cache without opening Anki or printing personal text.
+- `CoverageUiFixture.cs` creates a small, marked synthetic collection and reference bundle for isolated coverage UI verification.
 
 Ordinary checks use temporary synthetic collections and clean up afterward. Real collections must never become committed test fixtures.
 

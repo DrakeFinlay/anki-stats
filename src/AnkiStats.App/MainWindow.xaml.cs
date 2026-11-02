@@ -100,6 +100,7 @@ public partial class MainWindow : Window
         ActiveProfilePicker.IsEnabled = false;
         TimeRangePicker.IsEnabled = TimeGroupingPicker.IsEnabled = false;
         LearningControls.IsEnabled = false;
+        CoverageControls.IsEnabled = false;
         Progress.Visibility = Visibility.Visible;
         try { await action(); }
         catch (Exception e)
@@ -115,6 +116,7 @@ public partial class MainWindow : Window
             ActiveProfilePicker.IsEnabled = profileViews.Count > 0;
             TimeRangePicker.IsEnabled = TimeGroupingPicker.IsEnabled = true;
             LearningControls.IsEnabled = true;
+            CoverageControls.IsEnabled = true;
             Progress.Visibility = Visibility.Collapsed;
         }
     }
@@ -160,6 +162,7 @@ public partial class MainWindow : Window
         await UpdateReviews();
         await UpdateTimeAnalysis();
         await UpdateLearningPatterns();
+        await UpdateCoverage();
         Footer.Text = $"{data.TimeZoneId} · current deck membership · {data.UnresolvedReviews:N0} orphaned review events excluded collection-wide · {data.UnknownReviewKinds:N0} unknown events excluded";
     }
     private DateOnly Today(string zone) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.Now, TimeZoneInfo.FindSystemTimeZoneById(zone)).DateTime);
@@ -219,6 +222,7 @@ public partial class MainWindow : Window
         PageTitle.Text = page;
         OverviewPage.Visibility = page == "Overview" ? Visibility.Visible : Visibility.Collapsed;
         VocabularyPage.Visibility = page == "Vocabulary" ? Visibility.Visible : Visibility.Collapsed;
+        CoveragePage.Visibility = page == "Word Coverage" ? Visibility.Visible : Visibility.Collapsed;
         ReviewsPage.Visibility = page == "Reviews" ? Visibility.Visible : Visibility.Collapsed;
         InsightsPage.Visibility = page == "Insights" ? Visibility.Visible : Visibility.Collapsed;
         CalendarPage.Visibility = page == "Calendar" ? Visibility.Visible : Visibility.Collapsed;

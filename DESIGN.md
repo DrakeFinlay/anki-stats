@@ -1,6 +1,6 @@
 # Anki Stats — Design and Scope
 
-Status: approved for Phase 1A implementation, including the vocabulary distinction below.
+Status: Phase 1A complete. Phase 1B dictionary coverage approved with the decisions below.
 
 ## 1. Product intent
 
@@ -47,9 +47,58 @@ Required follow-up work, outside the initial build:
 - Inspectable matched, ambiguous, and unmatched vocabulary.
 - Source/version information and a precise definition of each denominator.
 
+#### Phase 1B decisions (November 2, 2026)
+
+- No standalone dictionary search or dictionary-browsing interface. Local reference
+  data exists to cross-reference Anki vocabulary; a dictionary app is a separate future project.
+- Known vocabulary is supported by cards in `日本語::永遠` and descendants.
+  Familiar vocabulary is supported by cards in `日本語::勉強してる` and descendants.
+  Combined coverage uses their union. `日本語::Suspended` and descendants cannot
+  establish either cohort, but contribute to the separate imported-database metric.
+  Other selected vocabulary is also database-only. These rules use named deck
+  membership, including cards in any queue state, rather than inferred mastery.
+- Coverage follows the active deck profile, the existing Vocabulary category, and
+  the successfully imported selection. “In database” does not claim to include
+  excluded decks. Counts use unique JMdict entry IDs, deduplicating notes, sibling
+  cards, spellings, and overlap between cohorts. Known and Familiar may overlap.
+- Common and N5–N1 coverage are included now. Display numerator, denominator,
+  percentage, and cumulative unions (Through N3 = N5 ∪ N4 ∪ N3).
+- Use full English JMdict via jmdict-simplified, with its common-entry rule
+  (`news1`, `ichi1`, `spec1`, `spec2`, `gai1`). Use OpenJLPT's corrected JMdict links
+  and classifications. After representative live Jisho comparisons revealed
+  differences, the user chose corrected OpenJLPT classifications. Exact Jisho
+  alignment remains a preference, not a claim of current parity.
+- JLPT denominators count unique available JMdict entries linked by the reference
+  source, rather than source rows or spellings. Report unlinked rows explicitly;
+  do not guess their identities. An entry may belong to multiple levels.
+- Notes use dictionary-form vocabulary, including `word[reading]` and segment
+  furigana. Parse expression and reading without changing the inventory. Respect
+  dictionary reading/spelling restrictions. Do not tokenize sentences or credit
+  incidental vocabulary. Morphology dependencies are unnecessary for this input.
+- Matched, ambiguous, unmatched, excluded, and stale-decision notes are inspectable.
+  Only a unique match or saved manual correction receives coverage credit.
+  Corrections are app-owned, collection/note-specific, and persist across imports.
+  Changed expression/reading or removed reference IDs require another review.
+- Missing-word Markdown reports are generated on request to a user-selected file,
+  rather than during builds. Distinguish “not covered by known/familiar” from
+  “absent from imported database.” Include expression, reading, gloss, JMdict ID,
+  database status, scope, versions, and unresolved-match caveats.
+- Stem-family grouping starts conservatively: spelling variants share dictionary
+  identity; the approved 報う／報いる／報われる group is explicitly curated; other
+  entries remain separate unless given the same manual family label. Display the
+  rules and limited relationship coverage. Do not infer families from shared kanji,
+  glosses, generic cross-references, or transitive/intransitive morphology. Family
+  grouping never changes dictionary-entry coverage numerators or denominators.
+- Reference installation is an explicit one-time public-data download, followed
+  by offline use. Pin source revisions and SHA-256 checksums. Keep reference data
+  separate from personal decisions; failed downloads preserve the prior snapshot.
+  Reinstall uses the pinned snapshot; new snapshots are introduced by app updates.
+  No card contents, paths, or statistics are transmitted. Include attribution,
+  CC BY-SA license material, and source/version details in the app and reports.
+
 ### Subsequent required capabilities
 
-- Coverage against Jisho's JLPT vocabulary lists, subject to obtaining a usable, permitted source.
+- Further refinement of Jisho alignment when a usable, permitted source is available.
 - Grammar analysis based on explicitly mapped grammar/conjugation cards.
 - Kanji analysis from dedicated kanji cards and from vocabulary, kept separate.
 - Flexible knowledge filters, including young/mature card criteria.
@@ -242,11 +291,11 @@ Use focused validation for metric correctness and importer safety, plus manual e
 
 ## 11. Decisions and unresolved implementation checks
 
-The agreed scope is Phase 1A first. Phase 1B and later capabilities must not delay the first usable app. New scope should be recorded explicitly rather than silently added to Phase 1A.
+Phase 1A is complete. Phase 1B follows the decisions in section 2; subsequent capabilities remain outside that implementation scope.
 
 Remaining technical checks do not require more product discovery before implementation: validate safe Windows acquisition; establish supported Anki schemas and custom-collation handling; confirm field mappings through the setup preview; select compatible chart and packaging dependencies; measure refresh performance. These checks may change implementation details, but not metric meanings or read-only guarantees.
 
-The initial insight count and performance targets above are implementation targets. The user has approved this design and authorized Phase 1A. Later phases require a separate instruction to build.
+The initial insight count and performance targets above are implementation targets. The user has approved Phase 1A and the Phase 1B decisions above. Later phases require a separate instruction to build.
 
 ## 12. Primary references
 

@@ -1,6 +1,6 @@
 # Anki Stats
 
-A local, read-only Windows desktop app for exploring Japanese vocabulary and Anki review history. Phase 1A provides vocabulary inventory, review analysis, daily discoveries, and CSV exports. Dictionary coverage and stem-family analysis are planned for Phase 1B.
+A local, read-only Windows desktop app for exploring Japanese vocabulary and Anki review history. Includes vocabulary inventory, common-word/JLPT coverage, review analysis, daily discoveries, and exports.
 
 This project was **vibe coded with Codex**, with human direction and review guiding its design and development.
 
@@ -41,7 +41,7 @@ When upgrading an existing selection, the app creates **日本語**, **漢字**,
 - Overview's **Recorded review time** sums positive Anki answer durations for the active profile across all history. **Time Analysis** adds All history, Last 30 days, Last 90 days, and Last 6 months filters; daily/weekly time charts with all-history and recent average lines; mean/median seconds per answer; weekday/hour breakdowns; and exact daily/weekly tables. Six months runs inclusively from the current study date minus six calendar months through today. Study days use Calendar's 4 AM cutoff, while hour buckets use local clock hours. Daily averages include zero-review dates from the later of the selected start or first available answer through today; weekly averages are daily averages × 7. Current days and edge weeks may be partial. Missing/nonpositive durations do not contribute to time metrics but retain their activity counts. These are recorded, potentially capped answer times, not uncapped wall-clock study time.
 - Calendar shows consecutive review streaks with seven weekday rows, review-count heat colors (blue 1–499, purple 500–999, gold 1,000+; darker means more within each band, with gold scaling to the streak maximum), and a dropdown of historical ranges. Streaks span years and scroll horizontally. All rated answer kinds count within the selected decks; a complete day without answers breaks the streak. Calendar uses a fixed 4 AM cutoff in the selected review time zone (Anki's default; custom Anki cutoffs are not imported). The current study day remains open until the next cutoff. Hover or select a day for counts; arrow keys and Home/End navigate the calendar.
 - Vocabulary entries are distinct normalized expression/reading pairs. Repeated notes and reverse cards do not multiply an entry; all card states count by default.
-- 報う, 報いる, and 報われる stay separate inventory entries. Grouping their shared stem family is future work.
+- 報う, 報いる, and 報われる stay separate inventory/dictionary entries and form one explicitly curated stem family in Word Coverage.
 - Reviews show daily/weekly volume, Again rate and median recorded answer time by period of day, plus card rankings. Ordinary review, learning, relearning, and filtered/cram events are distinct.
 - The overview's **Total review answers** includes learning, ordinary review, relearning, and filtered answers, with a visible breakdown. Its **Again rate** uses ordinary reviews only, as labeled. Administrative scheduling records are excluded from both.
 - The source profile is visible in the header. Isolated UI test sessions carry a prominent test banner and a different window title; marked synthetic sources retain that warning even outside an isolated session.
@@ -51,11 +51,54 @@ When upgrading an existing selection, the app creates **日本語**, **漢字**,
 
 The inventory includes unstudied cards and is not a fluency score. Review charts use current deck membership and available card-linked history. Recorded response time may be capped by Anki. See [DESIGN.md](DESIGN.md) for definitions and scope.
 
+## Word Coverage
+
+Open **Word Coverage** and select **Download / reinstall reference data** once.
+This downloads a pinned, checksum-verified English JMdict snapshot and OpenJLPT
+vocabulary lists. Matching, corrections, and reports then work offline. There is
+no standalone dictionary browser. No Anki data is sent to the providers.
+
+- **Known**: vocabulary supported by cards in `日本語::永遠` and descendants.
+- **Familiar**: vocabulary supported by cards in `日本語::勉強してる` and descendants.
+- **Combined**: the union of those dictionary entries, counting overlap once.
+- **In database**: all matched vocabulary in the active imported selection,
+  including `日本語::Suspended`. Excluded decks are outside this metric.
+
+These categories follow deck placement, regardless of queue state. Common and
+N5–N1 rows show numerator/denominator and percentage. Cumulative rows use unions;
+Through N3 includes N5, N4, and N3. Counts use unique linked JMdict entry IDs,
+rather than cards or reference rows. Unlinked JLPT rows are disclosed and excluded.
+OpenJLPT uses corrected community classifications; these can differ from live
+Jisho tags and are not official exam inventories.
+
+Select a row and export a Markdown report for either **not covered** entries
+(outside Known/Familiar) or entries **absent from database**. Reports include
+readings, meanings, dictionary IDs, database status, versions, and scope. They
+are created only when requested, in your chosen location. Unresolved matches may
+appear missing; review them before assuming a word is absent.
+
+Inspect matches using the search/status filters. **Review selected match** lets
+you select an ambiguous candidate, enter another verified JMdict ID, exclude a
+note, or reset its correction. Preview the chosen entry, then confirm the match.
+Corrections persist per collection and note. Changes to the extracted expression
+or reading, or removal of a saved dictionary ID, require review. Anki is unchanged.
+
+The stem-family section reports conservative grouping for confirmed combined
+entries. The initial curated rule covers 報う／報いる／報われる; other entries stay
+separate unless assigned the same family label in match review. Counts are partial
+while matches and relationships remain unresolved. Family labels group entries
+within the collection and do not alter common/JLPT coverage.
+
+**Reference sources and rules** shows the snapshot and definitions. Reinstall
+uses the same pinned snapshot; a future app update can introduce newer versions.
+Failed downloads preserve the prior reference data and personal corrections.
+Reference data is licensed under CC BY-SA 4.0; see [third-party notices](THIRD-PARTY-NOTICES.md).
+
 ## Data safety
 
 The app opens the source collection only with an ordinary read-only file handle and denies concurrent file access during copying. SQLite analyzes a temporary private copy. Locks, active journals, or unsupported schemas produce a recovery message. The app never changes cards, tags, schedules, or AnkiWeb data and never runs card HTML or JavaScript.
 
-Settings, the latest imported data, and insight rotation history stay in the per-user local application-data `AnkiStats` folder, accessible from Settings. There is no telemetry or network dependency in the running app. Source files, personal settings, caches, and exports must not be committed.
+Settings, the latest imported data, reference data, matching decisions, and insight rotation history stay in the per-user local application-data `AnkiStats` folder, accessible from Settings. There is no telemetry. Only explicit reference installation uses the network; all analysis works locally. Source files, personal settings, caches, and exports must not be committed.
 
 The current importer supports Anki collection schemas 11 and 18. Other schemas require an adapter update. Moving or renaming note-type fields requires revisiting setup and previewing the mappings.
 
