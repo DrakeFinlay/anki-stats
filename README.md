@@ -74,12 +74,29 @@ Jisho tags and are not official exam inventories.
 Select a row and export a Markdown report for either **not covered** entries
 (outside Known/Familiar) or entries **absent from database**. Reports include
 readings, meanings, dictionary IDs, database status, versions, and scope. They
-are created only when requested, in your chosen location. Unresolved matches may
-appear missing; review them before assuming a word is absent.
+are created only when requested, in your chosen location. Reports separate
+possible matches requiring review from entries with no supporting vocabulary;
+an unresolved candidate is not labeled as proven absent.
+
+Matching preserves written script before using kana-folded fallback, so a
+katakana loanword is not confused with a hiragana homophone. Explicit alternatives
+such as `昨夜[ゆうべ・さくや]` are resolved individually; one note can support multiple
+entries when its declared readings identify them independently. Multiple readings
+of the same entry still count once. Spacing before annotations and numeric
+headwords are supported. Dictionary-backed phonetic separators, such as letter
+names in an acronym, join only when none of the alternatives match separately.
+
+An exact kanji spelling with a unique one-edit reading discrepancy (substitution,
+insertion, deletion, or adjacent transposition, with readings at least four
+characters long) can count with a **Reading warning**. It remains in **Needs
+review** with the dictionary reading shown. The app never fuzzy-matches headwords
+or chooses between equally close homographs. Unrelated reading discrepancies
+remain unresolved. **Partial** matches credit only the resolved reading alternatives.
 
 Inspect matches using the search/status filters. **Review selected match** lets
 you select an ambiguous candidate, enter another verified JMdict ID, exclude a
-note, or reset its correction. Preview the chosen entry, then confirm the match.
+note, or reset its correction. For explicitly studied alternatives, verified
+entry IDs can be separated with commas. Preview the entries, then confirm the match.
 Corrections persist per collection and note. Changes to the extracted expression
 or reading, or removal of a saved dictionary ID, require review. Anki is unchanged.
 

@@ -108,7 +108,7 @@ internal static class CoverageChecks
         new CoverageReferenceStore(target).Save(reference);
         Console.WriteLine($"Reference prepared: {reference.Entries.Count:N0} dictionary entries; {reference.Metadata.UnlinkedJlptItems} unlinked JLPT rows.");
     }
-    public static void Audit(string referenceRoot, string appDatabase)
+    public static void Audit(string referenceRoot, string appDatabase, string? reportPath = null, IEnumerable<string>? requestedWords = null)
     {
         using var db = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = appDatabase, Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString());
         db.Open(); using var cmd = db.CreateCommand(); cmd.CommandText = "SELECT payload FROM cache WHERE id=1";
@@ -117,7 +117,22 @@ internal static class CoverageChecks
         var data = JsonSerializer.Deserialize<ImportedCollection>(gzip)!;
         var matcher = new VocabularyMatcher(new CoverageReferenceStore(referenceRoot).Load()!);
         var timer = System.Diagnostics.Stopwatch.StartNew(); var result = matcher.Analyze(data);
-        Console.WriteLine($"Local cached-data audit: {result.Matches.Count:N0} vocabulary notes; {result.Matches.Count(m => m.EntryId != null):N0} confirmed; {result.Unresolved:N0} unresolved; {timer.Elapsed.TotalSeconds:F2}s matching. No personal text emitted; source Anki collection not opened.");
+        Console.WriteLine($"Local cached-data audit: {result.Matches.Count:N0} vocabulary notes; {result.Matches.Count(m => m.EntryIds.Count > 0):N0} wholly/partly confirmed; {result.Unresolved:N0} unresolved; {result.ReadingWarnings} reading warnings; {timer.Elapsed.TotalSeconds:F2}s matching. No personal text emitted; source Anki collection not opened.");
         foreach (var group in result.Matches.GroupBy(m => m.Status)) Console.WriteLine($"{group.Key}: {group.Count():N0}");
+        if (reportPath is not null)
+        {
+            var ids = System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(reportPath), @"\| (\d+) \|\s*$", System.Text.RegularExpressions.RegexOptions.Multiline)
+                .Select(m => m.Groups[1].Value).ToHashSet();
+            var pending = result.Matches.SelectMany(m => m.ReviewEntryIds).ToHashSet();
+            Console.WriteLine($"Prior report: {ids.Count} entries; now confirmed: {ids.Count(result.Database.Contains)}; remaining possible matches: {ids.Count(id => !result.Database.Contains(id) && pending.Contains(id))}; remaining without supporting candidates: {ids.Count(id => !result.Database.Contains(id) && !pending.Contains(id))}.");
+            Console.WriteLine($"Current N5: {result.Counts.Single(c => c.List == "N5").DatabaseDisplay} in imported database.");
+            // Optionally validate caller-specified reproductions against a private cache, without storing that cache as a fixture.
+            foreach (var word in requestedWords ?? [])
+            {
+                var notes = result.Matches.Where(m => m.Expression == word).ToList();
+                Console.WriteLine($"Requested example {word}: {string.Join("; ", notes.Select(m => m.Status + " → " + m.EntryIdsDisplay))}");
+                if (notes.Count == 0 || notes.Any(m => m.EntryIds.Count == 0)) throw new Exception("Requested cached-data reproduction remains unresolved.");
+            }
+        }
     }
 }

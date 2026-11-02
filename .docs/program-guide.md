@@ -71,10 +71,19 @@ Source versions and excluded unlinked rows are disclosed.
 Select a list and export a Markdown report to see words outside Known/Familiar,
 or words with no confirmed match anywhere in the imported database. Reports show
 word, reading, meaning, dictionary ID, and database status. A word may appear
-missing because its Anki note needs matching review.
+missing because its Anki note needs matching review; these possible matches now
+have their own report section.
+
+Matching prefers the exact written script and resolves explicitly listed readings
+independently. A note with two dictionary readings can support two entries, while
+two readings of one entry still count once. A small, uniquely identifiable reading
+discrepancy on an exact kanji spelling counts with a visible **Reading warning**
+and remains in **Needs review**. Larger discrepancies and ambiguous homographs
+remain unresolved; **Partial** matches count only their confirmed alternatives.
 
 Use **Review selected match** to resolve candidates, enter a verified dictionary
-ID, exclude a note, or reset a correction. The first save previews the entry; the
+ID (or comma-separated IDs for explicitly studied alternatives), exclude a note,
+or reset a correction. The first save previews the entries; the
 next confirms it. Decisions survive imports but require review when the target
 expression/reading changes or a saved dictionary ID disappears. Anki is unchanged.
 Optional shared family labels group related dictionary entries conservatively;

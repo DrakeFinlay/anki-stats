@@ -75,6 +75,18 @@ Required follow-up work, outside the initial build:
   furigana. Parse expression and reading without changing the inventory. Respect
   dictionary reading/spelling restrictions. Do not tokenize sentences or credit
   incidental vocabulary. Morphology dependencies are unnecessary for this input.
+- Matching v2 preserves written script before kana folding, supports explicit
+  alternative readings (including separate dictionary entries), whitespace before
+  annotations, and numeric headwords. Duplicate readings of one dictionary entry
+  count once. Separated phonetic segments join only if no alternative is compatible
+  and a unique exact-form dictionary reading supports the joined reading.
+- Exact kanji spellings with one uniquely supported reading edit may count with a
+  visible reading warning. Require readings of at least four characters; allow
+  one substitution, insertion, deletion, or adjacent transposition. Never fuzzy-match
+  headwords or select between equally close homographs. Keep these confirmed
+  matches in Needs review. Partial multi-reading matches credit only resolved
+  alternatives. New correction fingerprints distinguish written scripts; legacy
+  saved decisions remain readable.
 - Matched, ambiguous, unmatched, excluded, and stale-decision notes are inspectable.
   Only a unique match or saved manual correction receives coverage credit.
   Corrections are app-owned, collection/note-specific, and persist across imports.
@@ -83,6 +95,8 @@ Required follow-up work, outside the initial build:
   rather than during builds. Distinguish “not covered by known/familiar” from
   “absent from imported database.” Include expression, reading, gloss, JMdict ID,
   database status, scope, versions, and unresolved-match caveats.
+  Separate possible matches needing review from entries with no supporting
+  vocabulary. A lack of a confirmed match must not imply proven absence.
 - Stem-family grouping starts conservatively: spelling variants share dictionary
   identity; the approved 報う／報いる／報われる group is explicitly curated; other
   entries remain separate unless given the same manual family label. Display the

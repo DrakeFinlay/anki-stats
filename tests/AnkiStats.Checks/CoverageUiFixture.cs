@@ -10,6 +10,12 @@ internal static class CoverageUiFixture
         if (File.Exists(path)) throw new IOException("Use an empty coverage fixture folder.");
         File.WriteAllText(Path.Combine(profile, ".ankistats-test-data"), "Synthetic coverage fixture.");
         var source = CoverageChecks.Collection();
+        var expressions = new[] { "クラス", "万年筆[まんえんひつ]", "女の子[おんあのこ]", "昨夜[ゆうべ・さくや]", "SNS[えす・えぬ・えす]" };
+        for (var i = 0; i < expressions.Length; i++)
+        {
+            source.Notes.Add(new(100 + i, expressions[i], "", "Synthetic matching example", "Vocabulary", "Word"));
+            source.Cards.Add(new(1100 + i, 100 + i, "日本語::永遠", 2, 2, 0));
+        }
         using (var db = new SqliteConnection($"Data Source={path};Pooling=False"))
         {
             db.Open(); using var cmd = db.CreateCommand();
@@ -49,6 +55,8 @@ internal static class CoverageUiFixture
         var importer = new CollectionImporter(store.TemporaryRoot);
         DeckProfiles.Ensure(settings, importer.Discover(profile));
         store.SaveCache(importer.Import(settings), settings);
-        new CoverageReferenceStore(Path.Combine(root, "reference")).Save(CoverageChecks.Reference());
+        var reference = CoverageChecks.Reference();
+        reference.Entries.AddRange(CoverageMatchingChecks.Reference().Entries);
+        new CoverageReferenceStore(Path.Combine(root, "reference")).Save(reference);
     }
 }

@@ -49,7 +49,7 @@ public partial class MainWindow
                 + $"JMdict {coverage.Reference.Metadata.DictionaryDate} · OpenJLPT corrected lists · {coverage.Reference.Metadata.UnlinkedJlptItems:N0} unlinked source rows excluded. "
                 + "Each denominator is the unique linked dictionary entries in that list; Through N3, for example, is the N5/N4/N3 union. Exact live Jisho parity is not claimed.";
             CoverageFamilySummary.Text = $"{coverage.Families.Count:N0} families across {coverage.Combined.Count:N0} confirmed known/familiar entries; {coverage.Families.Count(f => f.Entries.Count > 1):N0} groups contain multiple entries. "
-                + $"{coverage.Unresolved:N0} unresolved notes are excluded from both counts. Family counts are partial while matches or relationships remain unresolved.";
+                + $"{coverage.Unresolved:N0} notes have unresolved readings/matches; only their confirmed portions count. Family counts are partial while matches or relationships remain unresolved.";
             CoverageFamilyGrid.ItemsSource = coverage.Families.OrderByDescending(f => f.Entries.Count).ThenBy(f => f.Key).ToList();
             ApplyCoverageFilter();
         }
@@ -81,6 +81,7 @@ public partial class MainWindow
             + "Identity: one JMdict entry, including its accepted spellings and readings, counts once per list. Ambiguous kana-only forms never credit all candidates. "
             + "Reading-to-spelling restrictions are respected. Source JLPT rows without a linked, available JMdict ID are excluded and counted explicitly. "
             + "Levels are independent memberships; cumulative rows are unions. No review-date filter is applied.\n\n"
+            + VocabularyMatcher.MatchingRules + "\n\n"
             + "Known: cards in 日本語::永遠 and descendants. Familiar: 日本語::勉強してる and descendants. Suspended-deck cards cannot establish either category. "
             + "Other imported vocabulary, including Suspended, is database-only. These categories use deck placement, not Anki queue state or inferred mastery. "
             + "All metrics use the active profile's imported selection, not excluded decks or the entire source collection.\n\n"
@@ -98,13 +99,13 @@ public partial class MainWindow
         var search = CoverageSearch.Text.Trim();
         var rows = coverage.Matches.Where(m => CoverageMatchFilter.SelectedIndex switch
         {
-            1 => m.Status is "Ambiguous" or "Unmatched" or "Stale decision",
+            1 => m.NeedsReview,
             2 => m.Known || m.Familiar,
             3 => !m.Known && !m.Familiar,
             _ => true
-        }).Where(m => search.Length == 0 || $"{m.Expression}\n{m.Reading}\n{m.Meaning}\n{m.Status}\n{m.Decks}\n{m.EntryId}".Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
+        }).Where(m => search.Length == 0 || $"{m.Expression}\n{m.Reading}\n{m.Meaning}\n{m.Status}\n{m.Decks}\n{m.EntryIdsDisplay}".Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
         CoverageMatchGrid.ItemsSource = rows;
-        CoverageMatchSummary.Text = $"{rows.Count:N0} of {coverage.Matches.Count:N0} vocabulary notes · {coverage.Unresolved:N0} need review. "
+        CoverageMatchSummary.Text = $"{rows.Count:N0} of {coverage.Matches.Count:N0} vocabulary notes · {coverage.Unresolved:N0} unresolved · {coverage.ReadingWarnings:N0} confirmed with reading warnings. "
             + "Corrections persist per collection and note across imports and profile changes. No Anki notes or tags are changed.";
     }
 
@@ -142,12 +143,12 @@ public partial class MainWindow
         foreach (var entry in row.Candidates)
             choices.Items.Add(new ListBoxItem { Tag = entry.Id, Content = new TextBlock { Text = $"{entry.Id} · {string.Join(" / ", entry.Spellings)} · {string.Join(" / ", entry.Readings.Select(r => r.Text))}\n{entry.Meaning}", TextWrapping = TextWrapping.Wrap } });
         panel.Children.Add(choices);
-        panel.Children.Add(new TextBlock { Text = "JMdict entry ID (a different verified ID can be entered):", TextWrapping = TextWrapping.Wrap });
-        var idBox = new TextBox { Text = row.EntryId ?? "", Margin = new Thickness(0, 6, 0, 12) };
+        panel.Children.Add(new TextBlock { Text = "JMdict entry IDs (comma-separated for explicitly studied alternatives):", TextWrapping = TextWrapping.Wrap });
+        var idBox = new TextBox { Text = row.EntryIdsDisplay, Margin = new Thickness(0, 6, 0, 12) };
         panel.Children.Add(idBox);
         choices.SelectionChanged += (_, _) => { if (choices.SelectedItem is ListBoxItem item) idBox.Text = (string)item.Tag; };
-        panel.Children.Add(new TextBlock { Text = "Optional family label. Assign the same label to related entries to group them. Blank preserves the default rule; dictionary coverage is unaffected.", TextWrapping = TextWrapping.Wrap });
-        var familyBox = new TextBox { Text = families.Find(f => f.EntryId == row.EntryId)?.Family ?? "", Margin = new Thickness(0, 6, 0, 12) };
+        panel.Children.Add(new TextBlock { Text = "Optional family label (single-entry matches only). Assign the same label to related entries to group them. Blank preserves the default rule; dictionary coverage is unaffected.", TextWrapping = TextWrapping.Wrap });
+        var familyBox = new TextBox { Text = families.Find(f => f.EntryId == row.EntryId)?.Family ?? "", Margin = new Thickness(0, 6, 0, 12), IsEnabled = row.EntryIds.Count <= 1 };
         panel.Children.Add(familyBox);
         var feedback = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) };
         panel.Children.Add(feedback);
@@ -160,26 +161,31 @@ public partial class MainWindow
             {
                 if (label == "Save match")
                 {
-                    if (!vocabularyMatcher!.Entries.TryGetValue(idBox.Text.Trim(), out var entry)) { feedback.Text = "Enter an entry ID present in the installed reference."; return; }
+                    var ids = idBox.Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct().ToList();
+                    if (ids.Count == 0 || ids.Any(id => !vocabularyMatcher!.Entries.ContainsKey(id))) { feedback.Text = "Enter entry IDs present in the installed reference, separated with commas."; return; }
                     // Make a manually entered ID reviewable before accepting it.
-                    var description = $"{entry.Id}: {string.Join(" / ", entry.Spellings)} · {string.Join(" / ", entry.Readings.Select(r => r.Text))}\n{entry.Meaning}";
+                    var description = string.Join("\n\n", ids.Select(id => vocabularyMatcher!.Entries[id]).Select(entry => $"{entry.Id}: {string.Join(" / ", entry.Spellings)} · {string.Join(" / ", entry.Readings.Select(r => r.Text))}\n{entry.Meaning}"));
                     if (feedback.Text != description) { feedback.Text = description; button.Content = "Confirm this match"; return; }
                 }
                 action = label; window.DialogResult = label != "Cancel";
             };
             buttons.Children.Add(button);
         }
-        idBox.TextChanged += (_, _) => { feedback.Text = ""; familyBox.Text = families.Find(f => f.EntryId == idBox.Text.Trim())?.Family ?? ""; };
+        idBox.TextChanged += (_, _) => { feedback.Text = ""; familyBox.Text = families.Find(f => f.EntryId == idBox.Text.Trim())?.Family ?? ""; familyBox.IsEnabled = idBox.Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length <= 1; };
         if (window.ShowDialog() != true) return;
         await Guard(async () =>
         {
             decisions.RemoveAll(d => d.NoteId == row.NoteId);
             if (action == "Save match")
             {
-                var id = idBox.Text.Trim();
-                decisions.Add(new(row.NoteId, row.Fingerprint, id));
-                families.RemoveAll(f => f.EntryId == id);
-                if (!string.IsNullOrWhiteSpace(familyBox.Text)) families.Add(new(id, familyBox.Text.Trim()));
+                var ids = idBox.Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct().ToList();
+                decisions.Add(new(row.NoteId, row.Fingerprint, ids[0], AdditionalEntryIds: ids.Skip(1).ToList()));
+                // A family label edits a single dictionary entry, independently of multi-reading matching decisions.
+                if (ids.Count == 1)
+                {
+                    families.RemoveAll(f => f.EntryId == ids[0]);
+                    if (!string.IsNullOrWhiteSpace(familyBox.Text)) families.Add(new(ids[0], familyBox.Text.Trim()));
+                }
             }
             else if (action == "Exclude") decisions.Add(new(row.NoteId, row.Fingerprint, null, true));
             await Task.Run(() =>

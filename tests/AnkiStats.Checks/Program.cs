@@ -5,6 +5,7 @@ using Microsoft.Data.Sqlite;
 var checkCount = 0;
 if (args is ["--prepare-coverage-reference", var referenceSources, var referenceTarget]) { CoverageChecks.PrepareReference(referenceSources, referenceTarget); return; }
 if (args is ["--audit-coverage", var coverageReferenceRoot, var appDatabase]) { CoverageChecks.Audit(coverageReferenceRoot, appDatabase); return; }
+if (args.Length >= 4 && args[0] == "--audit-coverage-report") { CoverageChecks.Audit(args[1], args[2], args[3], args.Skip(4)); return; }
 if (args is ["--seed-coverage-ui", var coverageRoot]) { CoverageUiFixture.Create(coverageRoot); Console.WriteLine("Synthetic coverage fixture ready."); return; }
 if (args.Length >= 3 && args[0] is "--audit" or "--connect-local")
 {
@@ -75,6 +76,7 @@ try
     TimeChecks.Run(Check);
     LearningChecks.Run(Check);
     CoverageChecks.Run(Check, sandbox);
+    CoverageMatchingChecks.Run(Check, sandbox);
     Check(TextNormalizer.Clean("<b>報いる</b>") == "報いる", "markup extraction");
     Check(TextNormalizer.Clean("<ruby>漢字<rt>かんじ</rt></ruby>") == "漢字", "ruby extraction");
     Check(TextNormalizer.Clean("漢字[かんじ]", true) == "漢字", "explicit bracket-reading removal");
