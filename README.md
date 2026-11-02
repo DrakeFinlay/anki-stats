@@ -13,7 +13,9 @@ This project was **vibe coded with Codex**, with human direction and review guid
 
 ## Run
 
-Open `AnkiStats.exe` in a published build, or use its Anki Stats shortcut. No terminal, browser, Anki add-on, or separately installed .NET runtime is required for a self-contained build.
+During development, use **Anki Stats.lnk in the repository root**. It builds and packages the current checkout before opening, including uncommitted source changes, so it stays current as we iterate. It uses your normal saved profile and clears inherited test-data overrides. Startup may take a few seconds; a failed build shows a message and records details in `.tools/launch.log` instead of opening an old version. Close the app before launching after code changes. This development shortcut requires the project-local or an installed .NET 10 SDK. Regenerate it with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1` if the repository moves.
+
+For a standalone packaged build, open `artifacts/AnkiStats/AnkiStats.exe`. Published executables are snapshots: other artifact folders can contain older versions and do not update themselves. No terminal, browser, Anki add-on, or separately installed .NET runtime is required for a self-contained build.
 
 On first launch:
 
@@ -57,7 +59,7 @@ dotnet run --project tests/AnkiStats.Checks -c Release
 .\scripts\publish.ps1
 ```
 
-Publish creates a self-contained x64 executable in the ignored `artifacts/AnkiStats` folder and a shortcut alongside that folder. Keep the packaged license/notice files with the executable. Build dependencies are restored from NuGet; see [third-party notices](THIRD-PARTY-NOTICES.md).
+Publish creates a self-contained x64 executable in the ignored `artifacts/AnkiStats` folder, a shortcut alongside that folder, and the development shortcut in the repository root. The root shortcut always rebuilds the canonical `artifacts/AnkiStats` output regardless of any custom publish folder. Keep the packaged license/notice files with the executable. Build dependencies are restored from NuGet; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
 The focused checks use synthetic collections and cover vocabulary deduplication, Japanese entry distinctions, event scopes, time boundaries and daylight saving, CSV escaping, daily rotation, cache isolation, locked/WAL sources, schema rejection, and source integrity. Optional local importer validation accepts a profile folder through the check runner's `--inspect` argument; it prints only verification status and timing, and removes its temporary private copies.
 

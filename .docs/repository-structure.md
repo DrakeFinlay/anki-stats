@@ -15,7 +15,9 @@ anki-stats/
 ├── tests/
 │   └── AnkiStats.Checks/
 ├── scripts/
-│   └── publish.ps1
+│   ├── publish.ps1
+│   ├── launch.ps1
+│   └── create-shortcut.ps1
 ├── LICENSES/
 ├── .gitignore
 ├── AGENTS.md
@@ -80,7 +82,9 @@ Ordinary checks use temporary synthetic collections and clean up afterward. Real
 ## Build and project files
 
 - `AGENTS.md` directs coding agents to read `.docs/development-workflow.md` before each task; the workflow defines branching, validation, pull requests, and authorized merges.
-- `scripts/publish.ps1` publishes a self-contained Windows x64 build, copies third-party notices, and creates a shortcut alongside the output folder.
+- `scripts/publish.ps1` publishes a self-contained Windows x64 build, copies third-party notices, and creates packaged and root development shortcuts.
+- `scripts/launch.ps1` rebuilds the current checkout into `artifacts/AnkiStats`, then opens it with normal saved settings. Build failures show a message and write `.tools/launch.log`; inherited test-data overrides are removed from the app's environment.
+- `scripts/create-shortcut.ps1` creates the ignored root `Anki Stats.lnk` pointing to the launcher. Run it again after moving the repository.
 - `global.json` selects a stable .NET 10 SDK, allowing roll-forward within that SDK generation.
 - `Directory.Build.props` applies shared settings, including nullable-reference checks, deterministic builds, and treating compiler warnings as errors.
 - `DESIGN.md` records product intent, scope, metric definitions, and acceptance criteria.
