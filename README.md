@@ -17,12 +17,15 @@ artwork and script-based vocabulary comparisons. See [Future plans](FUTURE-PLANS
 
 ## Documentation
 
+- [User's guide](USER-GUIDE.md) — introduction, installation, setup, every page, creating notes, and troubleshooting.
 - [Current design](DESIGN.md) — implemented behavior, metric definitions, architecture, and data-safety boundaries.
 - [Future plans](FUTURE-PLANS.md) — unimplemented directions, sentence/media ideas, and decisions still to settle.
 - [Development workflow](.docs/development-workflow.md) — branch, validation, pull request, and merge rules for contributors and coding agents.
 - [Repository structure](.docs/repository-structure.md) — where the code, checks, build scripts, and documentation live.
 - [Tools used](.docs/tools-used.md) — languages, libraries, development tools, and build commands.
-- [Program guide](.docs/program-guide.md) — a beginner-to-intermediate explanation of what the app does, how it was written, and how to use it.
+- [How the program works](.docs/program-guide.md) — code walkthrough, import/analysis flows, feature internals, storage, and packaging.
+- [Dictionary and coverage](.docs/dictionary-and-coverage.md) — reference downloads, matching, definitions, uncertainty, cohorts, and reports.
+- [AnkiConnect integration](.docs/anki-connect.md) — API calls, live checks, payloads, HTTP transport, and interrupted-write recovery.
 
 ## Run
 

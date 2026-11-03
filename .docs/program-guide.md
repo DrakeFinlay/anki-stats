@@ -1,4 +1,10 @@
-# Anki Stats: a practical guide
+# Anki Stats: how the program works
+
+For installation and everyday use, start with the [user's guide](../USER-GUIDE.md).
+This guide explains the implementation in plain language, with code links. The
+[dictionary guide](dictionary-and-coverage.md) and [AnkiConnect guide](anki-connect.md)
+describe those subsystems in more depth. [DESIGN.md](../DESIGN.md) is the current
+behavior specification; [future plans](../FUTURE-PLANS.md) are not implemented yet.
 
 Anki Stats is a Windows desktop app that helps you explore the Japanese vocabulary and review history in a local Anki collection. It answers questions such as: how many different vocabulary entries are in the decks you selected, when you tend to review, which cards receive the most reviews, and which cards receive the most Again answers.
 
@@ -92,7 +98,8 @@ Use **Review selected match** to resolve candidates, enter a verified dictionary
 ID (or comma-separated IDs for explicitly studied alternatives), exclude a note,
 or reset a correction. The first save previews the entries; the
 next confirms it. Decisions survive imports but require review when the target
-expression/reading changes or a saved dictionary ID disappears. Anki is unchanged.
+expression/reading or English definition changes, or a saved dictionary ID
+disappears. Older fingerprints remain readable. Match correction leaves Anki unchanged.
 Optional shared family labels group related dictionary entries conservatively;
 the displayed rules explain the limited initial automatic grouping. See the
 [README's Word Coverage section](../README.md#word-coverage) for details.
@@ -117,7 +124,29 @@ Card rankings always use ordinary reviews in the chosen date range. The Again co
 
 ## How the program was written
 
-The program is written in C#. WPF supplies the Windows interface, XAML describes its layout and styling, and SQLite supplies database access. The code is divided into a desktop project, a core library, and an executable check runner. The desktop project references the core library, so calculations can also run without opening a window.
+The program is written in C# on .NET 10. WPF supplies the Windows interface, XAML describes its layout and styling, and SQLite supplies database access. The code is divided into a desktop project, a core library, and an executable check runner. The desktop project references the core library, so calculations can also run without opening a window. Charts are drawn directly in WPF; there is no web frontend, runtime AI service, or chart-library server.
+
+### Three separate data paths
+
+```mermaid
+flowchart TD
+    A[Closed Anki collection] --> B[Protected private copy]
+    B --> C[Import and app-owned cache]
+    C --> D[Profile selection and analysis]
+    R[Explicit public reference download] --> V[Compressed dictionary bundle]
+    V --> D
+    D --> U[Tables, charts, reports, and corrections]
+    D --> P[Requested missing-word preview]
+    L[Running local AnkiConnect] -->|Live duplicate checks| P
+    P -->|User selects Create| J[Persist attempt then addNote]
+    J --> L
+```
+
+The closed-file importer reads recorded history and vocabulary. The reference
+installer downloads public dictionary/classification files. The optional writer
+talks to the running Anki application only after explicit confirmation. Keeping
+these paths separate lets stats remain offline/read-only while providing a
+narrowly scoped new-note feature.
 
 ### From a button click to a screen update
 
@@ -161,6 +190,65 @@ For reviews, the analyzer excludes administrative events and invalid ratings, co
 
 The method returns an `AnalysisResult` containing vocabulary rows, daily totals, time buckets, rankings, and discovery candidates. The window assigns those rows to tables. [ReviewChart.cs](../src/AnkiStats.App/ReviewChart.cs) draws the volume chart with WPF rectangles, lines, and labels; weekly grouping happens before drawing.
 
+### Profiles, Calendar, time, and learning patterns
+
+[DeckProfiles.cs](../src/AnkiStats.Core/DeckProfiles.cs) validates and migrates named
+deck selections. Import uses their union; Select filters the cached notes, cards,
+and reviews for one profile. Stable profile IDs let names change without resetting
+daily-discovery history. [MainWindow.Profiles.cs](../src/AnkiStats.App/MainWindow.Profiles.cs)
+coordinates settings and active selection without another collection read.
+
+[Streaks.cs](../src/AnkiStats.Core/Streaks.cs) applies the fixed 4 AM boundary and
+builds consecutive active-day ranges. [StreakCalendar.cs](../src/AnkiStats.App/StreakCalendar.cs)
+draws the heatmap as selectable daily cells on one drawing surface. Calendar uses
+that boundary while the older review-volume and daily-discovery paths keep
+midnight-based dates. This intentional difference explains some apparent totals
+or streak discrepancies.
+
+[TimeAnalysis.cs](../src/AnkiStats.Core/TimeAnalysis.cs) works with positive recorded
+answer durations. It uses 64-bit millisecond sums, calendar-based range boundaries,
+and zero-day-inclusive averages. [MainWindow.Time.cs](../src/AnkiStats.App/MainWindow.Time.cs)
+connects ranges/tables and [TimeChart.cs](../src/AnkiStats.App/TimeChart.cs) draws
+daily/weekly periods and comparison averages. It cannot recover time that Anki
+did not record.
+
+[LearningPatterns.cs](../src/AnkiStats.Core/LearningPatterns.cs) builds difficulty
+and recovery cohorts from deck roles and ordinary-review Again history, then
+compares explicit readings, written forms, and gloss evidence. It keeps current
+lapse counters separate from reconstructed history. Cross-deck comparisons use
+both imported Japanese/Kanji trees; active card/shared-pattern lists use their
+stated profile scope. [MainWindow.Learning.cs](../src/AnkiStats.App/MainWindow.Learning.cs)
+exposes filters and supporting evidence. These are deterministic associations,
+not AI diagnoses, grammar parsing, or dictionary-driven compound-reading guesses.
+
+### Dictionary matching and note creation
+
+[CoverageReferenceStore.cs](../src/AnkiStats.Core/CoverageReferenceStore.cs) verifies
+pinned public source checksums and builds a local compressed reference bundle.
+[VocabularyExpression.cs](../src/AnkiStats.Core/VocabularyExpression.cs) extracts
+intended forms/readings; [DefinitionMatcher.cs](../src/AnkiStats.Core/DefinitionMatcher.cs)
+adds conservative English evidence; [VocabularyCoverage.cs](../src/AnkiStats.Core/VocabularyCoverage.cs)
+resolves candidates, aggregates ID sets, groups limited stem families, and creates
+Markdown reports. [MainWindow.Coverage.cs](../src/AnkiStats.App/MainWindow.Coverage.cs)
+handles installation, filters, corrections, and profile-aware presentation.
+
+Inventory counts normalized expression/reading pairs, whereas reference coverage
+counts confirmed JMdict IDs. This lets kana/kanji variants count separately in
+inventory if represented separately while supporting one reference entry. Ambiguous
+alternatives remain reviewable; a sentence's incidental words receive no credit.
+See [dictionary matching and coverage](dictionary-and-coverage.md) for the complete
+source, restriction, warning, decision, and denominator flow.
+
+[MainWindow.Creation.cs](../src/AnkiStats.App/MainWindow.Creation.cs) asks
+[NoteCreation.cs](../src/AnkiStats.Core/NoteCreation.cs) for a random batch in the
+fixed JLPT/Common order. It uses [AnkiConnectClient.cs](../src/AnkiStats.Core/AnkiConnectClient.cs)
+to check live vocabulary across decks and validate the profile/model/fields.
+Create sends one note at a time after recording a pending attempt. The hidden
+attribution comment retains identity without Anki tags; the app-owned journal
+handles uncertain responses. This path never writes source SQLite or updates
+existing notes. See [AnkiConnect integration](anki-connect.md) for API actions,
+HTTP framing, payloads, and crash recovery.
+
 ### Keeping the window responsive
 
 Importing and analysis can take longer than a button click should block the interface. The window uses `Task.Run` to perform that work on a background thread and `await` to resume when it finishes:
@@ -174,7 +262,21 @@ While this runs, WPF can continue drawing the window and processing normal inter
 
 ### Saving results and choosing discoveries
 
-[LocalStore.cs](../src/AnkiStats.Core/LocalStore.cs) maintains an app-owned SQLite database with three tables: `settings`, `cache`, and `insight_history`. Settings are serialized to JSON. Imported records are serialized to JSON, compressed with gzip, and saved as a binary value in the cache table. Loading reverses those steps and checks the collection identity before returning cached records.
+[LocalStore.cs](../src/AnkiStats.Core/LocalStore.cs) maintains `analysis.sqlite` in
+app data. Its tables separate the following responsibilities:
+
+| Table | Stored content |
+| --- | --- |
+| settings | Serialized JSON for profile path, deck profiles/rules, mappings, and time zone |
+| cache | Latest imported records as gzip-compressed JSON, including the import's own identity, settings signature, scope, and timestamp |
+| insight_history | Daily template selections keyed by collection/profile scope |
+| coverage_decisions | Per-collection JSON lists keyed by kind: matches, families, or creation journal |
+
+The dictionary bundle lives separately under `reference/`, not in the cache table.
+Loading the cache verifies collection identity. Identity is derived from the
+normalized profile path; settings signatures hash the relevant configuration.
+Changing a profile location therefore changes its collection identity rather
+than silently claiming an unrelated cache belongs to it.
 
 `SaveCache` uses a transaction: the database commits the new result as one operation. When a new connection is saved, its settings are written in that same transaction. This prevents a partially saved connection from becoming the stored result.
 
@@ -185,6 +287,23 @@ While this runs, WPF can continue drawing the window and processing normal inter
 `CsvExport` writes UTF-8 text with quoted cells, escaped quotation marks, and protection against formula-like cell contents. The window supplies the filtered vocabulary rows or the labeled review sections selected for export.
 
 The separate [check runner](../tests/AnkiStats.Checks/Program.cs) builds synthetic collections, calls the core methods directly, and asserts expected results. It tests calculations and failure paths without requiring clicks in the GUI. These checks include duplicate handling, answer-kind separation, time boundaries, discovery rotation, cache behavior, locked sources, and unchanged source-file bytes.
+
+Specialized checks cover Calendar, deck profiles, time analysis, learning patterns,
+dictionary restrictions/definitions/reports, generated-note selection, and pending
+recovery. An in-memory HTTP handler simulates AnkiConnect; a temporary loopback
+server checks actual HTTP framing. Real note creation is not part of automated
+tests. Marked synthetic fixtures support UI inspection with `ANKISTATS_DATA_DIR`;
+normal builds must not be left running against those fixtures as the user's app.
+
+### Building and packaging
+
+The .NET SDK builds the App and Core projects. `scripts/publish.ps1` publishes a
+self-contained win-x64 executable with runtime/native-library extraction support,
+copies notices/licenses, and creates shortcuts. `scripts/launch.ps1` rebuilds the
+current checkout before launching the canonical packaged output and clears
+inherited test-data overrides. It records failures in `.tools/launch.log` rather
+than silently opening an older build. Packaged executables remain snapshots;
+there is no automatic application updater. See [tools used](tools-used.md).
 
 For a file-by-file map, read [repository structure](repository-structure.md). For dependencies and build commands, read [tools used](tools-used.md).
 

@@ -4,6 +4,11 @@ Status: Phase 1A and Phase 1B are implemented. This document describes the curre
 application and its rules. [FUTURE-PLANS.md](FUTURE-PLANS.md) contains unimplemented
 work and ideas; [README.md](README.md) explains setup and use.
 
+For step-by-step operation, see the [user's guide](USER-GUIDE.md). For implementation
+walkthroughs, see [how the program works](.docs/program-guide.md),
+[dictionary and coverage](.docs/dictionary-and-coverage.md), and
+[AnkiConnect integration](.docs/anki-connect.md).
+
 ## 1. Product and completed scope
 
 Anki Stats is a local Windows desktop application for exploring a Japanese Anki

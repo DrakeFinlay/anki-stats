@@ -13,6 +13,9 @@ This guide describes the tools used by the checked-in implementation. Versions b
 | SQLite | Reads private Anki collection copies and stores app-owned settings and cached data. |
 | Microsoft.Data.Sqlite `10.0.14` | C# interface for SQLite connections, commands, and transactions. |
 | SQLitePCLRaw.bundle_e_sqlite3 `3.0.5` | Supplies the SQLite native engine and supporting bindings. |
+| JMdict via jmdict-simplified | Downloaded English dictionary identities, forms/readings, glosses, and common/preferred-form metadata; separate from application dependencies. |
+| OpenJLPT | Downloaded corrected N5–N1 memberships linked to JMdict IDs; separate from application dependencies. |
+| AnkiConnect API v6 | Optional local HTTP bridge to running Anki for explicitly requested note creation and live checks. |
 | NuGet | Downloads the project dependencies during restore/build. |
 | PowerShell | Runs the Windows publishing script and creates a normal application shortcut through Windows scripting support. |
 | Git | Tracks source and documentation changes. Generated and personal files are excluded through `.gitignore`. |
@@ -32,6 +35,11 @@ Explicit note creation uses standard .NET HTTP against AnkiConnect API v6 at
 The reference engine uses standard .NET JSON, HTTP, compression, and SHA-256
 libraries, with no morphology runtime. Internet access may also be needed for SDK
 and NuGet dependencies when building from source. No media service is integrated.
+The dictionary and JLPT pins/checksums are in CoverageReferenceStore.cs; their
+versions and licenses are documented in [third-party notices](../THIRD-PARTY-NOTICES.md).
+See [dictionary and coverage](dictionary-and-coverage.md) and [AnkiConnect integration](anki-connect.md)
+for the data and protocol details. Source changes are built with Codex's assistance;
+the running app does not call an AI model.
 
 ## What developers need
 
@@ -55,6 +63,11 @@ The default publish output is `artifacts/AnkiStats`. Keep the executable, notice
 ## Validation tools and approach
 
 The C# check runner uses temporary SQLite collections and assertions. It checks behavior that can materially affect results or source safety, including distinguishing total answers from ordinary reviews and leaving source bytes unchanged.
+Dictionary fixtures cover identities, variants, definitions, denominators, reports,
+and corrections. AnkiConnect fixtures simulate live inventory/writes without
+creating real notes; a temporary loopback HTTP listener checks Content-Length and
+request framing. No external test framework or running Anki instance is required
+for the ordinary suite.
 
 The synthetic UI fixture supports desktop visual inspection without displaying personal collection contents. Set `ANKISTATS_DATA_DIR` to an isolated app-data folder for that workflow; the UI labels the session as a test. Synthetic sources also have a marker file. These are development facilities, not the normal user setup process.
 
