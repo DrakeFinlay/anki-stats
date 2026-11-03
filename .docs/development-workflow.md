@@ -37,7 +37,10 @@ Temporary exploratory commits are acceptable on the task branch.
 
 Do not commit Anki collections, private settings, exports, personal data, secrets,
 or generated build output. Respect the read-only importer guarantees documented
-in `README.md` and `DESIGN.md`.
+in `README.md` and `.docs/DESIGN.md`.
+
+Place project documentation in `.docs/`. Root exceptions and approval requirements
+are defined in [AGENTS.md](../AGENTS.md); update links when relocating documents.
 
 ## 3. Validate and self-review
 

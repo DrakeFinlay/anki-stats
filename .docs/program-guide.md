@@ -1,10 +1,10 @@
 # Anki Stats: how the program works
 
-For installation and everyday use, start with the [user's guide](../USER-GUIDE.md).
+For installation and everyday use, start with the [user's guide](USER-GUIDE.md).
 This guide explains the implementation in plain language, with code links. The
 [dictionary guide](dictionary-and-coverage.md) and [AnkiConnect guide](anki-connect.md)
-describe those subsystems in more depth. [DESIGN.md](../DESIGN.md) is the current
-behavior specification; [future plans](../FUTURE-PLANS.md) are not implemented yet.
+describe those subsystems in more depth. [DESIGN.md](DESIGN.md) is the current
+behavior specification; [future plans](FUTURE-PLANS.md) are not implemented yet.
 
 Anki Stats is a Windows desktop app that helps you explore the Japanese vocabulary and review history in a local Anki collection. It answers questions such as: how many different vocabulary entries are in the decks you selected, when you tend to review, which cards receive the most reviews, and which cards receive the most Again answers.
 

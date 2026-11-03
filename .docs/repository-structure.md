@@ -8,6 +8,9 @@ anki-stats/
 │   ├── development-workflow.md
 │   ├── repository-structure.md
 │   ├── tools-used.md
+│   ├── DESIGN.md
+│   ├── FUTURE-PLANS.md
+│   ├── USER-GUIDE.md
 │   ├── program-guide.md
 │   ├── dictionary-and-coverage.md
 │   └── anki-connect.md
@@ -23,12 +26,9 @@ anki-stats/
 ├── LICENSES/
 ├── .gitignore
 ├── AGENTS.md
-├── DESIGN.md
-├── FUTURE-PLANS.md
 ├── Directory.Build.props
 ├── global.json
 ├── README.md
-├── USER-GUIDE.md
 └── THIRD-PARTY-NOTICES.md
 ```
 
@@ -119,10 +119,14 @@ Ordinary checks use temporary synthetic collections and clean up afterward. Real
 - `scripts/create-shortcut.ps1` creates the ignored root `Anki Stats.lnk` pointing to the launcher. Run it again after moving the repository.
 - `global.json` selects a stable .NET 10 SDK, allowing roll-forward within that SDK generation.
 - `Directory.Build.props` applies shared settings, including nullable-reference checks, deterministic builds, and treating compiler warnings as errors.
-- `DESIGN.md` records current product behavior, metric definitions, architecture, and safety boundaries.
-- `FUTURE-PLANS.md` separates unimplemented sentence/media and other product ideas from current functionality.
-- `USER-GUIDE.md` covers installation, first setup, daily use, and troubleshooting. `.docs/program-guide.md` explains internals, with deeper dictionary and AnkiConnect guides alongside it.
+- `.docs/DESIGN.md` records current product behavior, metric definitions, architecture, and safety boundaries.
+- `.docs/FUTURE-PLANS.md` separates unimplemented sentence/media and other product ideas from current functionality.
+- `.docs/USER-GUIDE.md` covers installation, first setup, daily use, and troubleshooting. `.docs/program-guide.md` explains internals, with deeper dictionary and AnkiConnect guides alongside it.
 - `LICENSES/` and `THIRD-PARTY-NOTICES.md` contain notices for bundled dependencies. They do not grant a license to the project's original code.
+
+All project documentation belongs in `.docs/`. Only the root README, AGENTS file,
+and third-party license/notice materials are exempt. Other root documentation
+requires explicit user approval, as specified in [AGENTS.md](../AGENTS.md).
 
 ## Generated and private files
 
@@ -136,6 +140,6 @@ Ignored folders can appear after development:
 
 Normal user settings and imported data belong in the per-user local application-data `AnkiStats` folder, accessible through Settings. Keep real collections, exports, personal paths, and collection statistics out of repository files, including documentation.
 
-For usage, read the [user's guide](../USER-GUIDE.md). For internals, read [how the
+For usage, read the [user's guide](USER-GUIDE.md). For internals, read [how the
 program works](program-guide.md), [dictionary and coverage](dictionary-and-coverage.md),
 and [AnkiConnect integration](anki-connect.md). For dependencies, read [tools used](tools-used.md).

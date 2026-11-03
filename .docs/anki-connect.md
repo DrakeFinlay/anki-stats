@@ -1,6 +1,6 @@
 # AnkiConnect integration
 
-This guide describes the implemented new-note workflow. [The user's guide](../USER-GUIDE.md#create-missing-vocabulary-notes)
+This guide describes the implemented new-note workflow. [The user's guide](USER-GUIDE.md#create-missing-vocabulary-notes)
 explains its controls. Statistics importing does not use AnkiConnect.
 
 ## Components and transport

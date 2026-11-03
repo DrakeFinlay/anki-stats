@@ -22,7 +22,7 @@ Your saved settings live separately from the executable.
 If you have the source repository rather than a packaged app, a developer can
 build it on Windows with a .NET 10 SDK by running `scripts/publish.ps1` from
 PowerShell at the repository root. This produces `artifacts/AnkiStats` and
-shortcuts. See [build instructions](README.md#build-and-validate). During ongoing
+shortcuts. See [build instructions](../README.md#build-and-validate). During ongoing
 development, the root **Anki Stats.lnk** rebuilds the current checkout before it
 opens, so it can take longer than launching a packaged executable.
 
@@ -193,4 +193,4 @@ go where you choose. There is no telemetry. Analysis never changes the source
 collection; only your explicit Create action adds notes through AnkiConnect.
 Keep ordinary Anki backups; the stats cache is not an Anki backup.
 
-For implementation details, read the [program guide](.docs/program-guide.md).
+For implementation details, read the [program guide](program-guide.md).

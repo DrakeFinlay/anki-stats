@@ -13,13 +13,13 @@ AnkiConnect.
 Sentence analysis and media coverage are future work. Planned directions include
 remaining mining opportunities in a current title, missing words in existing
 Anki sentences, sentence statistics, and libraries of past/future media with
-artwork and script-based vocabulary comparisons. See [Future plans](FUTURE-PLANS.md).
+artwork and script-based vocabulary comparisons. See [Future plans](.docs/FUTURE-PLANS.md).
 
 ## Documentation
 
-- [User's guide](USER-GUIDE.md) — introduction, installation, setup, every page, creating notes, and troubleshooting.
-- [Current design](DESIGN.md) — implemented behavior, metric definitions, architecture, and data-safety boundaries.
-- [Future plans](FUTURE-PLANS.md) — unimplemented directions, sentence/media ideas, and decisions still to settle.
+- [User's guide](.docs/USER-GUIDE.md) — introduction, installation, setup, every page, creating notes, and troubleshooting.
+- [Current design](.docs/DESIGN.md) — implemented behavior, metric definitions, architecture, and data-safety boundaries.
+- [Future plans](.docs/FUTURE-PLANS.md) — unimplemented directions, sentence/media ideas, and decisions still to settle.
 - [Development workflow](.docs/development-workflow.md) — branch, validation, pull request, and merge rules for contributors and coding agents.
 - [Repository structure](.docs/repository-structure.md) — where the code, checks, build scripts, and documentation live.
 - [Tools used](.docs/tools-used.md) — languages, libraries, development tools, and build commands.
@@ -65,7 +65,7 @@ When upgrading an existing selection, the app creates **日本語**, **漢字**,
 - Daily discoveries use all available rated-answer history and the vocabulary inventory; card rankings use ordinary reviews. The featured topic stays stable during a day and does not repeat within seven calendar days. A small-data collection may exhaust eligible topics and show a neutral fallback.
 - Click vocabulary column headers to sort and double-click an entry for supporting IDs. Search filters the vocabulary export. Review exports identify daily rows, time buckets, card rankings, and their scope.
 
-The inventory includes unstudied cards and is not a fluency score. Review charts use current deck membership and available card-linked history. Recorded response time may be capped by Anki. See [DESIGN.md](DESIGN.md) for definitions and scope.
+The inventory includes unstudied cards and is not a fluency score. Review charts use current deck membership and available card-linked history. Recorded response time may be capped by Anki. See [DESIGN.md](.docs/DESIGN.md) for definitions and scope.
 
 ## Word Coverage
 

@@ -2,12 +2,12 @@
 
 Status: Phase 1A and Phase 1B are implemented. This document describes the current
 application and its rules. [FUTURE-PLANS.md](FUTURE-PLANS.md) contains unimplemented
-work and ideas; [README.md](README.md) explains setup and use.
+work and ideas; [README.md](../README.md) explains setup and use.
 
 For step-by-step operation, see the [user's guide](USER-GUIDE.md). For implementation
-walkthroughs, see [how the program works](.docs/program-guide.md),
-[dictionary and coverage](.docs/dictionary-and-coverage.md), and
-[AnkiConnect integration](.docs/anki-connect.md).
+walkthroughs, see [how the program works](program-guide.md),
+[dictionary and coverage](dictionary-and-coverage.md), and
+[AnkiConnect integration](anki-connect.md).
 
 ## 1. Product and completed scope
 
@@ -307,7 +307,7 @@ There is no telemetry or cloud account. Internet requests download explicit publ
 reference snapshots without collection content; note creation talks to loopback
 AnkiConnect. Analysis and matching work offline after reference installation.
 Reference data and derived lists retain source/version and CC BY-SA attribution;
-see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Newly created notes can sync
+see [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). Newly created notes can sync
 normally when Anki itself synchronizes.
 
 ## 8. Implementation and validation
@@ -333,7 +333,7 @@ Live AnkiConnect preview was verified, and the user tested actual creation.
 The last application validation passed 339 checks and a Release build; future
 changes must rerun relevant validation rather than treating that count as a promise.
 
-Follow the [development workflow](.docs/development-workflow.md) for branch,
+Follow the [development workflow](development-workflow.md) for branch,
 validation, commit, and PR steps. Full installation infrastructure, hosted CI,
-and automated releases are not configured. See the [repository structure](.docs/repository-structure.md)
-and [tools guide](.docs/tools-used.md) for code responsibilities and commands.
+and automated releases are not configured. See the [repository structure](repository-structure.md)
+and [tools guide](tools-used.md) for code responsibilities and commands.

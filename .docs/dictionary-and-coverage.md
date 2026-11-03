@@ -1,8 +1,8 @@
 # Dictionary matching and Word Coverage
 
 Word Coverage matches intended vocabulary fields to dictionary identities. It is
-not a standalone dictionary browser or sentence tokenizer. See [the user's guide](../USER-GUIDE.md#use-word-coverage)
-for controls and [DESIGN.md](../DESIGN.md) for metric definitions.
+not a standalone dictionary browser or sentence tokenizer. See [the user's guide](USER-GUIDE.md#use-word-coverage)
+for controls and [DESIGN.md](DESIGN.md) for metric definitions.
 
 ## Source acquisition and storage
 
@@ -120,4 +120,4 @@ and report semantics using synthetic entries. Creation tests separately cover
 preferred forms and duplicate exclusions. Real-data audits remain private.
 There is no runtime AI, morphology runtime, incidental sentence credit, exhaustive
 sense knowledge, or automatic broad stem inference; those extensions belong to
-[future work](../FUTURE-PLANS.md).
+[future work](FUTURE-PLANS.md).
