@@ -1,5 +1,5 @@
 using System.Net.Http;
-using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 
 namespace AnkiStats.Core;
@@ -19,7 +19,10 @@ public sealed class AnkiConnectClient : IDisposable
     {
         try
         {
-            using var response = await http.PostAsJsonAsync("", new { action, version = 6, @params = parameters ?? new { }, key });
+            // AnkiConnect's HTTP parser requires Content-Length and rejects chunked bodies.
+            // Buffer UTF-8 JSON so HttpClient knows its byte length before sending headers.
+            using var content = new StringContent(JsonSerializer.Serialize(new { action, version = 6, @params = parameters ?? new { }, key }), Encoding.UTF8, "application/json");
+            using var response = await http.PostAsync("", content);
             response.EnsureSuccessStatusCode();
             using var document = JsonDocument.Parse(await response.Content.ReadAsStreamAsync());
             var root = document.RootElement;
@@ -27,9 +30,17 @@ public sealed class AnkiConnectClient : IDisposable
             if (error.ValueKind != JsonValueKind.Null) throw new InvalidOperationException("AnkiConnect: " + error.ToString());
             return result.Deserialize<T>()!;
         }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        catch (TaskCanceledException e)
         {
-            throw new IOException("Could not communicate with AnkiConnect. Open Anki with the selected profile and retry. If a creation was in progress, check pending additions before retrying it.", e);
+            throw new IOException($"AnkiConnect timed out during {action}. Check that Anki is responsive. If creation was in progress, check pending additions before retrying it.", e);
+        }
+        catch (HttpRequestException e) when (e.StatusCode is not null)
+        {
+            throw new IOException($"AnkiConnect rejected {action} with HTTP {(int)e.StatusCode.Value} ({e.StatusCode.Value}). Check add-on compatibility and configuration. If creation was in progress, check pending additions before retrying it.", e);
+        }
+        catch (HttpRequestException e)
+        {
+            throw new IOException($"Could not reach AnkiConnect at 127.0.0.1:8765 during {action}. Keep Anki open on the selected profile with AnkiConnect enabled. Details: {e.Message} If creation was in progress, check pending additions before retrying it.", e);
         }
     }
     public void Dispose() => http.Dispose();

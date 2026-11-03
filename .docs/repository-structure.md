@@ -99,6 +99,7 @@ This is an executable check runner, rather than a project using a separate unit-
 - `CoverageChecks.cs` validates dictionary identities, homographs, furigana, named-deck cohorts, persistent corrections, reference replacement, family rules, and Markdown reports. Its optional audit reads an existing app cache without opening Anki or printing personal text.
 - `CoverageUiFixture.cs` creates a small, marked synthetic collection and reference bundle for isolated coverage UI verification.
 - `NoteCreationChecks.cs` uses an in-memory HTTP handler to verify tier spillover, preferred forms, live duplicates, profile checks, write payloads, and lost-response recovery without opening or modifying real Anki.
+- `AnkiTransportChecks.cs` exercises HTTP framing against a temporary loopback listener, verifying fixed-length JSON requests and actionable protocol errors without contacting real Anki.
 
 Ordinary checks use temporary synthetic collections and clean up afterward. Real collections must never become committed test fixtures.
 

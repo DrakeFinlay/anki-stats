@@ -154,6 +154,13 @@ AnkiConnect uses only `127.0.0.1:8765`; an optional API key can be entered in th
 panel and is kept in memory only. No collection contents are sent to internet
 services. Isolated/synthetic sessions cannot create notes.
 
+AnkiConnect must stay running inside Anki throughout preview and creation. A
+connection error naming `127.0.0.1:8765` means the app could not reach that local
+service; check that Anki is open and the add-on is enabled. HTTP rejection and
+timeout errors are reported separately. The desktop client sends buffered JSON
+with Content-Length for compatibility with AnkiConnect's HTTP parser; no browser
+CORS configuration change is needed for this client.
+
 New notes carry `ankistats::generated` and `ankistats::jmdict::<ID>` tags plus
 dictionary attribution in an HTML comment in English. A local creation journal
 records dictionary identity and uncertain write attempts before sending each
