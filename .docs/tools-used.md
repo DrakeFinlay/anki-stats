@@ -22,11 +22,13 @@ The app also uses standard .NET libraries for JSON serialization, gzip compressi
 
 ## What users need
 
-A self-contained published build includes the required .NET runtime. To use it, open the executable or shortcut on Windows; no SDK, terminal, browser, Anki add-on, or separately launched server is needed.
+A self-contained published build includes the required .NET runtime. Open the executable or shortcut on Windows; no SDK, terminal, or browser is needed. Analysis needs no Anki add-on. Optional note creation requires separately installed AnkiConnect, with Anki running on the matching profile.
 
 Analysis works locally without a network connection. Word Coverage installs pinned,
 checksum-verified JMdict and OpenJLPT reference data through an explicit download;
-subsequent matching and reporting work offline. No Anki content is transmitted.
+subsequent matching and reporting work offline. No Anki content is sent to internet services.
+Explicit note creation uses standard .NET HTTP against AnkiConnect API v6 at
+`127.0.0.1:8765`. It requires no additional application library or web backend.
 The reference engine uses standard .NET JSON, HTTP, compression, and SHA-256
 libraries, with no morphology runtime. Internet access may also be needed for SDK
 and NuGet dependencies when building from source. No media service is integrated.
@@ -61,8 +63,9 @@ Optional real-data audits are local, explicitly invoked checks. They should emit
 ## Dependency boundaries
 
 - No Anki application code or API is used to open or migrate the original collection.
-- No AnkiConnect add-on, Python environment, Node.js runtime, web backend, or cloud account is required by the application.
+- Python, Node.js, a web backend, and a cloud account are not runtime dependencies.
+- AnkiConnect is required only for explicitly triggered new-note creation, never for importing or analysis.
 - No telemetry, hosted CI, or automatic release pipeline is configured.
-- Dictionary downloads, Jisho-aligned coverage, and media integrations are future work.
+- Dictionary downloads and common/JLPT coverage are implemented; media integrations remain future work.
 
 For redistribution details, consult [third-party notices](../THIRD-PARTY-NOTICES.md) and the included license texts. For the code layout, see [repository structure](repository-structure.md).

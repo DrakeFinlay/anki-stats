@@ -90,9 +90,23 @@ public sealed class CoverageReferenceStore(string root)
             var kana = word.GetProperty("kana").EnumerateArray().ToList();
             var glosses = word.GetProperty("sense").EnumerateArray().SelectMany(s => s.GetProperty("gloss").EnumerateArray())
                 .Where(g => g.GetProperty("lang").GetString() == "eng").Select(g => g.GetProperty("text").GetString()!).Distinct().ToList();
+            var mainSense = word.GetProperty("sense").EnumerateArray().FirstOrDefault();
+            var usuallyKana = mainSense.ValueKind == JsonValueKind.Object && mainSense.TryGetProperty("misc", out var misc) && misc.EnumerateArray().Any(m => m.GetString() == "uk");
+            var orderedKana = kana.OrderByDescending(k => k.GetProperty("common").GetBoolean()).ToList();
+            var commonWritten = written.Where(k => k.GetProperty("common").GetBoolean()).ToList();
+            var useKana = usuallyKana || written.Count == 0 || (commonWritten.Count == 0 && kana.Any(k => k.GetProperty("common").GetBoolean()));
+            string writtenForm; string readingForm;
+            if (useKana) writtenForm = readingForm = orderedKana[0].GetProperty("text").GetString()!;
+            else
+            {
+                writtenForm = (commonWritten.FirstOrDefault().ValueKind == JsonValueKind.Object ? commonWritten[0] : written[0]).GetProperty("text").GetString()!;
+                var compatible = orderedKana.FirstOrDefault(k => k.GetProperty("appliesToKanji").EnumerateArray().Any(a => a.GetString() is "*" || a.GetString() == writtenForm));
+                if (compatible.ValueKind == JsonValueKind.Object) readingForm = compatible.GetProperty("text").GetString()!;
+                else writtenForm = readingForm = orderedKana[0].GetProperty("text").GetString()!;
+            }
             entries.Add(new(word.GetProperty("id").GetString()!, written.Select(k => k.GetProperty("text").GetString()!).ToList(),
                 kana.Select(k => new DictionaryReading(k.GetProperty("text").GetString()!, k.GetProperty("appliesToKanji").EnumerateArray().Select(a => a.GetString()!).ToList())).ToList(),
-                string.Join("; ", glosses), written.Concat(kana).Any(k => k.GetProperty("common").GetBoolean()), []));
+                string.Join("; ", glosses), written.Concat(kana).Any(k => k.GetProperty("common").GetBoolean()), [], new(writtenForm, readingForm)));
         }
         var byId = entries.ToDictionary(e => e.Id);
         var unlinked = 0;
@@ -107,6 +121,6 @@ public sealed class CoverageReferenceStore(string root)
                 if (!entry.Levels.Contains(level)) entry.Levels.Add(level);
             }
         }
-        return new(new(DictionaryVersion, json.RootElement.GetProperty("dictDate").GetString()!, JlptRevision, unlinked, Attribution), entries);
+        return new(new(DictionaryVersion, json.RootElement.GetProperty("dictDate").GetString()!, JlptRevision, unlinked, Attribution, FormSelectionVersion: 1), entries);
     }
 }

@@ -32,9 +32,14 @@ public partial class MainWindow
                 return;
             }
             var source = data;
-            coverage = await Task.Run(() => vocabularyMatcher.Analyze(source,
-                store.LoadCoverageDecisions<MatchDecision>(source.CollectionKey, "matches"),
-                store.LoadCoverageDecisions<FamilyDecision>(source.CollectionKey, "families")));
+            coverage = await Task.Run(() =>
+            {
+                // Recover acknowledged identities if the app closed after journaling a successful write.
+                SaveGeneratedMatches(source.CollectionKey, store.LoadCoverageDecisions<CreationAttempt>(source.CollectionKey, "creation"));
+                return vocabularyMatcher.Analyze(source,
+                    store.LoadCoverageDecisions<MatchDecision>(source.CollectionKey, "matches"),
+                    store.LoadCoverageDecisions<FamilyDecision>(source.CollectionKey, "families"));
+            });
             var selectedList = (CoverageGrid.SelectedItem as CoverageCount)?.List;
             CoverageGrid.ItemsSource = coverage.Counts;
             CoverageGrid.SelectedItem = coverage.Counts.Find(c => c.List == selectedList) ?? coverage.Counts[0];

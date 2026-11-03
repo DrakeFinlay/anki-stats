@@ -43,6 +43,7 @@ This project produces the executable. It references the core library and uses Wi
 | `MainWindow.Time.cs` | Connects recorded hours, time-range filters, comparison metrics, time charts, and weekday/hour tables to the active profile. |
 | `MainWindow.Learning.cs` | Filters difficulty cohorts, cross-deck comparisons, shared patterns, and supporting review evidence. |
 | `MainWindow.Coverage.cs` | Connects local reference installation, common/JLPT coverage, missing-word reports, and persistent match/family corrections to the active profile. |
+| `MainWindow.Creation.cs` | Previews missing-word batches, requires explicit creation, journals writes, and reconciles pending additions through local AnkiConnect. |
 | `TimeChart.cs` | Draws recorded minutes by day or week with all-history and six-month average reference lines. |
 | `ReviewChart.cs` | Draws review-volume bars directly with WPF; groups dates for daily or weekly views. |
 | `app.manifest` | Declares normal user privileges and Windows compatibility. |
@@ -65,6 +66,8 @@ This library contains the work that does not require a window. Keeping it separa
 | `VocabularyExpression.cs` | Extracts written forms and explicit reading alternatives, including segment furigana, spacing, numeric headwords, and dictionary-verifiable phonetic joins. |
 | `DefinitionMatcher.cs` | Provides normalized English gloss evidence for homophone resolution, preserving negation and rejecting generic or tied evidence. |
 | `CoverageReferenceStore.cs` | Downloads checksum-verified reference snapshots, builds a local dictionary index, and atomically replaces compressed reference data independently of personal corrections. |
+| `AnkiConnectClient.cs` | Calls the fixed loopback API, verifies the profile/model/deck, and reads live vocabulary for duplicate checks. |
+| `NoteCreation.cs` | Selects random missing entries in tier order, builds preferred-form notes, journals explicit writes, and reconciles uncertain attempts without retries. |
 | `LocalStore.cs` | Stores settings, the latest imported result, and daily discovery history in an app-owned SQLite database. The imported result is serialized as compressed JSON inside that database. |
 | `AnkiStats.Core.csproj` | Defines the library and its SQLite dependencies. |
 
@@ -81,6 +84,11 @@ Selected Anki profile
 
 The original collection is never opened by the app's SQLite connection.
 
+Explicit new-note creation follows a separate path: local reference and cached
+coverage → live AnkiConnect duplicate checks → batch preview → Create button →
+persisted attempt → AnkiConnect addNote → local identity receipt. Anki owns all
+source writes; normal importing and analysis remain read-only.
+
 ## Validation: `tests/AnkiStats.Checks`
 
 This is an executable check runner, rather than a project using a separate unit-test framework.
@@ -90,6 +98,7 @@ This is an executable check runner, rather than a project using a separate unit-
 - `LocalAudit.cs` provides explicitly invoked local audit/connection helpers. It reports aggregate counts and can save a selection to normal per-user app storage; it does not modify Anki.
 - `CoverageChecks.cs` validates dictionary identities, homographs, furigana, named-deck cohorts, persistent corrections, reference replacement, family rules, and Markdown reports. Its optional audit reads an existing app cache without opening Anki or printing personal text.
 - `CoverageUiFixture.cs` creates a small, marked synthetic collection and reference bundle for isolated coverage UI verification.
+- `NoteCreationChecks.cs` uses an in-memory HTTP handler to verify tier spillover, preferred forms, live duplicates, profile checks, write payloads, and lost-response recovery without opening or modifying real Anki.
 
 Ordinary checks use temporary synthetic collections and clean up afterward. Real collections must never become committed test fixtures.
 

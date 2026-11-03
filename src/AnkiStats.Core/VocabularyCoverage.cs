@@ -5,12 +5,13 @@ using System.Text.RegularExpressions;
 namespace AnkiStats.Core;
 
 public sealed record DictionaryReading(string Text, List<string> AppliesTo);
+public sealed record CardStudyForm(string Written, string Reading);
 public sealed record DictionaryEntry(string Id, List<string> Spellings, List<DictionaryReading> Readings,
-    string Meaning, bool Common, List<string> Levels);
+    string Meaning, bool Common, List<string> Levels, CardStudyForm? StudyForm = null);
 public sealed record ReferenceMetadata(string DictionaryVersion, string DictionaryDate, string JlptVersion,
-    int UnlinkedJlptItems, string Attribution, string Rules = "JMdict entry coverage; common = news1/ichi1/spec1/spec2/gai1; OpenJLPT corrected memberships; family rules v1");
+    int UnlinkedJlptItems, string Attribution, string Rules = "JMdict entry coverage; common = news1/ichi1/spec1/spec2/gai1; OpenJLPT corrected memberships; family rules v1", int FormSelectionVersion = 0);
 public sealed record CoverageReference(ReferenceMetadata Metadata, List<DictionaryEntry> Entries);
-public sealed record MatchDecision(long NoteId, string Fingerprint, string? EntryId, bool Exclude = false, List<string>? AdditionalEntryIds = null)
+public sealed record MatchDecision(long NoteId, string Fingerprint, string? EntryId, bool Exclude = false, List<string>? AdditionalEntryIds = null, string Origin = "Manual")
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public List<string> EntryIds => EntryId is null ? [] : new[] { EntryId }.Concat(AdditionalEntryIds ?? []).Distinct().ToList();
@@ -76,6 +77,11 @@ public sealed class VocabularyMatcher
     {
         var parsed = VocabularyExpression.Parse(note);
         return (parsed.Word, string.Join(" / ", parsed.Readings));
+    }
+    public static string Fingerprint(NoteRecord note)
+    {
+        var parsed = VocabularyExpression.Parse(note);
+        return "v3\u001f" + parsed.Word + "\u001f" + string.Join(" / ", parsed.Readings) + "\u001f" + DefinitionMatcher.Fingerprint(note.Meaning);
     }
     // Accept existing saved decisions using the former normalization, without rewriting user data.
     private static string LegacyFingerprint(NoteRecord note)
@@ -165,7 +171,7 @@ public sealed class VocabularyMatcher
             var parsed = VocabularyExpression.Parse(note);
             var word = parsed.Word; var reading = string.Join(" / ", parsed.Readings);
             var oldFingerprint = "v2\u001f" + word + "\u001f" + reading;
-            var fingerprint = "v3\u001f" + word + "\u001f" + reading + "\u001f" + DefinitionMatcher.Fingerprint(note.Meaning);
+            var fingerprint = Fingerprint(note);
             var resolutions = parsed.Error is not null ? [] : parsed.Readings.DefaultIfEmpty("").Select(r => Resolve(word, r, note.Meaning)).ToList();
             if (parsed.Error is null && parsed.JoinedReading is not null && resolutions.All(r => !r.ReadingMatched))
             {
@@ -195,7 +201,7 @@ public sealed class VocabularyMatcher
                     || (!decision.Exclude && (decision.EntryIds.Count == 0 || decision.EntryIds.Any(id => !Entries.ContainsKey(id)))))
                 { status = "Stale decision"; reason = "The note or reference entry changed; review the saved decision"; confirmed.Clear(); pending.UnionWith(candidates.Select(c => c.Id)); unresolved = true; warning = definitionWarning = false; }
                 else if (decision.Exclude) { status = "Excluded"; reason = "Manually excluded from dictionary coverage"; confirmed.Clear(); pending.Clear(); unresolved = warning = definitionWarning = false; }
-                else { status = "Corrected"; reason = "Saved manual dictionary entries"; confirmed = decision.EntryIds.ToHashSet(); pending.Clear(); unresolved = warning = definitionWarning = false; }
+                else { status = decision.Origin == "Generated" ? "Generated" : "Corrected"; reason = decision.Origin == "Generated" ? "Dictionary identity recorded during explicit note creation" : "Saved manual dictionary entries"; confirmed = decision.EntryIds.ToHashSet(); pending.Clear(); unresolved = warning = definitionWarning = false; }
             }
             matches.Add(new(note.Id, word, reading, note.Meaning, string.Join(", ", cards[note.Id].Select(c => c.Deck).Distinct()),
                 known, familiar, status, reason, confirmed.Order(StringComparer.Ordinal).ToList(), candidates, fingerprint, pending.Except(confirmed).ToList(), unresolved, warning, definitionWarning));

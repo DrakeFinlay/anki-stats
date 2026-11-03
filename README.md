@@ -1,6 +1,6 @@
 # Anki Stats
 
-A local, read-only Windows desktop app for exploring Japanese vocabulary and Anki review history. Includes vocabulary inventory, common-word/JLPT coverage, review analysis, daily discoveries, and exports.
+A local Windows desktop app for exploring Japanese vocabulary and Anki review history. Includes vocabulary inventory, common-word/JLPT coverage, review analysis, daily discoveries, exports, and explicitly triggered creation of missing vocabulary notes.
 
 This project was **vibe coded with Codex**, with human direction and review guiding its design and development.
 
@@ -15,7 +15,7 @@ This project was **vibe coded with Codex**, with human direction and review guid
 
 During development, use **Anki Stats.lnk in the repository root**. It builds and packages the current checkout before opening, including uncommitted source changes, so it stays current as we iterate. It uses your normal saved profile and clears inherited test-data overrides. Startup may take a few seconds; a failed build shows a message and records details in `.tools/launch.log` instead of opening an old version. Close the app before launching after code changes. This development shortcut requires the project-local or an installed .NET 10 SDK. Regenerate it with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1` if the repository moves.
 
-For a standalone packaged build, open `artifacts/AnkiStats/AnkiStats.exe`. Published executables are snapshots: other artifact folders can contain older versions and do not update themselves. No terminal, browser, Anki add-on, or separately installed .NET runtime is required for a self-contained build.
+For a standalone packaged build, open `artifacts/AnkiStats/AnkiStats.exe`. Published executables are snapshots: other artifact folders can contain older versions and do not update themselves. No terminal, browser, or separately installed .NET runtime is required for a self-contained build. Analysis needs no Anki add-on; optional note creation requires AnkiConnect.
 
 On first launch:
 
@@ -125,11 +125,50 @@ uses the same pinned snapshot; a future app update can introduce newer versions.
 Failed downloads preserve the prior reference data and personal corrections.
 Reference data is licensed under CC BY-SA 4.0; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
+### Create missing vocabulary notes
+
+Install [AnkiConnect](https://ankiweb.net/shared/info/2055492159) in Anki and restart
+Anki once. Refresh Anki Stats with Anki closed, then open Anki with that same
+profile. In Word Coverage, enter a positive whole number under **Add missing
+words to Anki**, select **Preview new notes**, review the batch, and select
+**Create … new notes**. Preview and Cancel never add anything.
+
+Selection is random without replacement within **N5 → N4 → N3 → N2 → N1 → Common**.
+It spills into the next tier, counts overlapping dictionary IDs once, and excludes
+confirmed database entries and unresolved possible matches. Before preview and
+again before creation, the app checks live vocabulary across the entire running
+collection, including decks outside the imported selection. If fewer eligible
+words remain, the preview offers the remainder; if none remain, it explains that
+the eligible sets are exhausted.
+
+New notes always use the existing **Japanese** note type in **日本語::勉強してる**.
+Front uses JMdict's common-form and usually-kana preferences with a compatible
+reading (`食べる[たべる]`, but `ありがとう`). These are dictionary preferences,
+not a corpus frequency ranking. English contains dictionary glosses; Sentence,
+Media, and other fields are blank. Anki's note templates determine the number of
+cards. Daily limits and scheduling settings stay unchanged. The first preview
+may update the pinned reference snapshot to retain preferred-form metadata.
+
+The app verifies the running profile, note type, fields, and destination deck.
+AnkiConnect uses only `127.0.0.1:8765`; an optional API key can be entered in the
+panel and is kept in memory only. No collection contents are sent to internet
+services. Isolated/synthetic sessions cannot create notes.
+
+New notes carry `ankistats::generated` and `ankistats::jmdict::<ID>` tags plus
+dictionary attribution in an HTML comment in English. A local creation journal
+records dictionary identity and uncertain write attempts before sending each
+note. If a response is lost, the app stops and excludes pending entries from
+later batches. With Anki open, use **Check pending additions** to acknowledge
+tagged notes or release entries that were not created. This check never creates
+or deletes notes. Successfully added entries remain excluded from future batches.
+After creation, close Anki and **Refresh** to update coverage from the saved
+collection. Edit or delete unwanted notes manually in Anki.
+
 ## Data safety
 
-The app opens the source collection only with an ordinary read-only file handle and denies concurrent file access during copying. SQLite analyzes a temporary private copy. Locks, active journals, or unsupported schemas produce a recovery message. The app never changes cards, tags, schedules, or AnkiWeb data and never runs card HTML or JavaScript.
+The importer opens the source collection only with an ordinary read-only file handle and denies concurrent file access during copying. SQLite analyzes a temporary private copy. Locks, active journals, or unsupported schemas produce a recovery message. Refresh, analysis, exports, and match corrections do not modify Anki. Only the explicit Create action adds new notes through the running AnkiConnect API; the app never writes source SQLite directly, changes existing notes, adjusts schedules, or runs card HTML or JavaScript. Newly added notes can sync normally through Anki.
 
-Settings, the latest imported data, reference data, matching decisions, and insight rotation history stay in the per-user local application-data `AnkiStats` folder, accessible from Settings. There is no telemetry. Only explicit reference installation uses the network; all analysis works locally. Source files, personal settings, caches, and exports must not be committed.
+Settings, the latest imported data, reference data, matching decisions, creation journals, and insight rotation history stay in the per-user local application-data `AnkiStats` folder, accessible from Settings. There is no telemetry. Reference installation downloads public data; note creation communicates with local AnkiConnect; analysis works offline. Source files, personal settings, caches, and exports must not be committed.
 
 The current importer supports Anki collection schemas 11 and 18. Other schemas require an adapter update. Moving or renaming note-type fields requires revisiting setup and previewing the mappings.
 

@@ -9,6 +9,13 @@ The Windows build uses the following components. No Anki application code or Jap
 
 Exact package versions are pinned in the project files. License texts and .NET's additional third-party notices are included in the accompanying `LICENSES` folder. Keep that folder with the executable and this summary.
 
+Optional explicit note creation interoperates with the separately installed
+[AnkiConnect add-on](https://ankiweb.net/shared/info/2055492159) over its local HTTP
+API. AnkiConnect is not bundled; no add-on code is copied into this application.
+Generated notes contain condensed JMdict glosses, with source/license attribution
+in an HTML comment in their English field. Their dictionary content is covered
+by the reference-data terms below.
+
 ## Optional local vocabulary reference data
 
 The app's explicit reference installation downloads these public datasets. No

@@ -121,6 +121,34 @@ Required follow-up work, outside the initial build:
   No card contents, paths, or statistics are transmitted. Include attribution,
   CC BY-SA license material, and source/version details in the app and reports.
 
+#### Explicit note creation extension
+
+The user approved adding missing vocabulary notes within Word Coverage. A positive
+requested count selects random unique entries in N5, N4, N3, N2, N1, then Common
+order, spilling into later tiers. Only absent entries qualify; confirmed entries,
+possible matches, live duplicates, and pending/acknowledged creation identities
+are excluded. Live checks cover all mapped vocabulary in the running collection,
+including decks outside the active imported profile. Offer a smaller remainder
+when necessary and an exhaustion error when no eligible entries remain.
+
+Preview the concrete batch before an explicit Create action. All new notes use
+the existing Japanese model and 日本語::勉強してる deck. Front uses a common
+written form with a compatible reading, or kana when JMdict marks usually-kana
+usage or only a common kana form. English contains dictionary glosses and hidden
+source attribution; remaining fields are blank. These preferences do not claim
+an exact frequency ranking. Anki generates cards from existing templates. Leave
+limits, schedules, existing notes, and existing tags unchanged.
+
+Use AnkiConnect API v6 over loopback with Anki open on the imported profile.
+Verify the profile, model ID, fields, and destination; recheck live duplicates
+before writing. Journal each attempt before its request and retain dictionary
+identity in app-owned matching decisions and tags on new notes. Stop on uncertain
+responses without automatic write retries. An explicit read-only reconciliation
+acknowledges tagged notes or releases absent pending entries. Isolated/synthetic
+sessions cannot create notes. Refresh remains a separate read-only workflow with
+Anki closed. This narrowly scoped extension supersedes the earlier blanket ban
+on Anki modifications; classification/tag updates to existing notes remain deferred.
+
 ### Subsequent required capabilities
 
 - Further refinement of Jisho alignment when a usable, permitted source is available.
@@ -141,7 +169,9 @@ These remain part of the product direction; they are not Phase 1A acceptance req
 
 ### Separate project
 
-Writing dictionary classifications or other tags back into Anki is explicitly outside this app's current read-only scope. Actual Anki modifications will be addressed through a separate prompt/project after Phase 1A.
+Writing dictionary classifications or other tags onto existing Anki notes remains
+outside this app's scope. A standalone local dictionary app remains a separate
+future project. The explicit new-note workflow above is approved for Phase 1B.
 
 ## 3. User experience
 
@@ -232,9 +262,15 @@ Rarest-word insights require a documented frequency source and are deferred unti
 
 ## 6. Local collection access and data safety
 
-The app requires neither AnkiConnect nor an Anki add-on. The initial supported workflow is refresh with Anki closed. Anki may be used independently after refresh; the app analyzes its own private imported data.
+Analysis requires neither AnkiConnect nor an Anki add-on. Refresh uses Anki closed;
+the app analyzes its own private imported data. Optional explicit note creation
+requires AnkiConnect and Anki open on the matching profile.
 
-Never modify, migrate, repair, checkpoint, or tag the source collection. Never launch Anki's collection API against the source if doing so could upgrade or mutate it. Do not import media, execute note HTML/JavaScript, or follow remote content from card fields.
+The importer must never modify, migrate, repair, checkpoint, or tag the source
+collection, or launch Anki's collection API against it. Source SQLite is never
+written directly. Only the approved Create action asks an already-running Anki
+instance to add new notes through AnkiConnect. Do not import media, execute note
+HTML/JavaScript, or follow remote content from card fields.
 
 Proposed refresh sequence:
 

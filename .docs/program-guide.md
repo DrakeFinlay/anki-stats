@@ -192,7 +192,15 @@ For a file-by-file map, read [repository structure](repository-structure.md). Fo
 
 The app opens the source file with read-only file access and denies concurrent access while making a private copy. SQLite queries run against the copy, not the original. The importer refuses active journals or an unavailable source instead of attempting to repair or alter Anki's files. Temporary copies are removed after the operation.
 
-The app never changes Anki tags, schedules, or cards and never executes HTML or JavaScript from note fields. It has no telemetry. Only explicitly requested reference-data installation uses the network; subsequent analysis works offline.
+Importing, analysis, and corrections do not modify Anki. The optional Word Coverage
+creation panel adds new notes only after Preview and an explicit Create action.
+It uses AnkiConnect with Anki open, checks the entire live collection for duplicates,
+and always targets Japanese notes in 日本語::勉強してる. It never changes existing
+notes or scheduling settings and never executes HTML or JavaScript from fields.
+It has no telemetry. Reference installation downloads public data; creation talks
+only to local AnkiConnect; analysis works offline. See the [creation instructions](../README.md#create-missing-vocabulary-notes)
+for setup, preferred forms, selection order, and pending-attempt recovery. Close
+Anki before refreshing coverage afterward.
 
 Settings and imported data live in the per-user local application-data `AnkiStats` folder, available through **Open app data folder** in Settings. The cache holds the latest successful import; it is not a historical snapshot archive or a substitute for an Anki backup. CSV files go wherever you choose to save them.
 
