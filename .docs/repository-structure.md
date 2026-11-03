@@ -22,6 +22,7 @@ anki-stats/
 ├── .gitignore
 ├── AGENTS.md
 ├── DESIGN.md
+├── FUTURE-PLANS.md
 ├── Directory.Build.props
 ├── global.json
 ├── README.md

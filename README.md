@@ -4,8 +4,21 @@ A local Windows desktop app for exploring Japanese vocabulary and Anki review hi
 
 This project was **vibe coded with Codex**, with human direction and review guiding its design and development.
 
+Phase 1A and Phase 1B are implemented. The app covers safe collection import,
+vocabulary inventory, common/JLPT coverage, missing-word note creation, deck
+profiles, review analysis, Calendar, Time Analysis, Learning Patterns, and daily
+discoveries. Analysis works locally; creating notes is an explicit action through
+AnkiConnect.
+
+Sentence analysis and media coverage are future work. Planned directions include
+remaining mining opportunities in a current title, missing words in existing
+Anki sentences, sentence statistics, and libraries of past/future media with
+artwork and script-based vocabulary comparisons. See [Future plans](FUTURE-PLANS.md).
+
 ## Documentation
 
+- [Current design](DESIGN.md) — implemented behavior, metric definitions, architecture, and data-safety boundaries.
+- [Future plans](FUTURE-PLANS.md) — unimplemented directions, sentence/media ideas, and decisions still to settle.
 - [Development workflow](.docs/development-workflow.md) — branch, validation, pull request, and merge rules for contributors and coding agents.
 - [Repository structure](.docs/repository-structure.md) — where the code, checks, build scripts, and documentation live.
 - [Tools used](.docs/tools-used.md) — languages, libraries, development tools, and build commands.
@@ -29,7 +42,7 @@ Subsequent launches refresh the saved selection automatically. Close Anki before
 
 ## Deck profiles
 
-Use **Active profile** in the header to switch the summary cards, Vocabulary, Reviews, Insights, Calendar, and exports together. Switching uses the last imported data and does not require Anki to be closed. Overview displays a separate Review rhythm chart for every enabled profile. Calendar also has a profile dropdown above its streak ranges; it stays synchronized with the header.
+Use **Active profile** in the header to switch summary cards, Vocabulary, Word Coverage, Reviews, Insights, Calendar, Time Analysis, Learning Patterns card lists, and exports together. Switching uses the last imported data and does not require Anki to be closed. Learning Patterns cross-deck comparisons retain their broader imported scope. Overview displays a separate Review rhythm chart for every enabled profile. Calendar also has a profile dropdown above its streak ranges; it stays synchronized with the header.
 
 In Settings, select a row under **Deck profiles** to edit that profile's include/exclude rules. You can rename, add, remove, or enable profiles. Preview and save after changing profiles. Field mappings and review time zone are shared. Refresh imports the union of saved profiles once, including disabled profiles, while disabled profiles stay out of the analysis pickers and overview charts.
 
@@ -111,8 +124,10 @@ Inspect matches using the search/status filters. **Review selected match** lets
 you select an ambiguous candidate, enter another verified JMdict ID, exclude a
 note, or reset its correction. For explicitly studied alternatives, verified
 entry IDs can be separated with commas. Preview the entries, then confirm the match.
-Corrections persist per collection and note. Changes to the extracted expression
-or reading, or removal of a saved dictionary ID, require review. Anki is unchanged.
+Corrections persist per collection and note. Changes to the extracted expression,
+reading, or English definition, or removal of a saved dictionary ID, require
+review for current decisions. Older saved fingerprints remain readable. Match
+correction leaves Anki unchanged.
 
 The stem-family section reports conservative grouping for confirmed combined
 entries. The initial curated rule covers 報う／報いる／報われる; other entries stay
@@ -170,6 +185,7 @@ identified notes or release entries that were not created. This check never crea
 or deletes notes. Successfully added entries remain excluded from future batches.
 After creation, close Anki and **Refresh** to update coverage from the saved
 collection. Edit or delete unwanted notes manually in Anki.
+
 Older app versions added `ankistats::generated` and `ankistats::jmdict::<ID>` tags.
 Those tags can be removed in Anki; existing notes already contain the hidden
 attribution identity used for recovery. Legacy tags are still recognized if retained.
@@ -194,6 +210,6 @@ dotnet run --project tests/AnkiStats.Checks -c Release
 
 Publish creates a self-contained x64 executable in the ignored `artifacts/AnkiStats` folder, a shortcut alongside that folder, and the development shortcut in the repository root. The root shortcut always rebuilds the canonical `artifacts/AnkiStats` output regardless of any custom publish folder. Keep the packaged license/notice files with the executable. Build dependencies are restored from NuGet; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
-The focused checks use synthetic collections and cover vocabulary deduplication, Japanese entry distinctions, event scopes, time boundaries and daylight saving, CSV escaping, daily rotation, cache isolation, locked/WAL sources, schema rejection, and source integrity. Optional local importer validation accepts a profile folder through the check runner's `--inspect` argument; it prints only verification status and timing, and removes its temporary private copies.
+The focused checks use synthetic collections and cover vocabulary deduplication, Japanese entry distinctions, dictionary/definition matching, cohort scopes, preferred forms, tag-free note creation, tier spillover, live duplicate checks, interrupted-write recovery, HTTP framing, time boundaries and daylight saving, exports, daily rotation, cache isolation, locked/WAL sources, schema rejection, and source integrity. AnkiConnect checks use simulated responses and a temporary loopback HTTP listener without writing real Anki notes. Optional local importer validation accepts a profile folder through the check runner's `--inspect` argument; it prints only verification status and timing, and removes its temporary private copies.
 
 For isolated UI validation, `ANKISTATS_DATA_DIR` can point to a temporary app-data folder. This always displays a test-session warning. The synthetic fixture generator also marks its source collection. Do not leave a test instance open as the user's working app; close it and launch without the override after checking it. No test data is bundled in the published executable.
