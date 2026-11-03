@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace AnkiStats.Core;
 
@@ -11,9 +12,12 @@ public static class NoteCreation
 {
     public const string Destination = "日本語::勉強してる";
     public const string IdentityTag = "ankistats::jmdict::";
+    private static readonly Regex AttributionIdentity = new(@"<!-- JMdict © EDRDG; [^<>]*; entry ([0-9]+) -->", RegexOptions.CultureInvariant);
     public static readonly string[] Tiers = ["N5", "N4", "N3", "N2", "N1", "Common"];
-    public static HashSet<string> TaggedEntries(IEnumerable<LiveAnkiNote> notes) => notes.SelectMany(n => n.Tags)
-        .Where(t => t.StartsWith(IdentityTag, StringComparison.Ordinal)).Select(t => t[IdentityTag.Length..]).ToHashSet();
+    public static HashSet<string> RecordedEntries(IEnumerable<LiveAnkiNote> notes) => notes.SelectMany(n =>
+        // Read old tags for compatibility; new notes keep identity in the existing attribution comment.
+        n.Tags.Where(t => t.StartsWith(IdentityTag, StringComparison.Ordinal)).Select(t => t[IdentityTag.Length..])
+            .Concat(AttributionIdentity.Matches(n.Fields.GetValueOrDefault("English", "")).Select(m => m.Groups[1].Value))).ToHashSet();
 
     public static HashSet<string> LiveExclusions(VocabularyMatcher matcher, AnkiInventory inventory, ImportedCollection imported, Settings settings)
     {
@@ -31,7 +35,7 @@ public static class NoteCreation
         }
         var live = matcher.Analyze(source);
         // An unresolved compatible entry must be reviewed instead of generating a potential duplicate.
-        return live.Database.Concat(live.Matches.SelectMany(m => m.ReviewEntryIds)).Concat(TaggedEntries(inventory.Notes)).ToHashSet();
+        return live.Database.Concat(live.Matches.SelectMany(m => m.ReviewEntryIds)).Concat(RecordedEntries(inventory.Notes)).ToHashSet();
     }
 
     public static IEnumerable<NewVocabularyNote> Candidates(CoverageAnalysis coverage, ISet<string> excluded, Random? random = null)
@@ -61,7 +65,7 @@ public static class NoteCreation
         fields["English"] = WebUtility.HtmlEncode(note.Meaning)
             + "<!-- JMdict © EDRDG; https://www.edrdg.org/jmdict/j_jmdict.html ; CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/ ; entry " + note.EntryId + " -->";
         return new { deckName = Destination, modelName = "Japanese", fields,
-            options = new { allowDuplicate = false, duplicateScope = "collection" }, tags = new[] { "ankistats::generated", IdentityTag + note.EntryId } };
+            options = new { allowDuplicate = false, duplicateScope = "collection" }, tags = Array.Empty<string>() };
     }
     public static async Task<CreationPlan> Prepare(AnkiConnectClient client, CoverageAnalysis coverage, ImportedCollection imported, Settings settings,
         int requested, List<CreationAttempt> journal, IProgress<string>? progress = null, Random? random = null)
@@ -132,7 +136,7 @@ public static class NoteCreation
         var inventory = await AnkiConnection.ReadInventory(client, profile, modelId);
         foreach (var attempt in journal.Where(a => a.State == "Pending").ToList())
         {
-            var found = inventory.Notes.Where(n => n.Tags.Contains(IdentityTag + attempt.EntryId)).ToList();
+            var found = inventory.Notes.Where(n => RecordedEntries([n]).Contains(attempt.EntryId)).ToList();
             if (found.Count > 1) throw new InvalidOperationException("More than one note has a pending dictionary identity. Inspect it in Anki.");
             journal.Remove(attempt);
             if (found.Count == 1) journal.Add(new(attempt.EntryId, "Added", found[0].Id, attempt.Fingerprint));

@@ -102,7 +102,7 @@ public partial class MainWindow
             await Task.Run(() => NoteCreation.Reconcile(client, Path.GetFileName(Path.TrimEndingDirectorySeparator(imported.SourceProfileFolder)), model.Id, journal,
                 attempts => store.SaveCoverageDecisions(imported.CollectionKey, "creation", attempts)));
             SaveGeneratedMatches(imported.CollectionKey, journal);
-            CreationStatus.Text = "Pending additions checked against live Anki. Existing tagged notes are acknowledged; entries not found can be requested again. No notes were added or deleted.";
+            CreationStatus.Text = "Pending additions checked against live Anki. Existing notes with recorded dictionary identities are acknowledged; entries not found can be requested again. No notes were added or deleted.";
         }
         catch (Exception error) { CreationStatus.Text = error.Message; SetStatus(error.Message, true); }
     });

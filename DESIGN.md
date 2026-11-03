@@ -142,9 +142,10 @@ limits, schedules, existing notes, and existing tags unchanged.
 Use AnkiConnect API v6 over loopback with Anki open on the imported profile.
 Verify the profile, model ID, fields, and destination; recheck live duplicates
 before writing. Journal each attempt before its request and retain dictionary
-identity in app-owned matching decisions and tags on new notes. Stop on uncertain
+identity in app-owned matching decisions and the hidden attribution comment in
+English. New notes have no tags; older identity tags remain readable. Stop on uncertain
 responses without automatic write retries. An explicit read-only reconciliation
-acknowledges tagged notes or releases absent pending entries. Isolated/synthetic
+acknowledges identified notes or releases absent pending entries. Isolated/synthetic
 sessions cannot create notes. Refresh remains a separate read-only workflow with
 Anki closed. This narrowly scoped extension supersedes the earlier blanket ban
 on Anki modifications; classification/tag updates to existing notes remain deferred.

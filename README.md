@@ -161,15 +161,18 @@ timeout errors are reported separately. The desktop client sends buffered JSON
 with Content-Length for compatibility with AnkiConnect's HTTP parser; no browser
 CORS configuration change is needed for this client.
 
-New notes carry `ankistats::generated` and `ankistats::jmdict::<ID>` tags plus
-dictionary attribution in an HTML comment in English. A local creation journal
+New notes have no Anki tags. Dictionary attribution and entry identity remain
+in an HTML comment in English. A local creation journal
 records dictionary identity and uncertain write attempts before sending each
 note. If a response is lost, the app stops and excludes pending entries from
 later batches. With Anki open, use **Check pending additions** to acknowledge
-tagged notes or release entries that were not created. This check never creates
+identified notes or release entries that were not created. This check never creates
 or deletes notes. Successfully added entries remain excluded from future batches.
 After creation, close Anki and **Refresh** to update coverage from the saved
 collection. Edit or delete unwanted notes manually in Anki.
+Older app versions added `ankistats::generated` and `ankistats::jmdict::<ID>` tags.
+Those tags can be removed in Anki; existing notes already contain the hidden
+attribution identity used for recovery. Legacy tags are still recognized if retained.
 
 ## Data safety
 

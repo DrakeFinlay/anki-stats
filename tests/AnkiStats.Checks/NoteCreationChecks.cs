@@ -74,6 +74,9 @@ internal static class NoteCreationChecks
         var fields = mock.LastAdded.Value.GetProperty("fields");
         check(fields.GetProperty("Sentence").GetString() == "" && fields.GetProperty("Media").GetString() == "", "sentence and media remain blank");
         check(mock.LastAdded.Value.GetProperty("options").GetProperty("allowDuplicate").GetBoolean() == false, "Anki collection duplicate protection stays enabled");
+        check(mock.Notes.All(n => n.Tags.Count == 0), "generated notes have no Anki tags");
+        check(NoteCreation.RecordedEntries(mock.Notes).SetEquals(result.Added.Select(a => a.EntryId)), "hidden attribution preserves identities on tag-free notes");
+        check(NoteCreation.RecordedEntries([new(987, "Japanese", [], [NoteCreation.IdentityTag + "123"])]).Contains("123"), "legacy identity tags remain readable");
         check(mock.LastAdded.Value.GetProperty("fields").GetProperty("English").GetString()!.Contains("CC BY-SA 4.0"), "generated definitions retain hidden source attribution");
         check(mock.Actions.All(a => a is "version" or "getActiveProfile" or "modelNamesAndIds" or "deckNames" or "modelFieldNames" or "findNotes" or "notesInfo" or "canAddNotes" or "addNote"), "creation never adjusts daily limits or existing cards");
         var remaining = await NoteCreation.Prepare(client, coverage, imported, settings, int.MaxValue, journal);
@@ -109,7 +112,7 @@ internal static class NoteCreationChecks
         check(next.Notes[0].EntryId != lostPlan.Notes[0].EntryId, "uncertain write cannot be selected again");
         var before = lost.Actions.Count(a => a == "addNote");
         await NoteCreation.Reconcile(lostClient, "Synthetic", 7, lostJournal, _ => { });
-        check(lostJournal.Single().State == "Added" && lost.Actions.Count(a => a == "addNote") == before, "pending reconciliation acknowledges live tagged note without writing");
+        check(lostJournal.Single().State == "Added" && lost.Actions.Count(a => a == "addNote") == before && lost.Notes.Single().Tags.Count == 0, "pending reconciliation acknowledges tag-free note through hidden attribution without writing");
         var changed = new MockAnki(); using var changedClient = new AnkiConnectClient(handler: changed);
         var changedPlan = await NoteCreation.Prepare(changedClient, coverage, imported, settings, 1, []);
         changed.Profile = "Other";
