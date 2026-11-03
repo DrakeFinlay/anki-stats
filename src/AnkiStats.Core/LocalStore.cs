@@ -76,4 +76,26 @@ public sealed class LocalStore
         cmd.Parameters.AddWithValue("$collection", collection); cmd.Parameters.AddWithValue("$day", key); cmd.Parameters.AddWithValue("$template", selected.Id); cmd.ExecuteNonQuery();
         return selected;
     }
+
+    // Separate personal decisions from replaceable dictionary data and import caches.
+    public List<T> LoadCoverageDecisions<T>(string collection, string kind)
+    {
+        using var db = Open();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "CREATE TABLE IF NOT EXISTS coverage_decisions (collection TEXT NOT NULL, kind TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(collection,kind));";
+        cmd.ExecuteNonQuery();
+        cmd.CommandText = "SELECT payload FROM coverage_decisions WHERE collection=$collection AND kind=$kind";
+        cmd.Parameters.AddWithValue("$collection", collection); cmd.Parameters.AddWithValue("$kind", kind);
+        return cmd.ExecuteScalar() is string json ? JsonSerializer.Deserialize<List<T>>(json) ?? [] : [];
+    }
+    public void SaveCoverageDecisions<T>(string collection, string kind, List<T> decisions)
+    {
+        using var db = Open();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "CREATE TABLE IF NOT EXISTS coverage_decisions (collection TEXT NOT NULL, kind TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(collection,kind));";
+        cmd.ExecuteNonQuery();
+        cmd.CommandText = "INSERT INTO coverage_decisions(collection,kind,payload) VALUES($collection,$kind,$payload) ON CONFLICT(collection,kind) DO UPDATE SET payload=excluded.payload";
+        cmd.Parameters.AddWithValue("$collection", collection); cmd.Parameters.AddWithValue("$kind", kind);
+        cmd.Parameters.AddWithValue("$payload", JsonSerializer.Serialize(decisions)); cmd.ExecuteNonQuery();
+    }
 }

@@ -8,6 +8,7 @@
           <TextBlock Text="A closer look at your learning" Foreground="{StaticResource Muted}" FontSize="11" Margin="10,0,0,36"/>
           <Button Content="Overview" Tag="Overview" Click="Navigate" HorizontalContentAlignment="Left" Margin="0,0,0,8"/>
           <Button Content="Vocabulary" Tag="Vocabulary" Click="Navigate" Margin="0,0,0,8"/>
+          <Button Content="Word Coverage" Tag="Word Coverage" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Reviews" Tag="Reviews" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Insights" Tag="Insights" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Calendar" Tag="Calendar" Click="Navigate" Margin="0,0,0,8"/>
@@ -16,8 +17,8 @@
           <Button Content="Settings" Tag="Settings" Click="Navigate" Margin="0,20,0,8"/>
         </StackPanel>
         <StackPanel VerticalAlignment="Bottom">
-          <TextBlock Text="LOCAL · READ ONLY" Foreground="#8FB8EB" FontSize="11" Margin="10,0,0,10"/>
-          <TextBlock Text="Your collection stays on this PC. Refresh with Anki closed." TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="10,0,8,0"/>
+          <TextBlock Text="LOCAL · YOU CONTROL ADDITIONS" Foreground="#8FB8EB" FontSize="10" Margin="10,0,0,10"/>
+          <TextBlock Text="Refresh with Anki closed. Open Anki to explicitly create new notes in Word Coverage." TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="10,0,8,0"/>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -39,9 +40,10 @@
               <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Again rate" Foreground="{StaticResource Muted}"/><TextBlock x:Name="AgainRate" Text="—" FontSize="40" Margin="0,8"/><TextBlock Text="Again ÷ ordinary review answers" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}"/><TextBlock Text="A record of answers, not a fluency score." TextWrapping="Wrap" FontSize="12" Margin="0,20,0,0" Foreground="{StaticResource Muted}"/></StackPanel></Border>
               <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Recorded review time" Foreground="{StaticResource Muted}"/><TextBlock x:Name="RecordedHours" Text="—" FontSize="40" Margin="0,8"/><TextBlock x:Name="RecordedTimeScope" Text="All rated answers · all history" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}"/><Button Content="Explore time analysis →" Tag="Time Analysis" Click="Navigate" Margin="0,18,0,0"/></StackPanel></Border>
             </UniformGrid>
+            <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Vocabulary coverage" FontSize="20"/><TextBlock x:Name="CoverageOverview" Text="Open Word Coverage to install the local reference data." TextWrapping="Wrap" Margin="0,10,0,0"/><Button Content="Explore common words and JLPT →" Tag="Word Coverage" Click="Navigate" HorizontalAlignment="Left" Margin="0,12,0,0"/></StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="TODAY'S DISCOVERY" Foreground="#8FB8EB" FontSize="11"/><TextBlock x:Name="InsightTitle" Text="Connect your collection for a daily observation" FontSize="23" Margin="0,10,0,8"/><TextBlock x:Name="InsightDetail" Text="Refresh a collection to uncover your first observation." TextWrapping="Wrap" FontSize="16" LineHeight="25"/><TextBlock x:Name="InsightMethod" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,12,0,0" LineHeight="20"/></StackPanel></Border>
             <StackPanel x:Name="RhythmCharts"/>
-            <TextBlock Text="Inventory means present in the selected decks, including unstudied and suspended cards. Dictionary coverage and stem families arrive in Phase 1B." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,12"/>
+            <TextBlock Text="Inventory includes all selected card states. Word Coverage separates known (永遠), familiar (勉強してる), and vocabulary in the imported database." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,12"/>
           </StackPanel>
         </ScrollViewer>
         <Grid x:Name="VocabularyPage" Visibility="Collapsed">
@@ -50,6 +52,44 @@
           <DataGrid x:Name="VocabularyGrid" Grid.Row="1" MouseDoubleClick="VocabularyDetails"><DataGrid.Columns><DataGridTextColumn Header="Expression" Binding="{Binding Expression}" Width="160"/><DataGridTextColumn Header="Reading" Binding="{Binding Reading}" Width="160"/><DataGridTextColumn Header="Meaning" Binding="{Binding Meaning}" Width="*"/><DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="65"/><DataGridTextColumn Header="Cards" Binding="{Binding Cards}" Width="65"/><DataGridTextColumn Header="Decks" Binding="{Binding Decks}" Width="180"/></DataGrid.Columns></DataGrid>
           <StackPanel Grid.Row="2" Margin="0,12,0,0"><TextBlock x:Name="VocabularySummary" Foreground="{StaticResource Muted}"/><Button x:Name="SkippedButton" Content="Inspect skipped expressions" Click="ShowSkipped" HorizontalAlignment="Left" Margin="0,8,0,0"/><TextBlock Text="Double-click an entry for supporting note/card IDs. Click column headers to sort." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,8,0,0"/></StackPanel>
         </Grid>
+        <ScrollViewer x:Name="CoveragePage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="0,0,16,0">
+            <TextBlock Text="Common words and JLPT" FontSize="24" Margin="0,0,0,12"/>
+            <TextBlock Text="Known: 永遠 · Familiar: 勉強してる · Coverage: their union. Suspended deck vocabulary counts only toward In database. Counts deduplicate JMdict entries, including duplicate notes and sibling cards." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,12"/>
+            <StackPanel x:Name="CoverageControls">
+              <Border Style="{StaticResource Card}" Margin="0,0,0,16"><StackPanel>
+                <TextBlock Text="Add missing words to Anki" FontSize="20" Margin="0,0,0,8"/>
+                <TextBlock Text="Random, without repeats: N5 → N4 → N3 → N2 → N1 → Common. New notes always go to 日本語::勉強してる using Japanese / Front + English. Sentence and Media stay blank; daily limits are unchanged." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,10"/>
+                <WrapPanel><TextBlock Text="Words" VerticalAlignment="Center" Margin="0,0,10,8"/><TextBox x:Name="NewWordCount" Text="10" Width="90" AutomationProperties.Name="Number of new words" Margin="0,0,12,8"/><Button Content="Preview new notes" Click="PreviewNewNotes" Margin="0,0,12,8"/><Button Content="Check pending additions" Click="CheckPendingAdditions" Margin="0,0,0,8"/></WrapPanel>
+                <Expander Header="AnkiConnect API key (only if configured)" Foreground="#EFF1F6" Margin="0,0,0,8"><PasswordBox x:Name="AnkiApiKey" Background="#20232B" Foreground="White" Padding="8" MaxWidth="320" HorizontalAlignment="Left" AutomationProperties.Name="AnkiConnect API key"/></Expander>
+                <TextBlock x:Name="CreationStatus" Text="Open Anki before previewing. The app checks the live collection for duplicates, then asks you to create the previewed notes. First use may download preferred-form dictionary metadata. No notes are created by Refresh." TextWrapping="Wrap" Foreground="{StaticResource Muted}"/>
+              </StackPanel></Border>
+              <WrapPanel Margin="0,0,0,12"><Button Content="Download / reinstall reference data" Click="DownloadCoverageReference" Margin="0,0,12,8"/><Button Content="Reference sources and rules" Click="ShowCoverageSources" Margin="0,0,0,8"/></WrapPanel>
+              <TextBlock x:Name="CoverageStatus" Text="Install the versioned reference data once, then matching and reports work offline. Only public dataset files are downloaded; no Anki data is sent." TextWrapping="Wrap" Margin="0,0,0,12"/>
+              <DataGrid x:Name="CoverageGrid" Height="345" SelectionMode="Single" Margin="0,0,0,12" AutomationProperties.Name="Reference list coverage"><DataGrid.Columns>
+                <DataGridTextColumn Header="Reference list" Binding="{Binding List}" Width="110"/>
+                <DataGridTextColumn Header="Known" Binding="{Binding KnownDisplay}" Width="*" MinWidth="180"/>
+                <DataGridTextColumn Header="Familiar" Binding="{Binding FamiliarDisplay}" Width="*" MinWidth="180"/>
+                <DataGridTextColumn Header="Combined" Binding="{Binding CombinedDisplay}" Width="*" MinWidth="180"/>
+                <DataGridTextColumn Header="In database" Binding="{Binding DatabaseDisplay}" Width="*" MinWidth="180"/>
+              </DataGrid.Columns></DataGrid>
+              <TextBlock Text="Select a reference-list row to export its missing entries. “Not covered” includes database-only vocabulary; “Absent from database” excludes every confirmed entry in the imported selection. Unresolved matches may appear missing." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,8"/>
+              <WrapPanel Margin="0,0,0,18"><Button Content="Export not covered (.md)" Click="ExportMissingCoverage" Tag="combined" Margin="0,0,12,8"/><Button Content="Export absent from database (.md)" Click="ExportMissingCoverage" Tag="database" Margin="0,0,0,8"/></WrapPanel>
+              <TextBlock Text="Inspect Anki matches" FontSize="21" Margin="0,0,0,8"/>
+              <WrapPanel Margin="0,0,0,10"><TextBox x:Name="CoverageSearch" Width="220" TextChanged="CoverageFilterChanged" AutomationProperties.Name="Search Anki matches" ToolTip="Search expression, reading, meaning, status or deck" Margin="0,0,12,0"/><ComboBox x:Name="CoverageMatchFilter" SelectedIndex="0" SelectionChanged="CoverageFilterChanged" Margin="0,0,12,0"><ComboBoxItem Content="All matches"/><ComboBoxItem Content="Needs review"/><ComboBoxItem Content="Known / familiar"/><ComboBoxItem Content="Database only"/></ComboBox><Button Content="Review selected match" Click="ReviewCoverageMatch"/></WrapPanel>
+              <DataGrid x:Name="CoverageMatchGrid" Height="320" SelectionMode="Single" MouseDoubleClick="ReviewCoverageMatchDoubleClick" AutomationProperties.Name="Anki dictionary matches"><DataGrid.Columns>
+                <DataGridTextColumn Header="Word" Binding="{Binding Expression}" Width="120"/><DataGridTextColumn Header="Reading" Binding="{Binding Reading}" Width="130"/><DataGridTextColumn Header="Cohort" Binding="{Binding Cohort}" Width="120"/><DataGridTextColumn Header="Match" Binding="{Binding Status}" Width="120"/><DataGridTextColumn Header="JMdict IDs" Binding="{Binding EntryIdsDisplay}" Width="140"/><DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*"/>
+              </DataGrid.Columns></DataGrid>
+              <TextBlock x:Name="CoverageMatchSummary" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,18"/>
+              <Expander Header="Stem families and grouping rules" Foreground="#EFF1F6" Margin="0,0,0,18"><StackPanel>
+                <TextBlock x:Name="CoverageFamilySummary" TextWrapping="Wrap" Margin="0,12,0,8"/>
+                <TextBlock Text="Conservative rules v1: spelling variants share a dictionary entry; 報う, 報いる and 報われる share one explicitly curated family. Other entries stay separate unless you assign them the same family label in match review. Shared kanji, similar meanings, and transitive/intransitive pairs are not automatically grouped. This limited grouping does not change common/JLPT coverage." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,12"/>
+                <DataGrid x:Name="CoverageFamilyGrid" Height="200" MouseDoubleClick="CoverageFamilyDetails"><DataGrid.Columns><DataGridTextColumn Header="Family" Binding="{Binding Name}" Width="*"/><DataGridTextColumn Header="Members" Binding="{Binding Members}" Width="*"/><DataGridTextColumn Header="Rule" Binding="{Binding Rule}" Width="*"/><DataGridTextColumn Header="Entries" Binding="{Binding Entries.Count}" Width="90"/></DataGrid.Columns></DataGrid>
+                <TextBlock Text="Double-click a family to inspect its entries and readings." Foreground="{StaticResource Muted}" Margin="0,8,0,0"/>
+              </StackPanel></Expander>
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
         <Grid x:Name="ReviewsPage" Visibility="Collapsed">
           <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
           <WrapPanel Margin="0,0,0,14"><TextBlock Text="Range" VerticalAlignment="Center" Margin="0,0,8,0"/><ComboBox x:Name="RangePicker" SelectionChanged="ReviewFilterChanged" SelectedIndex="0" Margin="0,0,18,0"><ComboBoxItem Content="All history"/><ComboBoxItem Content="Last 30 days"/><ComboBoxItem Content="Last 90 days"/></ComboBox><TextBlock Text="Events" VerticalAlignment="Center" Margin="0,0,8,0"/><ComboBox x:Name="KindPicker" SelectionChanged="ReviewFilterChanged" SelectedIndex="0" Margin="0,0,18,0"><ComboBoxItem Content="Ordinary review"/><ComboBoxItem Content="Learning"/><ComboBoxItem Content="Relearning"/><ComboBoxItem Content="Filtered / cram"/><ComboBoxItem Content="All rated answers"/></ComboBox><ComboBox x:Name="GranularityPicker" SelectionChanged="ChartGroupingChanged" SelectedIndex="1" Margin="0,0,18,0"><ComboBoxItem Content="Daily chart"/><ComboBoxItem Content="Weekly chart"/></ComboBox><Button Content="Export CSV" Click="ExportReviews"/></WrapPanel>
@@ -65,7 +105,7 @@
             <Expander Header="Daily answer counts" Foreground="#EFF1F6" Margin="0,0,16,18"><DataGrid x:Name="DailyGrid" Height="240"><DataGrid.Columns><DataGridTextColumn Header="Date" Binding="{Binding Day}" Width="*"/><DataGridTextColumn Header="Answers" Binding="{Binding Answers}" Width="150"/></DataGrid.Columns></DataGrid></Expander>
           </StackPanel></ScrollViewer>
         </Grid>
-        <ScrollViewer x:Name="InsightsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="ONE OBSERVATION EACH DAY" Foreground="#8FB8EB" FontSize="11"/><TextBlock x:Name="FeaturedTitle" FontSize="28" Margin="0,14,0,12" TextWrapping="Wrap"/><TextBlock x:Name="FeaturedDetail" FontSize="18" TextWrapping="Wrap" LineHeight="28"/></StackPanel></Border><TextBlock Text="Based on all available rated-answer history and the current inventory. Card rankings use ordinary reviews. Today's topic stays the same when you reopen the app; its values update after refresh. A topic will not repeat within seven calendar days." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,20"/><TextBlock Text="The initial library uses review patterns and vocabulary inventory. Rarity and dictionary coverage will be added in later phases." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,0"/></StackPanel></ScrollViewer>
+        <ScrollViewer x:Name="InsightsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="ONE OBSERVATION EACH DAY" Foreground="#8FB8EB" FontSize="11"/><TextBlock x:Name="FeaturedTitle" FontSize="28" Margin="0,14,0,12" TextWrapping="Wrap"/><TextBlock x:Name="FeaturedDetail" FontSize="18" TextWrapping="Wrap" LineHeight="28"/></StackPanel></Border><TextBlock Text="Based on all available rated-answer history and the current inventory. Card rankings use ordinary reviews. Today's topic stays the same when you reopen the app; its values update after refresh. A topic will not repeat within seven calendar days." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,20"/><TextBlock Text="This discovery library uses review patterns and vocabulary inventory. Common-word and JLPT statistics are available in Word Coverage; rarity insights require a separate frequency source." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,16,0"/></StackPanel></ScrollViewer>
         <ScrollViewer x:Name="CalendarPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
           <StackPanel Margin="0,0,16,0">
             <TextBlock Text="Review streaks" FontSize="23" Margin="0,0,0,10"/>
