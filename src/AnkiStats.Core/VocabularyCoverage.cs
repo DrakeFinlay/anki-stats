@@ -20,11 +20,11 @@ public sealed record CoverageRules(string KnownDeck = "日本語::永遠", strin
     string SuspendedDeck = "日本語::Suspended");
 public sealed record VocabularyMatch(long NoteId, string Expression, string Reading, string Meaning, string Decks,
     bool Known, bool Familiar, string Status, string Reason, List<string> EntryIds, List<DictionaryEntry> Candidates, string Fingerprint,
-    List<string> ReviewEntryIds, bool HasUnresolved, bool HasWarning)
+    List<string> ReviewEntryIds, bool HasUnresolved, bool HasWarning, bool HasDefinitionWarning = false)
 {
     public string? EntryId => EntryIds.Count == 1 ? EntryIds[0] : null;
     public string EntryIdsDisplay => string.Join(", ", EntryIds);
-    public bool NeedsReview => HasUnresolved || HasWarning;
+    public bool NeedsReview => HasUnresolved || HasWarning || HasDefinitionWarning;
     public string Cohort => Known && Familiar ? "Known + familiar" : Known ? "Known" : Familiar ? "Familiar" : "Database only";
 }
 public sealed record CoverageCount(string List, int Total, int Known, int Familiar, int Combined, int Database)
@@ -47,12 +47,14 @@ public sealed record CoverageAnalysis(List<VocabularyMatch> Matches, List<Covera
 {
     public int Unresolved => Matches.Count(m => m.HasUnresolved);
     public int ReadingWarnings => Matches.Count(m => m.HasWarning);
+    public int DefinitionWarnings => Matches.Count(m => m.HasDefinitionWarning);
 }
 
 /// <summary>Local dictionary lookup. No sentence tokenization, stemming, or network lookup.</summary>
 public sealed class VocabularyMatcher
 {
-    public const string MatchingRules = "Matching v2: exact script before kana-folded fallback; explicit reading alternatives resolved independently; separated phonetic segments join only when no alternative matches and a unique exact-form dictionary reading supports the whole; unique exact-kanji matches with a one-edit reading discrepancy (readings at least four characters; substitution, insertion, deletion, or adjacent transposition) count with a warning; unresolved alternatives receive no credit.";
+    public const string DefinitionRules = "Definition evidence: one supported form and one supported meaning are sufficient; spellings/readings are alternatives, not a checklist. English gloss phrases distinguish otherwise compatible homophones. Exact normalized phrases outrank short phrase containment; ties and broad generic words do not resolve ambiguity. A unique Japanese match with unverified English wording remains credited with a definition warning rather than treating a paraphrase as proven wrong. Explicit manual corrections override automatic evidence.";
+    public const string MatchingRules = "Matching v3: exact script before kana-folded fallback; explicit reading alternatives resolved independently; separated phonetic segments join only when no alternative matches and a unique exact-form dictionary reading supports the whole; unique exact-kanji matches with a one-edit reading discrepancy (readings at least four characters; substitution, insertion, deletion, or adjacent transposition) count with a warning; unresolved alternatives receive no credit.";
     private readonly Dictionary<string, List<DictionaryEntry>> index = new(StringComparer.Ordinal);
     public IReadOnlyDictionary<string, DictionaryEntry> Entries { get; }
     public CoverageReference Reference { get; }
@@ -103,18 +105,31 @@ public sealed class VocabularyMatcher
         var exact = compatible.Where(e => ExactForm(e, word)).ToList();
         return (exact.Count > 0 ? exact : compatible).OrderBy(e => e.Id, StringComparer.Ordinal).ToList();
     }
-    private sealed record Resolution(List<DictionaryEntry> Candidates, bool Confirmed, bool Warning, string Reason, bool ReadingMatched = true);
-    private Resolution Resolve(string word, string reading)
+    private sealed record Resolution(List<DictionaryEntry> Candidates, bool Confirmed, bool Warning, string Reason, bool ReadingMatched = true, bool DefinitionWarning = false);
+    private Resolution WithDefinition(Resolution resolution, string meaning)
+    {
+        if (string.IsNullOrWhiteSpace(meaning) || !resolution.ReadingMatched || resolution.Candidates.Count == 0) return resolution;
+        var scored = resolution.Candidates.Select(e => (Entry: e, Score: DefinitionMatcher.Score(meaning, e.Meaning))).ToList();
+        var best = scored.Max(s => s.Score);
+        var supported = scored.Where(s => s.Score == best && best > 0).ToList();
+        if (supported.Count == 1)
+            return resolution with { Candidates = [supported[0].Entry], Confirmed = true, Reason = resolution.Candidates.Count > 1
+                ? "Expression/reading and English definition identify one entry" : resolution.Reason + "; English definition supports this entry" };
+        if (resolution.Confirmed && best == 0)
+            return resolution with { DefinitionWarning = true, Reason = resolution.Reason + "; definition wording not verified—review the gloss" };
+        return resolution with { Reason = resolution.Reason + (best == 0 ? "; definition does not distinguish the candidates" : "; definition supports more than one candidate") };
+    }
+    private Resolution Resolve(string word, string reading, string meaning)
     {
         var strict = Find(word, reading);
-        if (strict.Count > 0) return new(strict, strict.Count == 1, false, strict.Count == 1 ? "Exact expression/reading match" : "Multiple dictionary entries; choose one");
+        if (strict.Count > 0) return WithDefinition(new(strict, strict.Count == 1, false, strict.Count == 1 ? "Exact expression/reading match" : "Multiple dictionary entries; choose one"), meaning);
         var written = index.GetValueOrDefault(Key(word), []).Where(e => ExactForm(e, word)).ToList();
         // A bounded reading discrepancy is evidence only with an exact kanji spelling. Never fuzzy-match headwords or kana homophones.
         if (word.Any(c => c is >= '一' and <= '龯') && reading.Length >= 4)
         {
             var near = written.Where(e => e.Readings.Any(r => Applies(e, r, word) && OneEditApart(Key(r.Text), Key(reading)))).ToList();
             if (near.Count == 1)
-                return new(near, true, true, $"Exact spelling; small reading discrepancy (one edit). Dictionary: {string.Join(" / ", near[0].Readings.Select(r => r.Text))}");
+                return WithDefinition(new(near, true, true, $"Exact spelling; small reading discrepancy (one edit). Dictionary: {string.Join(" / ", near[0].Readings.Select(r => r.Text))}"), meaning);
         }
         return new(written, false, false, written.Count > 0 ? "Expression exists, but its reading does not match; review the reading" : "No expression/reading match", false);
     }
@@ -149,17 +164,19 @@ public sealed class VocabularyMatcher
         {
             var parsed = VocabularyExpression.Parse(note);
             var word = parsed.Word; var reading = string.Join(" / ", parsed.Readings);
-            var fingerprint = "v2\u001f" + word + "\u001f" + reading;
-            var resolutions = parsed.Error is not null ? [] : parsed.Readings.DefaultIfEmpty("").Select(r => Resolve(word, r)).ToList();
+            var oldFingerprint = "v2\u001f" + word + "\u001f" + reading;
+            var fingerprint = "v3\u001f" + word + "\u001f" + reading + "\u001f" + DefinitionMatcher.Fingerprint(note.Meaning);
+            var resolutions = parsed.Error is not null ? [] : parsed.Readings.DefaultIfEmpty("").Select(r => Resolve(word, r, note.Meaning)).ToList();
             if (parsed.Error is null && parsed.JoinedReading is not null && resolutions.All(r => !r.ReadingMatched))
             {
                 var joined = Find(word, parsed.JoinedReading);
                 if (joined.Count == 1 && ExactForm(joined[0], word))
-                    resolutions = [new(joined, true, false, "Separated phonetic segments match one complete dictionary reading")];
+                    resolutions = [WithDefinition(new(joined, true, false, "Separated phonetic segments match one complete dictionary reading"), note.Meaning)];
             }
             var candidates = resolutions.SelectMany(r => r.Candidates).DistinctBy(e => e.Id).ToList();
             var confirmed = new HashSet<string>(); var pending = new HashSet<string>();
             var unresolved = parsed.Error is not null; var warning = resolutions.Any(r => r.Warning);
+            var definitionWarning = resolutions.Any(r => r.DefinitionWarning);
             foreach (var resolution in resolutions)
             {
                 if (resolution.Confirmed) confirmed.Add(resolution.Candidates[0].Id);
@@ -168,20 +185,20 @@ public sealed class VocabularyMatcher
             var eligible = cards[note.Id].Where(c => !LearningAnalyzer.Under(c.Deck, rules.SuspendedDeck)).ToList();
             var known = eligible.Any(c => LearningAnalyzer.Under(c.Deck, rules.KnownDeck));
             var familiar = eligible.Any(c => LearningAnalyzer.Under(c.Deck, rules.FamiliarDeck));
-            var status = confirmed.Count > 0 ? unresolved ? "Partial" : warning ? "Reading warning" : "Matched"
+            var status = confirmed.Count > 0 ? unresolved ? "Partial" : warning ? "Reading warning" : definitionWarning ? "Definition warning" : "Matched"
                 : candidates.Count > 1 ? "Ambiguous" : "Unmatched";
             var reason = parsed.Error ?? string.Join("; ", resolutions.Select(r => r.Reason).Distinct());
             if (confirmed.Count > 1) reason = "Explicit reading alternatives support separate entries. " + reason;
             if (saved.TryGetValue(note.Id, out var decision))
             {
-                if ((decision.Fingerprint != fingerprint && decision.Fingerprint != LegacyFingerprint(note))
+                if ((decision.Fingerprint != fingerprint && decision.Fingerprint != oldFingerprint && decision.Fingerprint != LegacyFingerprint(note))
                     || (!decision.Exclude && (decision.EntryIds.Count == 0 || decision.EntryIds.Any(id => !Entries.ContainsKey(id)))))
-                { status = "Stale decision"; reason = "The note or reference entry changed; review the saved decision"; confirmed.Clear(); pending.UnionWith(candidates.Select(c => c.Id)); unresolved = true; warning = false; }
-                else if (decision.Exclude) { status = "Excluded"; reason = "Manually excluded from dictionary coverage"; confirmed.Clear(); pending.Clear(); unresolved = warning = false; }
-                else { status = "Corrected"; reason = "Saved manual dictionary entries"; confirmed = decision.EntryIds.ToHashSet(); pending.Clear(); unresolved = warning = false; }
+                { status = "Stale decision"; reason = "The note or reference entry changed; review the saved decision"; confirmed.Clear(); pending.UnionWith(candidates.Select(c => c.Id)); unresolved = true; warning = definitionWarning = false; }
+                else if (decision.Exclude) { status = "Excluded"; reason = "Manually excluded from dictionary coverage"; confirmed.Clear(); pending.Clear(); unresolved = warning = definitionWarning = false; }
+                else { status = "Corrected"; reason = "Saved manual dictionary entries"; confirmed = decision.EntryIds.ToHashSet(); pending.Clear(); unresolved = warning = definitionWarning = false; }
             }
             matches.Add(new(note.Id, word, reading, note.Meaning, string.Join(", ", cards[note.Id].Select(c => c.Deck).Distinct()),
-                known, familiar, status, reason, confirmed.Order(StringComparer.Ordinal).ToList(), candidates, fingerprint, pending.Except(confirmed).ToList(), unresolved, warning));
+                known, familiar, status, reason, confirmed.Order(StringComparer.Ordinal).ToList(), candidates, fingerprint, pending.Except(confirmed).ToList(), unresolved, warning, definitionWarning));
         }
         HashSet<string> Ids(Func<VocabularyMatch, bool> predicate) => matches.Where(predicate).SelectMany(m => m.EntryIds).ToHashSet();
         var knownIds = Ids(m => m.Known); var familiarIds = Ids(m => m.Familiar);
@@ -219,17 +236,18 @@ public static class CoverageReport
         static string Cell(string value) => value.Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ").Replace("<", "&lt;").Replace(">", "&gt;");
         var text = new StringBuilder($"# {list}: {(absentDatabase ? "no confirmed match in imported database" : "not covered by known/familiar decks")}\n\n");
         text.AppendLine($"Generated: {generatedAt ?? DateTimeOffset.Now:O}  \nCollection refreshed: {result.RefreshedAt:O}  \nScope: {Cell(result.Scope)}");
-        text.AppendLine($"\nKnown = 永遠; familiar = 勉強してる; combined = their union. Suspended deck contributes to database only.\n\n{missing.Count:N0} entries without a confirmed match in this scope. {result.Unresolved:N0} notes have unresolved readings/matches; {result.ReadingWarnings:N0} confirmed notes have reading warnings. Confirmed portions of multi-reading notes count; unresolved alternatives do not. Absence of a confirmed match is not proof of absence or lack of knowledge.\n");
+        text.AppendLine($"\nKnown = 永遠; familiar = 勉強してる; combined = their union. Suspended deck contributes to database only.\n\n{missing.Count:N0} entries without a confirmed match in this scope. {result.Unresolved:N0} notes have unresolved readings/matches; {result.ReadingWarnings:N0} confirmed notes have reading warnings; {result.DefinitionWarnings:N0} confirmed notes have unverified definition wording. Confirmed portions of multi-reading notes count; unresolved alternatives do not. Absence of a confirmed match is not proof of absence or lack of knowledge.\n");
         var meta = result.Reference.Metadata;
         text.AppendLine($"Reference: JMdict {meta.DictionaryVersion} ({meta.DictionaryDate}); OpenJLPT {meta.JlptVersion}. {meta.UnlinkedJlptItems} unlinked JLPT rows excluded from entry denominators.\n\n{meta.Rules}\n\n{meta.Attribution}\n");
-        text.AppendLine(VocabularyMatcher.MatchingRules + "\n");
+        text.AppendLine(VocabularyMatcher.MatchingRules + "\n\n" + VocabularyMatcher.DefinitionRules + "\n");
         var pending = result.Matches.SelectMany(m => m.ReviewEntryIds).ToHashSet();
         void Table(string heading, IEnumerable<DictionaryEntry> entries)
         {
             text.AppendLine($"## {heading}\n");
-            text.AppendLine("| Word | Reading | Meaning | In imported database | JMdict ID |\n| --- | --- | --- | --- | --- |");
+            text.AppendLine("One accepted spelling or reading is enough; other forms are optional. One matching sense is enough; the whole gloss list is not required.\n");
+            text.AppendLine("| One accepted form | Other accepted forms (optional) | Meaning | In imported database | JMdict ID |\n| --- | --- | --- | --- | --- |");
             foreach (var entry in entries)
-                text.AppendLine($"| {Cell(entry.Spellings.FirstOrDefault() ?? entry.Readings.First().Text)} | {Cell(string.Join(" / ", entry.Readings.Select(r => r.Text)))} | {Cell(entry.Meaning)} | {(result.Database.Contains(entry.Id) ? "Yes" : pending.Contains(entry.Id) ? "Possible match; needs review" : "No confirmed match")} | {entry.Id} |");
+                text.AppendLine($"| {Cell(entry.Readings[0].Text)} | {Cell(string.Join(" / ", entry.Spellings.Concat(entry.Readings.Skip(1).Select(r => r.Text)).Where(f => f != entry.Readings[0].Text).Distinct()))} | {Cell(entry.Meaning)} | {(result.Database.Contains(entry.Id) ? "Yes" : pending.Contains(entry.Id) ? "Possible match; needs review" : "No confirmed match")} | {entry.Id} |");
             text.AppendLine();
         }
         var reviewCount = missing.Count(e => pending.Contains(e.Id));

@@ -90,7 +90,7 @@ internal static class CoverageMatchingChecks
         check(matcher.Analyze(Source("昨夜[ゆうべ]"), reloaded).Matches.Single().Status == "Stale decision", "changed declared readings invalidate saved multi-target correction");
         check(matcher.Analyze(Source("昨夜[ゆうべ・さくや]"), [multiDecision with { AdditionalEntryIds = ["3999999"] }]).Known.Count == 0, "removed ID invalidates multi-target correction rather than partially trusting it");
         var report = CoverageReport.Markdown(girl, "N5", true);
-        check(!report.Contains("| 女の子 |") && report.Contains("1 confirmed notes have reading warnings"), "confirmed discrepancy no longer appears absent and report discloses warnings");
+        check(!report.Contains("| 3000004 |") && report.Contains("1 confirmed notes have reading warnings"), "confirmed discrepancy no longer appears absent and report discloses warnings");
         var ambiguousReport = CoverageReport.Markdown(Analyze("女の子"), "N5", true);
         check(ambiguousReport.Contains("Possible matches — resolve before treating as absent") && ambiguousReport.Contains("Possible match; needs review"), "possible dictionary matches are separated from absent evidence");
     }

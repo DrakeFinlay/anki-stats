@@ -81,6 +81,13 @@ discrepancy on an exact kanji spelling counts with a visible **Reading warning**
 and remains in **Needs review**. Larger discrepancies and ambiguous homographs
 remain unresolved; **Partial** matches count only their confirmed alternatives.
 
+The English meaning helps distinguish compatible homophones: `はい` with “yes”
+matches the yes entry. Tied or unsupported definitions cannot resolve ambiguity.
+Different wording on a unique Japanese match produces a **Definition warning**
+for review. Any one accepted spelling or reading is sufficient; you do not need
+all variants or all meanings. Reports show a kana lookup first and label the
+remaining forms as optional alternatives.
+
 Use **Review selected match** to resolve candidates, enter a verified dictionary
 ID (or comma-separated IDs for explicitly studied alternatives), exclude a note,
 or reset a correction. The first save previews the entries; the

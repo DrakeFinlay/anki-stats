@@ -82,6 +82,7 @@ public partial class MainWindow
             + "Reading-to-spelling restrictions are respected. Source JLPT rows without a linked, available JMdict ID are excluded and counted explicitly. "
             + "Levels are independent memberships; cumulative rows are unions. No review-date filter is applied.\n\n"
             + VocabularyMatcher.MatchingRules + "\n\n"
+            + VocabularyMatcher.DefinitionRules + "\n\n"
             + "Known: cards in 日本語::永遠 and descendants. Familiar: 日本語::勉強してる and descendants. Suspended-deck cards cannot establish either category. "
             + "Other imported vocabulary, including Suspended, is database-only. These categories use deck placement, not Anki queue state or inferred mastery. "
             + "All metrics use the active profile's imported selection, not excluded decks or the entire source collection.\n\n"
@@ -105,7 +106,7 @@ public partial class MainWindow
             _ => true
         }).Where(m => search.Length == 0 || $"{m.Expression}\n{m.Reading}\n{m.Meaning}\n{m.Status}\n{m.Decks}\n{m.EntryIdsDisplay}".Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
         CoverageMatchGrid.ItemsSource = rows;
-        CoverageMatchSummary.Text = $"{rows.Count:N0} of {coverage.Matches.Count:N0} vocabulary notes · {coverage.Unresolved:N0} unresolved · {coverage.ReadingWarnings:N0} confirmed with reading warnings. "
+        CoverageMatchSummary.Text = $"{rows.Count:N0} of {coverage.Matches.Count:N0} vocabulary notes · {coverage.Unresolved:N0} unresolved · {coverage.ReadingWarnings:N0} reading warnings · {coverage.DefinitionWarnings:N0} definition warnings. "
             + "Corrections persist per collection and note across imports and profile changes. No Anki notes or tags are changed.";
     }
 

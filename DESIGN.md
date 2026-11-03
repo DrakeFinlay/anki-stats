@@ -87,6 +87,17 @@ Required follow-up work, outside the initial build:
   matches in Needs review. Partial multi-reading matches credit only resolved
   alternatives. New correction fingerprints distinguish written scripts; legacy
   saved decisions remain readable.
+- Matching v3 adds English-definition evidence among Japanese-compatible entries.
+  Prefer an exact normalized gloss phrase over limited short phrase containment;
+  require a unique best candidate, retain negation, and suppress generic-word or
+  tied evidence. Meaning alone cannot match an incompatible Japanese form. A
+  unique Japanese match whose English wording is unverified retains coverage with
+  a definition warning, rather than assuming arbitrary paraphrases are wrong.
+  New correction fingerprints include the definition; older decisions remain readable.
+- Any one accepted spelling/reading and one supported sense suffice for entry
+  coverage. Missing-word reports lead with a kana lookup form and show all other
+  forms as optional alternatives, rather than presenting a rare kanji spelling as
+  the required target. Different forms of the same entry never inflate counts.
 - Matched, ambiguous, unmatched, excluded, and stale-decision notes are inspectable.
   Only a unique match or saved manual correction receives coverage credit.
   Corrections are app-owned, collection/note-specific, and persist across imports.

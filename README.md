@@ -93,6 +93,20 @@ review** with the dictionary reading shown. The app never fuzzy-matches headword
 or chooses between equally close homographs. Unrelated reading discrepancies
 remain unresolved. **Partial** matches credit only the resolved reading alternatives.
 
+Matching also compares the mapped English definition with each compatible
+dictionary entry's glosses. A uniquely supported definition can resolve homophones:
+`はい` plus “yes” identifies the yes entry rather than 灰 or 肺. Matching uses
+normalized phrases and limited short phrase containment, not arbitrary substring
+overlap or guessed synonyms. Ties and generic definitions remain unresolved.
+A unique Japanese match with unverified English wording retains coverage with a
+**Definition warning**, so different paraphrases are not treated as proven errors.
+
+Spellings and readings are alternatives: `ありがとう` **or** `有難う` is enough for
+the same entry, and `はい` alone is enough without also adding `へい` or `はーい`.
+Reports lead with a kana lookup form and explicitly label other written/readings
+as optional alternatives. One matching sense is enough; all listed meanings are
+not required. Coverage still counts each dictionary entry once.
+
 Inspect matches using the search/status filters. **Review selected match** lets
 you select an ambiguous candidate, enter another verified JMdict ID, exclude a
 note, or reset its correction. For explicitly studied alternatives, verified

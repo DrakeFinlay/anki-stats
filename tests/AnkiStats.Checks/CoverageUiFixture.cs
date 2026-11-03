@@ -11,11 +11,14 @@ internal static class CoverageUiFixture
         File.WriteAllText(Path.Combine(profile, ".ankistats-test-data"), "Synthetic coverage fixture.");
         var source = CoverageChecks.Collection();
         var expressions = new[] { "クラス", "万年筆[まんえんひつ]", "女の子[おんあのこ]", "昨夜[ゆうべ・さくや]", "SNS[えす・えぬ・えす]" };
+        var meanings = new[] { "class", "fountain pen", "girl", "last night", "social networking service" };
         for (var i = 0; i < expressions.Length; i++)
         {
-            source.Notes.Add(new(100 + i, expressions[i], "", "Synthetic matching example", "Vocabulary", "Word"));
+            source.Notes.Add(new(100 + i, expressions[i], "", meanings[i], "Vocabulary", "Word"));
             source.Cards.Add(new(1100 + i, 100 + i, "日本語::永遠", 2, 2, 0));
         }
+        source.Notes.Add(new(105, "はい", "", "yes", "Vocabulary", "Word"));
+        source.Cards.Add(new(1105, 105, "日本語::永遠", 2, 2, 0));
         using (var db = new SqliteConnection($"Data Source={path};Pooling=False"))
         {
             db.Open(); using var cmd = db.CreateCommand();
@@ -57,6 +60,7 @@ internal static class CoverageUiFixture
         store.SaveCache(importer.Import(settings), settings);
         var reference = CoverageChecks.Reference();
         reference.Entries.AddRange(CoverageMatchingChecks.Reference().Entries);
+        reference.Entries.AddRange(DefinitionChecks.Reference().Entries);
         new CoverageReferenceStore(Path.Combine(root, "reference")).Save(reference);
     }
 }
