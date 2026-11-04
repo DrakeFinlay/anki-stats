@@ -4,6 +4,13 @@ Word Coverage matches intended vocabulary fields to dictionary identities. It is
 not a standalone dictionary browser or sentence tokenizer. See [the user's guide](USER-GUIDE.md#use-word-coverage)
 for controls and [DESIGN.md](DESIGN.md) for metric definitions.
 
+The **All entries** row uses the installed reference's entry count as its
+denominator and the existing distinct Known/Familiar/Combined/Database sets as
+numerators. It includes non-common, non-JLPT entries and follows the active deck
+profile. No additional dictionary matching pass or Anki access is needed. Exports
+for that row include all reference entries that meet the chosen missing-word
+criterion; this potentially large report is generated only when requested.
+
 ## Source acquisition and storage
 
 [CoverageReferenceStore.cs](../src/AnkiStats.Core/CoverageReferenceStore.cs) pins

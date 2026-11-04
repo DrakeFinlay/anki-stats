@@ -26,12 +26,13 @@ shortcuts. See [build instructions](../README.md#build-and-validate). During ong
 development, the root **Anki Stats.lnk** rebuilds the current checkout before it
 opens, so it can take longer than launching a packaged executable.
 
-You need an existing local Anki collection for analysis. AnkiConnect is optional
-and is needed only if you want the app to create new notes.
+You need an existing local Anki collection for analysis. Install AnkiConnect to
+read it while Anki is running and to create notes. Closed-file imports and cached
+statistics work without the add-on.
 
 ## Get started
 
-1. Close Anki completely, including any open Browse or Add windows.
+1. Anki may be open or closed during setup and refresh.
 2. Open Anki Stats and go to **Settings**.
 3. Use **Browse…** to select your Anki profile folder containing `collection.anki2`,
    then select **Inspect profile**. On a standard Windows installation, profiles
@@ -57,12 +58,12 @@ looking at isolated development data rather than the normal connected collection
 
 | What you want to do | Should Anki be open? |
 | --- | --- |
-| Inspect your profile, save import settings, or Refresh | No — close it first |
+| Inspect your profile, save import settings, or Refresh | Either — keep AnkiConnect enabled for live access while Anki is open |
 | Explore already imported stats, switch deck profiles, or export | Either — these use cached data |
 | Preview/Create new notes or Check pending additions | Yes — open the same profile with AnkiConnect enabled |
 
 Refresh reads your local collection. If you review on another device, synchronize
-through Anki first, then close Anki and refresh Anki Stats. Refresh itself does
+through Anki first, then refresh Anki Stats with Anki still open. Refresh itself does
 not synchronize AnkiWeb.
 
 Choose **Active profile** to switch between named deck selections, such as
@@ -114,6 +115,15 @@ override those deck rules. A reference row counts dictionary entries, not cards.
 N5–N1 are independent lists; Through N3 is the union of N5, N4, and N3. JLPT labels
 come from corrected OpenJLPT lists and can differ from Jisho.
 
+**All entries** covers the entire installed English JMdict snapshot, including
+entries outside Common and JLPT lists. Its **In database** column is the running
+total of distinct confirmed dictionary entries in the active profile, including
+Suspended. The denominator comes from that snapshot, not an estimated dictionary
+size. Duplicate notes/cards and alternative spellings do not multiply entries;
+unresolved possible matches do not count as confirmed. Overview repeats this
+overall count. These totals reuse existing matching results, with no extra Anki
+queries or matching pass. They update with ordinary refresh and profile changes.
+
 Select a reference-list row, then choose **Export not covered (.md)** for words
 outside Known/Familiar, or **Export absent from database (.md)** for words without
 a confirmed match in the imported selection. Choose where to save the Markdown
@@ -143,9 +153,11 @@ The app expects the local service at `127.0.0.1:8765`.
 Creation currently requires an existing **Japanese** note type with **Front** and
 **English** fields, mapped as vocabulary expression and meaning, and an existing
 **日本語::勉強してる** deck. These creation choices are fixed even if your analysis
-uses other note types or decks. Import the configuration with Anki closed first.
-If AnkiConnect has an API key configured, enter it in the optional panel; otherwise
-leave that panel alone. The app does not save the key.
+uses other note types or decks. Import the configuration with Anki open or closed.
+If AnkiConnect has an API key configured, enter it in the optional panel in
+**Settings**; otherwise leave that panel alone. The key is shared by live imports
+and note creation. The app does not save it: after restarting, enter it again and
+Refresh if live access requires it. Previous cached statistics remain available.
 
 ### Add a batch
 
@@ -154,7 +166,8 @@ leave that panel alone. The app does not save the key.
 3. Select **Preview new notes** and review the proposed Front/English fields.
 4. Select **Create … new notes**, or Cancel to add nothing.
 5. Inspect the notes in Anki. Adjust your new-card limits manually if desired.
-6. Close Anki and **Refresh** Anki Stats to update coverage.
+6. Statistics and coverage refresh automatically. If that fails, use **Refresh**
+   to retry; Anki can stay open. Successful notes remain in Anki even if refresh fails.
 
 Selection is random without repeats within N5 → N4 → N3 → N2 → N1 → Common.
 For example, requesting ten with six eligible N5 words selects six N5 and four
@@ -179,11 +192,11 @@ if the rest of a batch fails. Edit/delete unwanted notes in Anki itself.
 
 | Problem | What to check |
 | --- | --- |
-| Refresh cannot copy the collection | Close Anki completely. If prompted about a journal, open and close Anki cleanly, then retry |
+| Refresh cannot acquire a snapshot | Let Anki finish any busy operation, check profile access and disk space, then retry. If Anki needs recovery, let Anki recover the collection first |
 | Missing or unexpected statistics | Check source, timestamp, active profile, deck rules, categories, and field mappings before comparing metrics |
 | Cannot reach AnkiConnect | Keep Anki open with the add-on enabled on the correct profile; confirm its configured address/port |
 | HTTP rejection, timeout, or API error | Read the specific error; confirm the add-on is compatible and Anki is responsive. Use Check pending additions if creation had started |
-| Wrong profile/model/fields/deck | Fix the named configuration in Anki, then close Anki and inspect/save/refresh the mappings before reopening it |
+| Wrong profile/model/fields/deck | Fix the named configuration in Anki, then inspect, preview, save, and refresh the mappings with Anki still open |
 | Missing words have possible matches | Review those notes before treating the words as absent or creating duplicates |
 | App opens an older version | Use the root development shortcut for current source changes; packaged builds stay unchanged until replaced |
 

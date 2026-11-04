@@ -215,6 +215,9 @@ public sealed class VocabularyMatcher
             var ids = entries.Select(e => e.Id).ToHashSet();
             counts.Add(new(name, ids.Count, ids.Count(knownIds.Contains), ids.Count(familiarIds.Contains), ids.Count(combined.Contains), ids.Count(database.Contains)));
         }
+        // Matching already covers the full reference. Overall totals reuse those
+        // distinct-ID sets without another reference scan or any Anki requests.
+        counts.Add(new("All entries", Reference.Entries.Count, knownIds.Count, familiarIds.Count, combined.Count, database.Count));
         Add("Common", Reference.Entries.Where(e => e.Common));
         for (var level = 5; level >= 1; level--)
             Add("N" + level, Reference.Entries.Where(e => e.Levels.Contains("N" + level)));
@@ -235,8 +238,8 @@ public static class CoverageReport
 {
     public static string Markdown(CoverageAnalysis result, string list, bool absentDatabase, DateTimeOffset? generatedAt = null)
     {
-        bool InList(DictionaryEntry e) => list == "Common" ? e.Common : list.StartsWith("Through N", StringComparison.Ordinal)
-            ? e.Levels.Any(l => int.Parse(l[1..], CultureInfo.InvariantCulture) >= int.Parse(list[9..], CultureInfo.InvariantCulture)) : e.Levels.Contains(list);
+        bool InList(DictionaryEntry e) => list == "All entries" || (list == "Common" ? e.Common : list.StartsWith("Through N", StringComparison.Ordinal)
+            ? e.Levels.Any(l => int.Parse(l[1..], CultureInfo.InvariantCulture) >= int.Parse(list[9..], CultureInfo.InvariantCulture)) : e.Levels.Contains(list));
         var present = absentDatabase ? result.Database : result.Combined;
         var missing = result.Reference.Entries.Where(InList).Where(e => !present.Contains(e.Id)).OrderBy(e => e.Spellings.FirstOrDefault() ?? e.Readings.First().Text, StringComparer.Ordinal).ToList();
         static string Cell(string value) => value.Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ").Replace("<", "&lt;").Replace(">", "&gt;");

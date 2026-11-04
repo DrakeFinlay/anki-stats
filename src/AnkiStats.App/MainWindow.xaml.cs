@@ -120,6 +120,12 @@ public partial class MainWindow : Window
             Progress.Visibility = Visibility.Collapsed;
         }
     }
+    private CollectionReader ReaderFor(string profile)
+    {
+        var key = AnkiApiKey.Password;
+        return new(store.TemporaryRoot, () => new AnkiConnectClient(key),
+            allowLive: !store.IsIsolated && !File.Exists(Path.Combine(profile, ".ankistats-test-data")));
+    }
     private async Task RefreshInternal()
     {
         if (settings is null) { ShowPage("Settings"); SetStatus("Choose a profile, select decks, and preview the field mappings first."); return; }
@@ -128,12 +134,12 @@ public partial class MainWindow : Window
         var draft = DeckProfiles.Copy(settings);
         if (draft.Profiles.Count == 0)
         {
-            var found = await Task.Run(() => new CollectionImporter(store.TemporaryRoot).Discover(draft.ProfileFolder));
+            var found = await ReaderFor(draft.ProfileFolder).Discover(draft.ProfileFolder);
             DeckProfiles.Ensure(draft, found);
             foreach (var type in found.NoteTypes.Where(t => draft.Mappings.All(m => m.NoteTypeId != t.Id)))
                 draft.Mappings.Add(new MappingChoice(type, null).ToMapping());
         }
-        var next = await Task.Run(() => new CollectionImporter(store.TemporaryRoot).Import(draft, progress));
+        var next = await ReaderFor(draft.ProfileFolder).Import(draft, progress);
         // Validate and compute before replacing the last successful persistent result.
         var prepared = await Task.Run(() => PrepareProfiles(next));
         await Task.Run(() => store.SaveCache(next, draft));
@@ -163,7 +169,8 @@ public partial class MainWindow : Window
         await UpdateTimeAnalysis();
         await UpdateLearningPatterns();
         await UpdateCoverage();
-        Footer.Text = $"{data.TimeZoneId} · current deck membership · {data.UnresolvedReviews:N0} orphaned review events excluded collection-wide · {data.UnknownReviewKinds:N0} unknown events excluded";
+        var orphans = data.UnresolvedReviewsAvailable ? $"{data.UnresolvedReviews:N0} orphaned review events excluded collection-wide" : "orphaned review count unavailable via AnkiConnect";
+        Footer.Text = $"{data.TimeZoneId} · current deck membership · {orphans} · {data.UnknownReviewKinds:N0} unknown events excluded";
     }
     private DateOnly Today(string zone) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.Now, TimeZoneInfo.FindSystemTimeZoneById(zone)).DateTime);
     private async Task UpdateCalendar()
@@ -281,7 +288,7 @@ public partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(ProfilePath.Text)) throw new InvalidDataException("Choose a profile folder first.");
         SetStatus("Inspecting deck and field definitions from a private copy…");
         var profile = ProfilePath.Text;
-        var found = await Task.Run(() => new CollectionImporter(store.TemporaryRoot).Discover(profile));
+        var found = await ReaderFor(profile).Discover(profile);
         PopulateSettings(found, settings?.ProfileFolder == profile ? settings : null);
         SetStatus("Profile inspected. Choose included decks and confirm the suggested field mappings, then preview.");
     });
@@ -309,7 +316,7 @@ public partial class MainWindow : Window
     private async void PreviewSelection(object sender, RoutedEventArgs e) => await Guard(async () =>
     {
         var draft = DraftSettings(); SetStatus("Previewing your selection without saving…");
-        var imported = await Task.Run(() => new CollectionImporter(store.TemporaryRoot).Import(draft));
+        var imported = await ReaderFor(draft.ProfileFolder).Import(draft);
         var prepared = await Task.Run(() => PrepareProfiles(imported));
         var result = prepared.First(p => p.Profile.Id == draft.ActiveProfileId).Analysis;
         previewSignature = draft.Signature;
@@ -323,12 +330,12 @@ public partial class MainWindow : Window
         if (previewSignature != draft.Signature) throw new InvalidDataException("Preview this selection before saving. Changed decks, fields, or time zone need a new preview.");
         // Keep current results and settings intact until the new selection is imported.
         SetStatus("Applying the previewed selection…");
-        var next = await Task.Run(() => new CollectionImporter(store.TemporaryRoot).Import(draft));
+        var next = await ReaderFor(draft.ProfileFolder).Import(draft);
         var prepared = await Task.Run(() => PrepareProfiles(next));
         await Task.Run(() => store.SaveCache(next, draft));
         settings = draft;
         await DisplayImport(next, prepared);
-        SetStatus("Connected. Saved deck profiles refresh together with Anki closed. Switch the active profile without changing deck rules.");
+        SetStatus("Connected. Saved deck profiles refresh together with Anki open or closed. Switch the active profile without changing deck rules.");
         ShowPage("Overview");
     });
     private void OpenDataFolder(object sender, RoutedEventArgs e) => Process.Start(new ProcessStartInfo("explorer.exe", store.Root) { UseShellExecute = true });

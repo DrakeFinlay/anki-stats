@@ -56,7 +56,7 @@ public static class AnkiConnection
         if (await client.Call<int>("version") < 6) throw new InvalidOperationException("AnkiConnect API version 6 or later is required.");
         await VerifyProfile(client, profile);
         var models = await client.Call<Dictionary<string, long>>("modelNamesAndIds");
-        if (!models.TryGetValue("Japanese", out var id) || id != modelId) throw new InvalidOperationException("The running Anki note type does not match the imported Japanese note type. Refresh with Anki closed, then reopen Anki.");
+        if (!models.TryGetValue("Japanese", out var id) || id != modelId) throw new InvalidOperationException("The running Anki note type does not match the imported Japanese note type. Refresh Anki Stats with the correct profile selected in Anki.");
         if (!(await client.Call<List<string>>("deckNames")).Contains(NoteCreation.Destination)) throw new InvalidOperationException("The destination deck 日本語::勉強してる does not exist in the running profile.");
     }
     public static async Task VerifyProfile(AnkiConnectClient client, string profile)

@@ -15,7 +15,7 @@ This guide describes the tools used by the checked-in implementation. Versions b
 | SQLitePCLRaw.bundle_e_sqlite3 `3.0.5` | Supplies the SQLite native engine and supporting bindings. |
 | JMdict via jmdict-simplified | Downloaded English dictionary identities, forms/readings, glosses, and common/preferred-form metadata; separate from application dependencies. |
 | OpenJLPT | Downloaded corrected N5–N1 memberships linked to JMdict IDs; separate from application dependencies. |
-| AnkiConnect API v6 | Optional local HTTP bridge to running Anki for explicitly requested note creation and live checks. |
+| AnkiConnect API v6 | Local HTTP bridge for live collection imports while Anki is open, explicitly requested note creation, and live checks. Closed-file imports and cached analysis work without it. |
 | NuGet | Downloads the project dependencies during restore/build. |
 | PowerShell | Runs the Windows publishing script and creates a normal application shortcut through Windows scripting support. |
 | Git | Tracks source and documentation changes. Generated and personal files are excluded through `.gitignore`. |
@@ -25,12 +25,12 @@ The app also uses standard .NET libraries for JSON serialization, gzip compressi
 
 ## What users need
 
-A self-contained published build includes the required .NET runtime. Open the executable or shortcut on Windows; no SDK, terminal, or browser is needed. Analysis needs no Anki add-on. Optional note creation requires separately installed AnkiConnect, with Anki running on the matching profile.
+A self-contained published build includes the required .NET runtime. Open the executable or shortcut on Windows; no SDK, terminal, or browser is needed. Live imports and optional note creation require separately installed AnkiConnect, with Anki running on the matching profile. Closed-file imports and cached analysis need no add-on.
 
 Analysis works locally without a network connection. Word Coverage installs pinned,
 checksum-verified JMdict and OpenJLPT reference data through an explicit download;
 subsequent matching and reporting work offline. No Anki content is sent to internet services.
-Explicit note creation uses standard .NET HTTP against AnkiConnect API v6 at
+Live imports and explicit note creation use standard .NET HTTP against AnkiConnect API v6 at
 `127.0.0.1:8765`. It requires no additional application library or web backend.
 The reference engine uses standard .NET JSON, HTTP, compression, and SHA-256
 libraries, with no morphology runtime. Internet access may also be needed for SDK
@@ -75,9 +75,9 @@ Optional real-data audits are local, explicitly invoked checks. They should emit
 
 ## Dependency boundaries
 
-- No Anki application code or API is used to open or migrate the original collection.
+- The app never migrates or repairs the original collection. Live reads use Anki's own connection through AnkiConnect.
 - Python, Node.js, a web backend, and a cloud account are not runtime dependencies.
-- AnkiConnect is required only for explicitly triggered new-note creation, never for importing or analysis.
+- AnkiConnect is required for imports while Anki holds an exclusive database lock and for new-note creation. File imports and cached analysis work without it.
 - No telemetry, hosted CI, or automatic release pipeline is configured.
 - Dictionary downloads and common/JLPT coverage are implemented; media integrations remain future work.
 

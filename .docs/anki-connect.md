@@ -1,7 +1,39 @@
 # AnkiConnect integration
 
-This guide describes the implemented new-note workflow. [The user's guide](USER-GUIDE.md#create-missing-vocabulary-notes)
-explains its controls. Statistics importing does not use AnkiConnect.
+This guide describes live importing and the new-note workflow. [The user's guide](USER-GUIDE.md#create-missing-vocabulary-notes)
+explains the controls. AnkiConnect is used when the running Anki holds an exclusive
+database lock, and for note creation. Closed-file imports and cached analysis work without it.
+
+## Live importing
+
+[CollectionReader.cs](../src/AnkiStats.Core/CollectionReader.cs) first attempts a
+read-only file snapshot. If the source is unavailable, it uses
+[LiveCollectionImporter.cs](../src/AnkiStats.Core/LiveCollectionImporter.cs) to read
+through AnkiConnect. Isolated and synthetic UI sessions never fall back to the
+user's running Anki. Startup, inspection, settings preview/save, manual refresh,
+and automatic refresh after creation all use this reader.
+
+The live reader verifies API version and active profile before and after reads.
+It reads deck/model IDs and ordered field names, searches exact `did:` membership,
+and uses `getDecks` to distinguish current filtered decks from home decks. Cards
+stay assigned to their home decks, preserving import scope and counts. It reads
+selected cards in batches of 200, notes in batches of 500, and full review history
+through `getReviewsOfCards`. Selective `cardsInfo` fields avoid unnecessary card
+rendering where supported; older add-ons that reject that parameter use the
+standard response, which is read as data and never executed.
+
+Metadata, membership, modification times, and review records are checked again
+before acceptance. Detected changes reject the import and retain the prior cache;
+these checks are not a transaction spanning all HTTP requests. Modification times
+have Anki's second resolution. The collected records are projected into an
+app-owned in-memory schema and use the same mapping validation and extraction as
+file imports. Source schema version is unknown (metadata value 0) through the API.
+
+AnkiConnect cannot enumerate orphaned review rows whose cards were deleted. Live
+imports explicitly mark that count unavailable; ordinary card review history is
+not truncated. The flag and import method survive caching and profile selection.
+No sync, export, deck creation, repair, or scheduling actions are used for imports.
+The optional API key is entered in Settings and stays in memory for the session.
 
 ## Components and transport
 
@@ -30,6 +62,12 @@ separately. There are no automatic request retries.
 | version | Require API 6 or later |
 | getActiveProfile | Match the running profile to the imported folder's basename |
 | modelNamesAndIds | Verify the Japanese model ID matches imported metadata |
+| deckNamesAndIds | Enumerate stable deck IDs for live imports |
+| findCards, exact did: query | Enumerate deck membership including filtered cards' home decks |
+| getDecks | Read current physical membership to resolve filtered cards' home decks |
+| cardsInfo, batches of 200 | Read current card IDs, note IDs, queue, type, lapses and modification time |
+| getReviewsOfCards, batches of 200 | Read and recheck full review history of selected cards |
+| cardsModTime, notesModTime | Detect edits during a live import |
 | deckNames | Require 日本語::勉強してる |
 | modelFieldNames | Require Front/English and retain all field names |
 | findNotes, query empty | Enumerate the running collection's notes across all decks |
@@ -107,8 +145,10 @@ SaveGeneratedMatches creates app-owned MatchDecision records with Origin Generat
 without overwriting existing decisions. Fingerprints bind identity to expression,
 readings, and normalized definition. Refresh recovers acknowledged identities
 from the journal if the app closed before separately saving them. Later target
-edits can make a decision stale. Creation itself does not replace the cached
-import: the user closes Anki and refreshes afterward.
+edits can make a decision stale. After a completed or partial creation batch,
+the UI automatically imports a fresh snapshot with Anki still open. If that
+refresh fails, it retains the creation result and reports how to retry Refresh;
+successful notes remain in Anki. File imports do not require AnkiConnect.
 
 ## Validation
 
@@ -118,3 +158,8 @@ pre-write journal failure, lost responses, and tag-free recovery.
 [AnkiTransportChecks.cs](../tests/AnkiStats.Checks/AnkiTransportChecks.cs) exercises
 wire framing against a temporary loopback HTTP listener and checks HTTP rejection
 diagnostics. These checks do not add real notes.
+[LiveImportChecks.cs](../tests/AnkiStats.Checks/LiveImportChecks.cs) covers live
+mapping/extraction, home-deck membership, changed records, cache provenance,
+exclusive-lock fallback, wrong-profile rejection, and isolated-session protection.
+The check runner's `--inspect-live <profile-folder>` command performs read-only
+discovery and a full live import without saving settings or creating notes.

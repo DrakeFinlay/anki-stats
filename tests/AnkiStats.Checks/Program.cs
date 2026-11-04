@@ -17,7 +17,7 @@ if (args is ["--metadata", var metadataProfile])
     var root = Path.Combine(Path.GetTempPath(), "AnkiStatsMetadata-" + Guid.NewGuid().ToString("N"));
     try
     {
-        var meta = new CollectionImporter(root).Discover(metadataProfile);
+        var meta = new CollectionReader(root, () => new AnkiConnectClient()).Discover(metadataProfile).GetAwaiter().GetResult();
         foreach (var deck in meta.Decks) Console.WriteLine($"Deck: {deck.Name} · direct cards {deck.Cards}");
         foreach (var type in meta.NoteTypes) Console.WriteLine($"Type: {type.Name} · {string.Join(" | ", type.Fields.Select((f,i) => $"{i}:{f}"))}");
     }
@@ -26,6 +26,19 @@ if (args is ["--metadata", var metadataProfile])
 }
 if (args is ["--seed-ui", var uiRoot]) { UiFixture.Create(uiRoot); Console.WriteLine("Synthetic UI fixture ready."); return; }
 if (args is ["--seed-learning-ui", var learningRoot]) { LearningUiFixture.Create(learningRoot); Console.WriteLine("Synthetic learning-pattern fixture ready."); return; }
+if (args is ["--inspect-live", var liveProfile])
+{
+    using var liveClient = new AnkiConnectClient();
+    var reader = new LiveCollectionImporter(liveClient);
+    var metadata = await reader.Discover(liveProfile);
+    var settings = new Settings { ProfileFolder = liveProfile,
+        DeckRules = metadata.Decks.Select(d => new DeckRule(d.Name, true)).ToList(),
+        Mappings = metadata.NoteTypes.Select(t => new FieldMapping { NoteTypeId = t.Id, Category = "Vocabulary", Expression = 0 }).ToList() };
+    var imported = await reader.Import(settings);
+    if (imported.Cards.Count == 0 || imported.Notes.Count == 0 || imported.ImportMethod != "AnkiConnect") throw new Exception("Live import returned no collection data.");
+    Console.WriteLine("Live AnkiConnect discovery and full import succeeded. No settings saved or notes created.");
+    return;
+}
 void Check(bool condition, string message)
 {
     if (!condition) throw new Exception("FAILED: " + message);
@@ -194,12 +207,13 @@ try
         Mappings = [new() { NoteTypeId = 1, Category = "Vocabulary", Expression = 0, StripBracketReadings = true }] });
     Check(bracketData.Notes[0].Expression == "晴れる" && bracketData.Notes[0].SourceExpression == "晴れる[はれる]", "import preserves furigana separately from stripped inventory expression");
     Check(!LearningAnalyzer.Readings(bracketData.Notes[0].SourceExpression).Unresolved, "preserved imported furigana remains usable by learning analysis");
+    LiveImportChecks.Run(Check, sandbox, file);
     using (var held = new FileStream(file,FileMode.Open,FileAccess.ReadWrite,FileShare.None))
-        Throws<IOException>(() => importer.Discover(profile), "locked source rejected");
+        Throws<IOException>(() => importer.Discover(profile), "file importer refuses locked sources for live-reader fallback");
     File.WriteAllBytes(file+"-wal", [1,2,3]);
-    Throws<IOException>(() => importer.Discover(profile), "nonempty WAL rejected"); File.Delete(file+"-wal");
+    Throws<IOException>(() => importer.Discover(profile), "file importer refuses nonempty WAL for live-reader fallback"); File.Delete(file+"-wal");
     File.WriteAllBytes(file+"-journal", [1,2,3]);
-    Throws<IOException>(() => importer.Discover(profile), "active rollback journal rejected"); File.Delete(file+"-journal");
+    Throws<IOException>(() => importer.Discover(profile), "file importer refuses rollback journals for live-reader fallback"); File.Delete(file+"-journal");
     Check(Directory.GetFiles(Path.Combine(sandbox,"temporary")).Length == 0, "temporary copies cleaned after failures");
     using (var db = new SqliteConnection($"Data Source={file};Pooling=False")) { db.Open(); using var cmd=db.CreateCommand(); cmd.CommandText="UPDATE col SET ver=999"; cmd.ExecuteNonQuery(); }
     Throws<InvalidDataException>(() => importer.Discover(profile), "unsupported schema rejected");

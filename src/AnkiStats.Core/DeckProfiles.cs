@@ -64,7 +64,8 @@ public static class DeckProfiles
             TimeZoneId = source.TimeZoneId, RefreshedAt = source.RefreshedAt,
             Scope = profile.Name + " · " + string.Join(", ", profile.DeckRules.Select(r => (r.Include ? "+ " : "− ") + r.Name)),
             Cards = cards, Notes = source.Notes.Where(n => noteIds.Contains(n.Id)).ToList(), Reviews = reviews,
-            UnresolvedReviews = source.UnresolvedReviews, UnknownReviewKinds = reviews.Count(r => r.Kind is < 0 or > 5)
+            UnresolvedReviews = source.UnresolvedReviews, UnresolvedReviewsAvailable = source.UnresolvedReviewsAvailable, ImportMethod = source.ImportMethod,
+            UnknownReviewKinds = reviews.Count(r => r.Kind is < 0 or > 5)
         };
     }
 }

@@ -13,12 +13,14 @@ public sealed class CollectionImporter(string temporaryRoot)
         var temp = Path.Combine(temporaryRoot, Guid.NewGuid().ToString("N") + ".sqlite");
         try
         {
-            // Open only an ordinary read handle on the source. SQLite never opens the source.
+            // The file path is only for idle collections. The shared CollectionReader
+            // uses AnkiConnect when Anki holds the file or has an active journal.
+            // SQLite never opens the original collection or its sidecars.
             using (var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.None))
             {
                 foreach (var suffix in new[] { "-wal", "-journal" })
                     if (File.Exists(sourcePath + suffix) && new FileInfo(sourcePath + suffix).Length > 0)
-                        throw new IOException("The collection has an active journal. Open Anki and close it cleanly, then refresh again.");
+                        throw new IOException("The collection has an active journal; live access requires AnkiConnect on the selected profile.");
                 using var destination = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                 source.CopyTo(destination);
                 destination.Flush(true);
@@ -32,9 +34,9 @@ public sealed class CollectionImporter(string temporaryRoot)
             return read(db);
         }
         catch (UnauthorizedAccessException e) { throw new IOException("Access to the profile was denied. Choose a readable profile folder.", e); }
-        catch (SqliteException e) { throw new InvalidDataException("The collection could not be read. It may be damaged or use an unsupported Anki schema. The previous results are safe.", e); }
-        catch (IOException e) when (!e.Message.StartsWith("The collection has", StringComparison.Ordinal))
-        { throw new IOException("The collection could not be copied safely. Close Anki completely, check folder access and available disk space, then refresh.", e); }
+        catch (SqliteException e) { throw new InvalidDataException("The collection snapshot could not be read. Check profile access and disk space. If Anki reports recovery is needed, let it recover the collection before retrying. The collection may be damaged or use an unsupported schema; the previous results are safe.", e); }
+        catch (IOException e)
+        { throw new IOException("The collection file is unavailable for an idle snapshot. Live access uses AnkiConnect on the selected profile. Check profile access and disk space if the source remains unavailable.", e); }
         finally
         {
             foreach (var suffix in new[] { "", "-wal", "-shm", "-journal" })
@@ -90,7 +92,9 @@ public sealed class CollectionImporter(string temporaryRoot)
         return new(version, decks.Select(d => d with { Cards = countMap.GetValueOrDefault(d.Id) }).OrderBy(d => d.Name, StringComparer.Ordinal).ToList(), types.OrderBy(t => t.Name, StringComparer.Ordinal).ToList());
     }
 
-    public ImportedCollection Import(Settings settings, IProgress<string>? progress = null) => WithPrivateCopy(settings.ProfileFolder, db =>
+    public ImportedCollection Import(Settings settings, IProgress<string>? progress = null) => WithPrivateCopy(settings.ProfileFolder, db => ReadCollection(db, settings, progress));
+
+    internal static ImportedCollection ReadCollection(SqliteConnection db, Settings settings, IProgress<string>? progress = null)
     {
         progress?.Report("Reading deck and field definitions…");
         var metadata = ReadMetadata(db);
@@ -145,5 +149,5 @@ public sealed class CollectionImporter(string temporaryRoot)
         cmd.CommandText = "SELECT COUNT(*) FROM revlog r LEFT JOIN cards c ON c.id=r.cid WHERE c.id IS NULL";
         data.UnresolvedReviews = Convert.ToInt32(cmd.ExecuteScalar());
         return data;
-    });
+    }
 }
