@@ -30,7 +30,7 @@ These distinctions matter. Ten notes do not necessarily mean ten different words
 
 ## Connect your collection
 
-1. Close Anki completely. The app needs a safely available collection to refresh.
+1. Anki may be open or closed. Keep AnkiConnect enabled for live access while Anki is open.
 2. Open the published `AnkiStats.exe` or its shortcut.
 3. In Settings, choose **Browse…** and select the profile folder containing `collection.anki2`.
 4. Select **Inspect profile** to load the available decks and note types.
@@ -130,7 +130,7 @@ The program is written in C# on .NET 10. WPF supplies the Windows interface, XAM
 
 ```mermaid
 flowchart TD
-    A[Closed Anki collection] --> B[Protected private copy]
+    A[Local Anki collection] --> B[Protected private snapshot]
     B --> C[Import and app-owned cache]
     C --> D[Profile selection and analysis]
     R[Explicit public reference download] --> V[Compressed dictionary bundle]
@@ -138,11 +138,12 @@ flowchart TD
     D --> U[Tables, charts, reports, and corrections]
     D --> P[Requested missing-word preview]
     L[Running local AnkiConnect] -->|Live duplicate checks| P
+    L -->|Live import when Anki holds an exclusive lock| C
     P -->|User selects Create| J[Persist attempt then addNote]
     J --> L
 ```
 
-The closed-file importer reads recorded history and vocabulary. The reference
+The snapshot importer reads recorded history and vocabulary. The reference
 installer downloads public dictionary/classification files. The optional writer
 talks to the running Anki application only after explicit confirmation. Keeping
 these paths separate lets stats remain offline/read-only while providing a
@@ -309,17 +310,26 @@ For a file-by-file map, read [repository structure](repository-structure.md). Fo
 
 ## What happens to your data
 
-The app opens the source file with read-only file access and denies concurrent access while making a private copy. SQLite queries run against the copy, not the original. The importer refuses active journals or an unavailable source instead of attempting to repair or alter Anki's files. Temporary copies are removed after the operation.
+The app copies an idle source under an exclusive read-only file handle, refusing active journals. SQLite queries run only against the private copy, never the original collection or its sidecars. The app does not bypass locks or repair, checkpoint, or write the source database. Temporary copies are removed after the operation.
+
+Anki commonly holds an exclusive lock. In that case CollectionReader uses local
+AnkiConnect to read notes, cards, and full review history, retaining home-deck
+membership and checking for detected changes before accepting the result. These
+API reads span multiple requests. Orphaned review rows cannot be counted through
+AnkiConnect and are labeled unavailable. File imports and cached analysis remain
+available without the add-on. The API key, if configured, is entered in Settings
+and remains in memory for the session. See [live importing](anki-connect.md#live-importing).
 
 Importing, analysis, and corrections do not modify Anki. The optional Word Coverage
 creation panel adds new notes only after Preview and an explicit Create action.
 It uses AnkiConnect with Anki open, checks the entire live collection for duplicates,
 and always targets Japanese notes in 日本語::勉強してる. It never changes existing
 notes or scheduling settings and never executes HTML or JavaScript from fields.
-It has no telemetry. Reference installation downloads public data; creation talks
-only to local AnkiConnect; analysis works offline. See the [creation instructions](../README.md#create-missing-vocabulary-notes)
-for setup, preferred forms, selection order, and pending-attempt recovery. Close
-Anki before refreshing coverage afterward.
+It has no telemetry. Reference installation downloads public data; live imports and creation talk
+only to local AnkiConnect; cached analysis works offline. See the [creation instructions](../README.md#create-missing-vocabulary-notes)
+for setup, preferred forms, selection order, and pending-attempt recovery.
+Statistics and coverage refresh automatically after creation with Anki still open;
+if refresh fails, created notes remain and the Refresh button retries the import.
 
 Settings and imported data live in the per-user local application-data `AnkiStats` folder, available through **Open app data folder** in Settings. The cache holds the latest successful import; it is not a historical snapshot archive or a substitute for an Anki backup. CSV files go wherever you choose to save them.
 
@@ -330,6 +340,6 @@ Settings and imported data live in the per-user local application-data `AnkiStat
 - Check categories and field mappings. An ignored type will not contribute, and a grammar type will not increase vocabulary inventory.
 - Compare the same answer kinds, deck scope, date range, and time zone. Total answers and ordinary reviews are different measurements.
 - Check the last successful refresh time. An error leaves previous results visible with their original scope and timestamp.
-- Remember that history is attributed to a card's current deck. Events for deleted cards without recoverable card metadata are excluded; the footer reports collection-wide orphaned events, which are not necessarily part of the selected deck's history.
+- Remember that history is attributed to a card's current home deck. Events for deleted cards without recoverable card metadata are excluded; file imports report collection-wide orphaned events, while live imports label that count unavailable.
 
-If refresh fails, close Anki, verify the profile location and folder access, then retry. Renamed or reordered mapped fields require inspecting the profile and previewing updated mappings. Unsupported collection schemas require an application update; do not change the database to make it fit.
+If refresh fails, let Anki finish its current operation, verify the profile location, folder access and disk space, then retry with Anki still open. If Anki requires recovery, let it recover the collection first. Renamed or reordered mapped fields require inspecting the profile and previewing updated mappings. Unsupported collection schemas require an application update; do not change the database to make it fit.

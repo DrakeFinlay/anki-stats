@@ -85,11 +85,25 @@ public partial class MainWindow
         var outcome = await completion.Task;
         if (outcome is null) return;
         CreationStatus.Text = $"Created {outcome.Added.Count:N0} new notes in {NoteCreation.Destination}; {outcome.Skipped:N0} skipped after rechecking. "
-            + (outcome.Error ?? "Daily limits were not changed. Close Anki and Refresh to update coverage; further batches check live Anki to avoid repeats.");
+            + (outcome.Error ?? "Daily limits were not changed.");
         var identityError = false;
         try { SaveGeneratedMatches(imported.CollectionKey, journal); }
         catch (Exception error) { identityError = true; CreationStatus.Text += " Local match identities could not be saved: " + error.Message + " Notes already created remain in Anki. Use Check pending additions to recover their identities."; }
-        SetStatus(CreationStatus.Text, outcome.Error is not null || identityError);
+        // Refresh even after a partial/uncertain batch: an interrupted response may have
+        // reached Anki. Keep creation receipts and errors distinct from refresh failures.
+        var refreshError = false;
+        try
+        {
+            await RefreshInternal();
+            CreationStatus.Text += " Statistics and coverage refreshed.";
+        }
+        catch (Exception error)
+        {
+            refreshError = true;
+            CreationStatus.Text += " Automatic refresh failed: " + error.Message
+                + " Created notes remain in Anki. Previous statistics are retained; use Refresh to retry.";
+        }
+        SetStatus(CreationStatus.Text, outcome.Error is not null || identityError || refreshError);
     }
     private async void CheckPendingAdditions(object sender, RoutedEventArgs e) => await Guard(async () =>
     {

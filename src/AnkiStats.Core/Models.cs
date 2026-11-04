@@ -52,6 +52,8 @@ public sealed class ImportedCollection
     public List<CardRecord> Cards { get; set; } = [];
     public List<ReviewRecord> Reviews { get; set; } = [];
     public int UnresolvedReviews { get; set; }
+    public bool UnresolvedReviewsAvailable { get; set; } = true;
+    public string ImportMethod { get; set; } = "File snapshot";
     public int UnknownReviewKinds { get; set; }
 }
 public sealed record VocabularyRow(string Expression, string Reading, string Meaning, int Notes, int Cards, string Decks, string NoteIds, string CardIds);

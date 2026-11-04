@@ -19,7 +19,7 @@ create new notes for missing vocabulary.
 | Area | Implemented behavior |
 | --- | --- |
 | Desktop | Native dark WPF interface, Japanese text, tables, charts, and a development shortcut that builds the current checkout |
-| Setup and import | Remembered Anki profile, editable deck selections and field mappings, safe import with Anki closed, cached recovery after failure |
+| Setup and import | Remembered Anki profile, editable deck selections and field mappings, safe snapshots with Anki open or closed, cached recovery after failure |
 | Deck profiles | Named selections, Japanese/Kanji/combined presets when available, shared mappings and time zone, synchronized active-profile selectors |
 | Vocabulary | Distinct expression/reading inventory, search, sorting, supporting note/card IDs, CSV export |
 | Word Coverage | JMdict common-word and corrected OpenJLPT N5–N1 coverage, cumulative unions, Markdown missing-word reports, match corrections, conservative stem families |
@@ -68,8 +68,8 @@ details and displays a review-rhythm chart for each enabled deck profile. The
 header and Calendar profile selectors stay synchronized. Daily discovery history
 is separate per collection and deck-profile ID.
 
-Startup shows cached results while attempting refresh. Refresh requires Anki
-closed. Failures display recovery information and retain the latest successful
+Startup shows cached results while attempting refresh. Inspection, settings
+preview/save, and refresh support Anki open or closed. Failures display recovery information and retain the latest successful
 scope and timestamp. The source profile is visible; isolated or synthetic sessions
 have a prominent warning and distinct window title. Refresh reads local data and
 does not synchronize AnkiWeb.
@@ -199,8 +199,9 @@ supports recovery without tags; legacy identity tags remain readable and may be
 removed from old notes. Refresh recovers acknowledged matching identities from
 the journal if the app closed before saving them separately.
 
-Creation does not refresh the import or invent new coverage totals. Close Anki
-and Refresh afterward. Existing notes, tags, and scheduling settings are not
+Creation automatically refreshes the import after a completed or partial batch,
+with Anki still open. Refresh failure preserves the creation outcome and offers
+manual Refresh recovery; coverage comes from imported records. Existing notes, tags, and scheduling settings are not
 edited. Isolated/synthetic sessions cannot create notes. The first preview can
 upgrade the pinned reference data to include preferred study forms.
 
@@ -283,9 +284,16 @@ items rather than completed features.
 
 ## 7. Import safety, persistence, and networking
 
-The importer uses an ordinary read-only source handle denying concurrent access,
-refuses active journals/nonempty WAL, and copies into an app-owned temporary
-location. SQLite queries run only on the private copy. Supported collection
+The file importer copies idle collections under an exclusive read-only handle
+and refuses nonempty journals. SQLite opens only the private copy, never the
+original collection or source sidecars. When Anki holds the file or has an active
+journal, CollectionReader falls back to read-only AnkiConnect enumeration. Live
+imports verify the running profile, preserve home-deck membership, and reject
+detected record changes before replacing the cache. They reuse mapping validation
+and extraction through an app-owned in-memory schema. API reads span multiple
+requests, so they are not a database transaction. Orphaned review counts are
+unavailable via that API and explicitly labeled. Isolated/synthetic sessions
+cannot fall back to the user's Anki. Supported file collection
 schemas are 11 and 18. The compatibility adapter handles required metadata and
 collations without launching Anki's collection API. Successful imports replace
 the app cache transactionally; failures retain previous results. Temporary copies
@@ -304,8 +312,8 @@ Markdown exports carry reference attribution. Neither path executes note HTML or
 JavaScript, imports media, or follows remote content in fields.
 
 There is no telemetry or cloud account. Internet requests download explicit public
-reference snapshots without collection content; note creation talks to loopback
-AnkiConnect. Analysis and matching work offline after reference installation.
+reference snapshots without collection content; live importing and note creation
+talk to loopback AnkiConnect. Cached analysis and matching work offline after reference installation.
 Reference data and derived lists retain source/version and CC BY-SA attribution;
 see [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). Newly created notes can sync
 normally when Anki itself synchronizes.

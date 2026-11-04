@@ -18,7 +18,7 @@
         </StackPanel>
         <StackPanel VerticalAlignment="Bottom">
           <TextBlock Text="LOCAL · YOU CONTROL ADDITIONS" Foreground="#8FB8EB" FontSize="10" Margin="10,0,0,10"/>
-          <TextBlock Text="Refresh with Anki closed. Open Anki to explicitly create new notes in Word Coverage." TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="10,0,8,0"/>
+          <TextBlock Text="Refresh with Anki open or closed. Keep Anki open to create new notes in Word Coverage." TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="10,0,8,0"/>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -61,7 +61,7 @@
                 <TextBlock Text="Add missing words to Anki" FontSize="20" Margin="0,0,0,8"/>
                 <TextBlock Text="Random, without repeats: N5 → N4 → N3 → N2 → N1 → Common. New notes always go to 日本語::勉強してる using Japanese / Front + English. Sentence and Media stay blank; daily limits are unchanged." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,10"/>
                 <WrapPanel><TextBlock Text="Words" VerticalAlignment="Center" Margin="0,0,10,8"/><TextBox x:Name="NewWordCount" Text="10" Width="90" AutomationProperties.Name="Number of new words" Margin="0,0,12,8"/><Button Content="Preview new notes" Click="PreviewNewNotes" Margin="0,0,12,8"/><Button Content="Check pending additions" Click="CheckPendingAdditions" Margin="0,0,0,8"/></WrapPanel>
-                <Expander Header="AnkiConnect API key (only if configured)" Foreground="#EFF1F6" Margin="0,0,0,8"><PasswordBox x:Name="AnkiApiKey" Background="#20232B" Foreground="White" Padding="8" MaxWidth="320" HorizontalAlignment="Left" AutomationProperties.Name="AnkiConnect API key"/></Expander>
+                <TextBlock Text="If AnkiConnect requires an API key, enter it in Settings before previewing notes." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,8"/>
                 <TextBlock x:Name="CreationStatus" Text="Open Anki before previewing. The app checks the live collection for duplicates, then asks you to create the previewed notes. First use may download preferred-form dictionary metadata. No notes are created by Refresh." TextWrapping="Wrap" Foreground="{StaticResource Muted}"/>
               </StackPanel></Border>
               <WrapPanel Margin="0,0,0,12"><Button Content="Download / reinstall reference data" Click="DownloadCoverageReference" Margin="0,0,12,8"/><Button Content="Reference sources and rules" Click="ShowCoverageSources" Margin="0,0,0,8"/></WrapPanel>
@@ -181,8 +181,9 @@
         </Grid>
         <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
           <StackPanel x:Name="SettingsContent">
-            <TextBlock Text="Connect your collection" FontSize="22" Margin="0,0,0,8"/><TextBlock Text="Close Anki before inspecting or refreshing. Select the profile folder that contains collection.anki2." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,16"/>
+            <TextBlock Text="Connect your collection" FontSize="22" Margin="0,0,0,8"/><TextBlock Text="Anki can stay open while you inspect, preview settings, and refresh. Select the profile folder that contains collection.anki2." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,16"/>
             <DockPanel Margin="0,0,0,18"><Button Content="Browse…" DockPanel.Dock="Right" Click="BrowseProfile"/><Button Content="Inspect profile" DockPanel.Dock="Right" Click="InspectProfile"/><TextBox x:Name="ProfilePath" IsReadOnly="True" Margin="0,0,12,0" AutomationProperties.Name="Anki profile folder"/></DockPanel>
+            <Expander Header="AnkiConnect API key (only if configured)" Foreground="#EFF1F6" Margin="0,0,0,16"><StackPanel><TextBlock Text="Used for live imports and note creation. The key stays in memory for this session; after reopening the app, enter it here and Refresh if required." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,8"/><PasswordBox x:Name="AnkiApiKey" Background="#20232B" Foreground="White" Padding="8" Width="320" HorizontalAlignment="Left" AutomationProperties.Name="AnkiConnect API key"/></StackPanel></Expander>
             <TextBlock Text="Deck profiles" FontSize="21" Margin="0,0,0,8"/>
             <TextBlock Text="Select a profile to edit its deck rules below. Rename profiles and enable the ones you want to analyze; enabled profiles appear in the active-profile picker and each gets a Review rhythm chart. Preview and save to apply changes. Field mappings and time zone are shared." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,12"/>
             <DataGrid x:Name="ProfilesGrid" Height="160" IsReadOnly="False" SelectionChanged="EditorProfileChanged" Margin="0,0,16,10" AutomationProperties.Name="Saved deck profiles"><DataGrid.Columns><DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="85"/><DataGridTextColumn Header="Profile name" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="*"/></DataGrid.Columns></DataGrid>
