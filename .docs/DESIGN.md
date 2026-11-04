@@ -90,6 +90,12 @@ Dictionary coverage uses unique JMdict entry IDs. Accepted spelling/reading
 variants can support the same entry once. Reference coverage is separate from
 inventory totals and from the limited stem-family grouping.
 
+The **All entries** coverage row uses every entry in the installed English JMdict
+snapshot as its denominator. Its Known/Familiar/Combined/In database numerators
+reuse existing distinct matched-ID sets for the active profile, with no extra
+Anki reads or matching pass. Overview repeats the In database fraction. Entries
+outside Common/JLPT membership remain part of this overall denominator.
+
 | Cohort | Current definition |
 | --- | --- |
 | Known | Supported by vocabulary cards in 日本語::永遠 and descendants |

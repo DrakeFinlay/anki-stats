@@ -54,7 +54,7 @@
         </Grid>
         <ScrollViewer x:Name="CoveragePage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
           <StackPanel Margin="0,0,16,0">
-            <TextBlock Text="Common words and JLPT" FontSize="24" Margin="0,0,0,12"/>
+            <TextBlock Text="Dictionary coverage, common words and JLPT" FontSize="24" Margin="0,0,0,12"/>
             <TextBlock Text="Known: 永遠 · Familiar: 勉強してる · Coverage: their union. Suspended deck vocabulary counts only toward In database. Counts deduplicate JMdict entries, including duplicate notes and sibling cards." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,12"/>
             <StackPanel x:Name="CoverageControls">
               <Border Style="{StaticResource Card}" Margin="0,0,0,16"><StackPanel>

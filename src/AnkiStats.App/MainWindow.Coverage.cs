@@ -43,16 +43,18 @@ public partial class MainWindow
             var selectedList = (CoverageGrid.SelectedItem as CoverageCount)?.List;
             CoverageGrid.ItemsSource = coverage.Counts;
             CoverageGrid.SelectedItem = coverage.Counts.Find(c => c.List == selectedList) ?? coverage.Counts[0];
-            var common = coverage.Counts[0];
+            var overall = coverage.Counts.Single(c => c.List == "All entries");
+            var common = coverage.Counts.Single(c => c.List == "Common");
             var vocabularyNotes = coverage.Matches.Select(m => m.NoteId).ToHashSet();
             var databaseCards = source.Cards.Count(c => vocabularyNotes.Contains(c.NoteId));
-            CoverageOverview.Text = $"Common words: {common.CombinedDisplay} known or familiar\n"
+            CoverageOverview.Text = $"Dictionary entries in this profile: {overall.DatabaseDisplay}\n"
+                + $"Common words: {common.CombinedDisplay} known or familiar\n"
                 + $"{coverage.Known.Count:N0} known entries · {coverage.Familiar.Count:N0} familiar · {coverage.Combined.Count:N0} combined · {coverage.Database.Count:N0} in imported database";
             CoverageStatus.Text = $"{source.Scope}\n{coverage.Known.Count:N0} known entries · {coverage.Familiar.Count:N0} familiar · {coverage.Combined.Count:N0} in their union · {coverage.Database.Count:N0} in database. "
                 + "Overlapping entries count once in Combined; Known and Familiar can overlap.\n"
                 + $"Cards in database: {databaseCards:N0} vocabulary cards / {vocabularyNotes.Count:N0} notes, including unresolved and Suspended-deck items. Coverage below counts dictionary entries.\n"
                 + $"JMdict {coverage.Reference.Metadata.DictionaryDate} · OpenJLPT corrected lists · {coverage.Reference.Metadata.UnlinkedJlptItems:N0} unlinked source rows excluded. "
-                + "Each denominator is the unique linked dictionary entries in that list; Through N3, for example, is the N5/N4/N3 union. Exact live Jisho parity is not claimed.";
+                + "All entries uses the entire installed English JMdict snapshot; spelling/reading variants count once per entry. Other denominators use the selected reference list; Through N3 is the N5/N4/N3 union. Exact live Jisho parity is not claimed.";
             CoverageFamilySummary.Text = $"{coverage.Families.Count:N0} families across {coverage.Combined.Count:N0} confirmed known/familiar entries; {coverage.Families.Count(f => f.Entries.Count > 1):N0} groups contain multiple entries. "
                 + $"{coverage.Unresolved:N0} notes have unresolved readings/matches; only their confirmed portions count. Family counts are partial while matches or relationships remain unresolved.";
             CoverageFamilyGrid.ItemsSource = coverage.Families.OrderByDescending(f => f.Entries.Count).ThenBy(f => f.Key).ToList();

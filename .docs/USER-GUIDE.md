@@ -115,6 +115,15 @@ override those deck rules. A reference row counts dictionary entries, not cards.
 N5–N1 are independent lists; Through N3 is the union of N5, N4, and N3. JLPT labels
 come from corrected OpenJLPT lists and can differ from Jisho.
 
+**All entries** covers the entire installed English JMdict snapshot, including
+entries outside Common and JLPT lists. Its **In database** column is the running
+total of distinct confirmed dictionary entries in the active profile, including
+Suspended. The denominator comes from that snapshot, not an estimated dictionary
+size. Duplicate notes/cards and alternative spellings do not multiply entries;
+unresolved possible matches do not count as confirmed. Overview repeats this
+overall count. These totals reuse existing matching results, with no extra Anki
+queries or matching pass. They update with ordinary refresh and profile changes.
+
 Select a reference-list row, then choose **Export not covered (.md)** for words
 outside Known/Familiar, or **Export absent from database (.md)** for words without
 a confirmed match in the imported selection. Choose where to save the Markdown

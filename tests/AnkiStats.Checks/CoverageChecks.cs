@@ -48,6 +48,9 @@ internal static class CoverageChecks
         check(VocabularyMatcher.Key("ｶﾀｶﾅ") == "かたかな", "lookup normalizes width without changing inventory");
         check(result.Known.Count == 4 && result.Familiar.Count == 2 && result.Combined.Count == 5, "known and familiar form union rather than sum");
         check(result.Database.Count == 7, "database includes suspended and other imported vocabulary");
+        var overall = result.Counts.Single(c => c.List == "All entries");
+        check(overall.Total == reference.Entries.Count && overall.Database == 7 && overall.Known == 4 && overall.Familiar == 2 && overall.Combined == 5,
+            "overall dictionary totals include all reference entries and deduplicate variants and sibling cards");
         check(!result.Combined.Contains("1000006") && result.Database.Contains("1000006"), "Suspended deck contributes to database only");
         check(result.Familiar.Contains("1000002"), "queue suspension does not override named-deck familiarity rule");
         check(!result.Known.Contains("1000007"), "deck rules use hierarchy boundary rather than prefix");
@@ -75,12 +78,18 @@ internal static class CoverageChecks
         check(!excluded.Known.Contains("1000001") && excluded.Combined.Contains("1000001"), "exclusion is note-specific and retains duplicate evidence from another cohort");
         var profile = DeckProfiles.Select(source, new() { Name = "Familiar", DeckRules = [new("日本語::勉強してる", true)] });
         check(matcher.Analyze(profile).Known.Count == 0 && matcher.Analyze(profile).Database.Count == 2, "coverage respects active profile scope");
+        var profileOverall = matcher.Analyze(profile).Counts.Single(c => c.List == "All entries");
+        check(profileOverall.Total == overall.Total && profileOverall.Database == 2 && profileOverall.Known == 0,
+            "overall dictionary denominator stays fixed while numerator follows active profile");
         var report = CoverageReport.Markdown(result, "N5", false);
         check(report.Contains("山") && report.Contains("| Yes | 1000006 |") && !report.Contains("| 食べる |"), "not-covered report includes suspended entry and database evidence");
         check(!CoverageReport.Markdown(result, "N5", true).Contains("| 山 |"), "absent-database report excludes already-added suspended entries");
         check(CoverageReport.Markdown(result, "Through N3", false).Contains("生"), "cumulative report uses same reference union as UI");
         check(report.Contains("synthetic") && report.Contains("unresolved") && report.Contains("Synthetic Japanese"), "report includes provenance scope and unresolved caveat");
         var missingReport = CoverageReport.Markdown(matcher.Analyze(new()), "N5", true);
+        var overallReport = CoverageReport.Markdown(matcher.Analyze(new()), "All entries", true);
+        check(overallReport.Contains("甲") && overallReport.Contains("1000008") && overallReport.Contains("11 entries without a confirmed match"),
+            "overall missing-entry export includes non-common non-JLPT dictionary entries");
         check(missingReport.Contains("eat \\| dine"), "markdown report escapes table syntax in glosses");
         var folder = Path.Combine(sandbox, "coverage");
         var store = new CoverageReferenceStore(folder); store.Save(reference);

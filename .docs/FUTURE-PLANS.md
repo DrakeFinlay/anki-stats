@@ -4,6 +4,30 @@ This is the backlog after the completed Phase 1A/1B work. These are unimplemente
 ideas, with no delivery dates or selected integration providers. [DESIGN.md](DESIGN.md)
 describes the current app; [README.md](../README.md) explains setup and use.
 
+## Incremental imports and startup performance
+
+Replace full live imports on every refresh with a persistent baseline and
+incremental reads where the source API provides reliable change evidence.
+Keep automatic startup refresh: the user normally wants fresh data immediately
+after opening, so replacing it with manual refresh is not the requested solution.
+Avoid presenting a cached timestamp as a fresh Anki sync.
+
+Handle added, edited, and deleted notes/cards; deck moves and filtered home-deck
+membership; changed field schemas/mappings; and added, edited, deleted, or undone
+reviews. Card/note modification times alone are insufficient for review-history
+changes and deletions, and their second resolution needs consideration. Detect
+profile/reference/scope changes, invalidate affected derived results, and fall
+back to a full import when continuity cannot be verified. Retain the last good
+cache if an incremental update fails, and keep note creation's live duplicate
+checks independent of cached statistics.
+
+Benchmark cache loading, reference indexing, matching, charts, HTTP enumeration,
+and review-history validation separately before selecting an implementation.
+Measure unchanged startup and one-note/one-review updates against a full import,
+including deletion and undo regression cases. Consider caching derived analysis
+with reference/rule/settings version keys as well as raw imported records. Do not
+claim a speed improvement without measurements on a representative collection.
+
 ## 1. Remaining mining opportunities in current media
 
 Show how many vocabulary candidates still meet the user's mining criteria in a
