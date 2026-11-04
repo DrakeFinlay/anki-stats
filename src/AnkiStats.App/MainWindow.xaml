@@ -9,6 +9,7 @@
           <Button Content="Overview" Tag="Overview" Click="Navigate" HorizontalContentAlignment="Left" Margin="0,0,0,8"/>
           <Button Content="Vocabulary" Tag="Vocabulary" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Word Coverage" Tag="Word Coverage" Click="Navigate" Margin="0,0,0,8"/>
+          <Button Content="Media" Tag="Media" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Reviews" Tag="Reviews" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Insights" Tag="Insights" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Calendar" Tag="Calendar" Click="Navigate" Margin="0,0,0,8"/>
@@ -31,6 +32,49 @@
       <Border x:Name="StatusPanel" Grid.Row="1" Background="#283446" CornerRadius="6" Padding="12" Margin="0,0,0,14"><TextBlock x:Name="StatusText" Text="Choose your profile in Settings. No Anki data is modified." TextWrapping="Wrap"/></Border>
       <ProgressBar x:Name="Progress" Grid.Row="2" Height="3" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,0,12"/>
       <Grid Grid.Row="3">
+        <Grid x:Name="MediaPage" Visibility="Collapsed">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <StackPanel Margin="0,0,0,12">
+            <TextBlock Text="Your media library" FontSize="22" FontWeight="SemiBold"/>
+            <TextBlock x:Name="MediaStatus" Text="Add a title online or import local text. Install reference data in Word Coverage first." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8"/>
+            <StackPanel Orientation="Horizontal"><Button Content="Compare all Anki vocabulary" Click="CompareMediaClick"/><Button x:Name="CancelMediaButton" Content="Cancel" Click="CancelMediaClick" IsEnabled="False" Margin="8,0"/></StackPanel>
+          </StackPanel>
+          <TabControl Grid.Row="1" x:Name="MediaTabs" Background="{StaticResource Panel}" BorderBrush="#3A4050">
+            <TabControl.Resources>
+              <Style TargetType="TabItem">
+                <Setter Property="Foreground" Value="#EFF1F6"/><Setter Property="Background" Value="#20232B"/>
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem"><Border x:Name="TabChrome" Background="{TemplateBinding Background}" Padding="16,10" Margin="0,0,4,0" CornerRadius="6,6,0,0"><ContentPresenter ContentSource="Header"/></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="TabChrome" Property="Background" Value="#3D659B"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TabChrome" Property="BorderBrush" Value="#86B7FF"/><Setter TargetName="TabChrome" Property="BorderThickness" Value="1"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="TabChrome" Property="BorderBrush" Value="#86B7FF"/><Setter TargetName="TabChrome" Property="BorderThickness" Value="1"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+              </Style>
+              <Style TargetType="ListBoxItem"><Setter Property="Foreground" Value="#EFF1F6"/><Setter Property="Padding" Value="8"/><Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#3D659B"/></Trigger></Style.Triggers></Style>
+            </TabControl.Resources>
+            <TabItem Header="Currently reading"><ScrollViewer VerticalScrollBarVisibility="Auto"><UniformGrid x:Name="CurrentMediaCards" Columns="1" VerticalAlignment="Top"/></ScrollViewer></TabItem>
+            <TabItem Header="Completed"><ScrollViewer VerticalScrollBarVisibility="Auto"><UniformGrid x:Name="CompletedMediaCards" Columns="1" VerticalAlignment="Top"/></ScrollViewer></TabItem>
+            <TabItem Header="Add"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="16">
+              <TextBlock Text="Search online vocabulary" FontSize="20"/>
+              <TextBlock Text="Download a selected title's analyzed vocabulary from Jiten. No Anki data is uploaded. Edition and route completeness may be unverified." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8"/>
+              <TextBox x:Name="MediaQuery" Text="Fate/stay night" AutomationProperties.Name="Media title search"/>
+              <StackPanel Orientation="Horizontal" Margin="0,8"><ComboBox x:Name="MediaKind" SelectedIndex="0" Width="180"><ComboBoxItem Content="Visual novel" Tag="7"/><ComboBoxItem Content="Anime" Tag="1"/><ComboBoxItem Content="Book / novel" Tag="4"/><ComboBoxItem Content="Book / nonfiction" Tag="5"/><ComboBoxItem Content="Book / web novel" Tag="8"/></ComboBox><Button Content="Search" Click="SearchMediaClick" Margin="8,0"/><Button Content="Next 50" Click="NextMediaClick"/></StackPanel>
+              <ListBox x:Name="MediaResults" Height="180" Background="#20232B" Foreground="#EFF1F6" BorderBrush="#3A4050" DisplayMemberPath="Title" AutomationProperties.Name="Online media results"/>
+              <TextBlock Text="Edition / included routes or episodes (your annotation)" Margin="0,12,0,6"/>
+              <TextBox x:Name="MediaEdition" Text="Edition and completeness unverified" AutomationProperties.Name="Media edition"/>
+              <Button Content="Download selected vocabulary" Click="DownloadMediaClick" HorizontalAlignment="Left" Margin="0,8"/>
+              <Separator Margin="0,16"/>
+              <TextBlock Text="Analyze local text" FontSize="20"/>
+              <TextBlock Text="TXT, SRT, ASS, VTT or DRM-free EPUB. The selected media type and edition above also apply here. Text stays on this computer." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8"/>
+              <TextBlock Text="Title"/><TextBox x:Name="LocalMediaTitle" Text="Fate/stay night" AutomationProperties.Name="Local media title" Margin="0,4,0,8"/>
+              <TextBlock Text="Python executable with SudachiPy and SudachiDict-core installed"/>
+              <TextBox x:Name="MediaPython" Text="python" AutomationProperties.Name="Media Python executable" Margin="0,4,0,8"/>
+              <TextBlock Text="One-time setup in that Python environment: python -m pip install SudachiPy SudachiDict-core" TextWrapping="Wrap" Foreground="{StaticResource Muted}"/>
+              <Button Content="Choose text and analyze locally…" Click="ImportLocalMediaClick" HorizontalAlignment="Left" Margin="0,8"/>
+              <TextBlock Text="Vocabulary data: Jiten / JMdict (EDRDG), CC BY-SA 4.0. Selected-title downloads only; no catalogue mirroring." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,20"/>
+            </StackPanel></ScrollViewer></TabItem>
+            <TabItem Header="Word list"><Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+              <TextBlock x:Name="MediaDetails" Text="Select a library card to inspect its vocabulary and source." TextWrapping="Wrap" Margin="0,0,0,10"/>
+              <ComboBox Grid.Row="1" x:Name="MediaWordFilter" SelectedIndex="0" SelectionChanged="MediaWordFilterChanged" HorizontalAlignment="Left" MinWidth="220" Margin="0,0,0,10"><ComboBoxItem Content="All resolved words"/><ComboBoxItem Content="Remaining eligible"/><ComboBoxItem Content="Other words"/><ComboBoxItem Content="Unresolved source words"/></ComboBox>
+              <DataGrid Grid.Row="2" x:Name="MediaWordsGrid" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="Word" Binding="{Binding Form}" Width="140"/><DataGridTextColumn Header="Reading" Binding="{Binding Reading}" Width="130"/><DataGridTextColumn Header="Meaning" Binding="{Binding Meaning}" Width="*"/><DataGridTextColumn Header="Lists" Binding="{Binding Lists}" Width="120"/><DataGridTextColumn Header="Uses" Binding="{Binding Occurrences}" Width="65"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="150"/></DataGrid.Columns></DataGrid>
+            </Grid></TabItem>
+          </TabControl>
+        </Grid>
         <ScrollViewer x:Name="OverviewPage" VerticalScrollBarVisibility="Auto">
           <StackPanel>
             <TextBlock x:Name="OverviewScope" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,18"/>

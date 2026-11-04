@@ -30,6 +30,13 @@ claim a speed improvement without measurements on a representative collection.
 
 ## 1. Remaining mining opportunities in current media
 
+Initial whole-title media support is implemented; see [Media](media.md) for
+online/local acquisition, agreed mining criteria, metrics and current limits.
+The proposals below retain longer-term context; unread-position tracking and
+media-driven card creation remain unimplemented. The initial corpus is F/SN;
+Common ∪ JLPT is eligible, including particles/auxiliaries, and presence in any
+mapped Anki deck counts as mined. Names are not categorically excluded.
+
 Show how many vocabulary candidates still meet the user's mining criteria in a
 selected title, initially **F/SN**, the current reading project. Provide an
 inspectable list behind the count and recompute it against updated Anki data.
@@ -38,16 +45,16 @@ Treat “remaining cards” as unique eligible vocabulary candidates; separately
 explain how many Anki cards the resulting notes might generate. Repeated word
 occurrences and sibling cards must not inflate the candidate count.
 
-Make criteria visible and configurable. Possible filters include absence from
-the database, Common/JLPT membership, title-specific frequency, and exclusion of
-names or unresolved analyses. These are proposals, not settled mining criteria.
-Words already in Suspended count as present when the criterion is no existing card.
+Further configurable criteria could include title-specific frequency and optional
+name exclusions. The implemented default is Common ∪ JLPT without categorical
+POS/name exclusion, and Suspended counts as present. Ambiguous source analyses
+and possible unresolved Anki matches remain separate from remaining candidates.
 
 Distinguish whole-title opportunities from words in the unread portion. The
 latter needs reading progress and ordered script segments or another reliable
 position mapping. Without that information, report whole-title coverage rather
-than assuming what remains unread. Settle criteria, F/SN text acquisition, and
-manual versus integrated progress tracking before implementation.
+than assuming what remains unread. Manual versus integrated progress tracking
+remains an open decision for unread-portion analysis.
 
 ## 2. Discover missing vocabulary in existing Anki sentences
 
@@ -108,6 +115,10 @@ coverage must not be presented as a comprehension score.
 
 ## 4. A library of consumed media
 
+The initial Currently reading / Completed / Add shelves and vocabulary summaries
+are implemented in [Media](media.md). Historical baselines and richer coverage
+breakdowns below remain future work.
+
 Track previously read or consumed works, including **Biman 4** and **Cafe Sourire**,
 with game/anime icons or cover images and vocabulary coverage summaries. Allow
 planned, in-progress, and completed status, with associated scripts, subtitles,
@@ -127,6 +138,11 @@ providers, acquisition, formats, and permissions when integrating each source.
 Identifying a work should not depend on its icon being available.
 
 ## 5. Analyze prospective media
+
+The first supported integration is Jiten vocabulary acquisition, with local
+text/Sudachi analysis as a fallback. Initial media types are VNs, anime and books.
+See [Media](media.md) for implemented behavior and limitations; broader sources,
+media types and source-sentence integration below remain future proposals.
 
 Let the user select future games, anime, novels, manga, or other works. Obtain
 available scripts/subtitles/text through supported integrations, perform

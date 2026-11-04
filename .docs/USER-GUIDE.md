@@ -8,7 +8,8 @@ you have been reviewing. You can also preview and create notes for missing words
 The app is for Windows and stores its analysis locally.
 
 It measures recorded activity and vocabulary coverage, not fluency. Sentence
-analysis and media libraries are [future plans](FUTURE-PLANS.md).
+analysis is in [future plans](FUTURE-PLANS.md). The initial [Media library](media.md)
+supports online vocabulary lists and optional local text analysis.
 
 ## Install and open the app
 
@@ -79,6 +80,7 @@ previewing and saving a refreshed import.
 | Overview | Vocabulary inventory, total answers, ordinary-review Again rate, recorded hours, coverage summary, daily discovery, and review-rhythm charts |
 | Vocabulary | Search/sort entries, inspect supporting note/card IDs by double-clicking, inspect skipped expressions, and export the current table |
 | Word Coverage | Common/JLPT coverage, missing-word reports, match review, stem families, and creation of new vocabulary notes |
+| Media | Reading/completed covers, Jiten title search, local text analysis, and remaining Common/JLPT mining opportunities; see [Media guide](media.md) |
 | Reviews | Daily/weekly volume, time-of-day breakdowns, Again rates, response times, and ordinary-review card rankings |
 | Insights | Explore the supported discoveries and their explanations |
 | Calendar | Select a current/historical streak, inspect daily answer counts, and scroll across years |

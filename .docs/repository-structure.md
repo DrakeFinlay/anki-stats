@@ -13,6 +13,7 @@ anki-stats/
 │   ├── USER-GUIDE.md
 │   ├── program-guide.md
 │   ├── dictionary-and-coverage.md
+│   ├── media.md
 │   └── anki-connect.md
 ├── src/
 │   ├── AnkiStats.App/
@@ -33,6 +34,12 @@ anki-stats/
 ```
 
 ## Application: `src/AnkiStats.App`
+
+`MainWindow.Media.cs` implements Media navigation, online/local acquisition,
+whole-collection comparison, source inspection and responsive cover shelves.
+Core media behavior lives in `MediaLibrary.cs`, `JitenClient.cs`, and
+`LocalMediaText.cs`; `media_tokenize.py` is an embedded local Sudachi adapter.
+`MediaChecks.cs` covers the shared corpus, metrics, resolution and API failures.
 
 This project produces the executable. It references the core library and uses Windows Presentation Foundation (WPF) for the interface.
 

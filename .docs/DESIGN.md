@@ -19,6 +19,7 @@ create new notes for missing vocabulary.
 | Area | Implemented behavior |
 | --- | --- |
 | Desktop | Native dark WPF interface, Japanese text, tables, charts, and a development shortcut that builds the current checkout |
+| Media | Jiten vocabulary search/download, optional local Sudachi text analysis, cached reading/completed shelves, whole-collection mining comparison; see [media](media.md) |
 | Setup and import | Remembered Anki profile, editable deck selections and field mappings, safe snapshots with Anki open or closed, cached recovery after failure |
 | Deck profiles | Named selections, Japanese/Kanji/combined presets when available, shared mappings and time zone, synchronized active-profile selectors |
 | Vocabulary | Distinct expression/reading inventory, search, sorting, supporting note/card IDs, CSV export |
@@ -35,9 +36,10 @@ reference coverage, matching and reports, and the explicitly requested new-note
 workflow. Calendar, deck profiles, time analysis, and learning patterns are also
 implemented. This does not imply that the broader roadmap is complete.
 
-There is no standalone dictionary browser, sentence tokenizer, media library,
-media-script ingestion, grammar-pattern inventory, or general kanji-knowledge
-score in the current app. Existing comparisons involving kanji cards do not
+There is no standalone dictionary browser, Anki sentence-field analysis,
+game-archive extraction, grammar-pattern inventory, or general kanji-knowledge
+score in the current app. Media accepts extracted text and analyzed lists;
+optional local tokenization uses separately installed Sudachi. Existing comparisons involving kanji cards do not
 constitute those broader analyses.
 
 ## 2. Collection selection and user experience
@@ -62,7 +64,7 @@ Kanji, and combined presets are created when the corresponding trees exist;
 previous selection rules are retained. Settings changes take effect with a
 successful import, and a failed refresh retains the previous cache's scope.
 
-Navigation contains Overview, Vocabulary, Word Coverage, Reviews, Insights,
+Navigation contains Overview, Vocabulary, Word Coverage, Media, Reviews, Insights,
 Calendar, Time Analysis, Learning Patterns, and Settings. Overview links to
 details and displays a review-rhythm chart for each enabled deck profile. The
 header and Calendar profile selectors stay synchronized. Daily discovery history
@@ -318,7 +320,7 @@ Markdown exports carry reference attribution. Neither path executes note HTML or
 JavaScript, imports media, or follows remote content in fields.
 
 There is no telemetry or cloud account. Internet requests download explicit public
-reference snapshots without collection content; live importing and note creation
+reference snapshots and selected media vocabulary/metadata/artwork without collection content; live importing and note creation
 talk to loopback AnkiConnect. Cached analysis and matching work offline after reference installation.
 Reference data and derived lists retain source/version and CC BY-SA attribution;
 see [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). Newly created notes can sync
@@ -329,8 +331,9 @@ normally when Anki itself synchronizes.
 The implementation uses C#, .NET 10, WPF/XAML, and Microsoft.Data.Sqlite. WPF draws
 charts directly. Code-behind partials coordinate the desktop UI; the Core library
 contains import, analysis, matching, persistence, and AnkiConnect behavior. The
-check runner exercises Core without requiring real Anki. There is no web backend
-or morphology runtime. Reference data is a compressed local JSON index, while
+check runner exercises Core without requiring real Anki. There is no web backend.
+Optional local media analysis invokes separately installed Python/Sudachi;
+online media vocabulary comes from Jiten. Reference data is a compressed local JSON index, while
 app-owned settings and cached import data use SQLite.
 
 Long operations run off the UI thread and tables use virtualization. The normal

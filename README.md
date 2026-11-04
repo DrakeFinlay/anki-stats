@@ -10,10 +10,11 @@ profiles, review analysis, Calendar, Time Analysis, Learning Patterns, and daily
 discoveries. Analysis works locally; creating notes is an explicit action through
 AnkiConnect.
 
-Sentence analysis and media coverage are future work. Planned directions include
-remaining mining opportunities in a current title, missing words in existing
-Anki sentences, sentence statistics, and libraries of past/future media with
-artwork and script-based vocabulary comparisons. See [Future plans](.docs/FUTURE-PLANS.md).
+The initial [Media library](.docs/media.md) searches Jiten vocabulary lists or
+analyzes local text with optional Sudachi, caches reading/completed titles, and
+compares Common/JLPT mining opportunities against mapped vocabulary across Anki.
+Anki sentence-field analysis, unread-position tracking and media-driven note
+creation remain [future plans](.docs/FUTURE-PLANS.md).
 
 ## Documentation
 
