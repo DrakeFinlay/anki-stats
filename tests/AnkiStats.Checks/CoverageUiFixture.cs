@@ -3,13 +3,14 @@ using Microsoft.Data.Sqlite;
 
 internal static class CoverageUiFixture
 {
-    public static void Create(string root, bool mappings = false)
+    public static void Create(string root, bool mappings = false, bool corrections = false)
     {
         var profile = Path.Combine(root, "synthetic-profile"); Directory.CreateDirectory(profile);
         var path = Path.Combine(profile, "collection.anki2");
         if (File.Exists(path)) throw new IOException("Use an empty coverage fixture folder.");
         File.WriteAllText(Path.Combine(profile, ".ankistats-test-data"), "Synthetic coverage fixture.");
         var source = mappings ? MappingChecks.Collection() : CoverageChecks.Collection();
+        if (corrections) source.Notes[0] = new(1, "影響力[えいきょうちょく]", "", "my original meaning", "Vocabulary", "Word");
         var expressions = new[] { "クラス", "万年筆[まんえんひつ]", "女の子[おんあのこ]", "昨夜[ゆうべ・さくや]", "SNS[えす・えぬ・えす]" };
         var meanings = new[] { "class", "fountain pen", "girl", "last night", "social networking service" };
         for (var i = 0; i < expressions.Length; i++)
@@ -73,6 +74,7 @@ internal static class CoverageUiFixture
         DeckProfiles.Ensure(settings, importer.Discover(profile));
         store.SaveCache(importer.Import(settings), settings);
         var reference = mappings ? MappingChecks.Reference() : CoverageChecks.Reference();
+        if (corrections) reference.Entries.Add(new("90006", ["影響力"], [new("えいきょうりょく", ["*"])], "influence", true, [], new("影響力", "えいきょうりょく")));
         reference.Entries.AddRange(CoverageMatchingChecks.Reference().Entries);
         reference.Entries.AddRange(DefinitionChecks.Reference().Entries);
         new CoverageReferenceStore(Path.Combine(root, "reference")).Save(reference);

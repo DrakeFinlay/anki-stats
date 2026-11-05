@@ -3,6 +3,7 @@ using AnkiStats.Core;
 using Microsoft.Data.Sqlite;
 
 var checkCount = 0;
+if (args is ["--seed-corrections-ui", var correctionsUiRoot]) { CoverageUiFixture.Create(correctionsUiRoot, mappings: true, corrections: true); Console.WriteLine("Synthetic correction fixture ready."); return; }
 if (args is ["--seed-mappings-ui", var mappingsUiRoot]) { CoverageUiFixture.Create(mappingsUiRoot, mappings: true); Console.WriteLine("Synthetic mappings fixture ready."); return; }
 if (args is ["--media-revalidate", var revalidateReference, var revalidateRoot])
 {
@@ -141,6 +142,7 @@ try
 {
     StreakChecks.Run(Check);
     MappingChecks.Run(Check, sandbox);
+    NoteCorrectionChecks.Run(Check, sandbox);
     MediaChecks.Run(Check, sandbox);
     ProfileChecks.Run(Check, sandbox);
     TimeChecks.Run(Check);

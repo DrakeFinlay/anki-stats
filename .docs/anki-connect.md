@@ -2,7 +2,8 @@
 
 This guide describes live importing and the new-note workflow. [The user's guide](USER-GUIDE.md#create-missing-vocabulary-notes)
 explains the controls. AnkiConnect is used when the running Anki holds an exclusive
-database lock, and for note creation. Closed-file imports and cached analysis work without it.
+database lock, for note creation, and for explicitly confirmed expression/reading
+corrections. Closed-file imports and cached analysis work without it.
 
 ## Live importing
 
@@ -74,8 +75,10 @@ separately. There are no automatic request retries.
 | notesInfo, batches of 500 | Read current model names, fields, and tags |
 | canAddNotes | Validate each candidate with Anki's duplicate protection |
 | addNote | Add one explicitly confirmed note |
+| updateNoteFields | Apply or undo a displayed existing-note expression/reading correction only |
 
-No sync, scheduling, existing-note editing, or tag-editing actions are called.
+No sync, scheduling or tag-editing actions are called. Existing-note field edits
+are confined to the explicit Mappings correction flow.
 Checks reduce stale-preview risks; they do not lock Anki against every concurrent
 edit. The app rereads inventory before creation and skips/rejects detected changes.
 
@@ -159,7 +162,27 @@ successful notes remain in Anki. File imports do not require AnkiConnect.
 Confirmed per-note grammar links from [Mappings](mappings.md) are included in live
 duplicate checks across configured vocabulary and grammar note types. Current
 fields must still match the saved fingerprint. Mapping review itself writes only
-app-owned local decisions and never changes existing Anki notes.
+app-owned local decisions unless its displayed Anki correction checkbox is enabled.
+
+## Existing-note corrections
+
+`AnkiNoteCorrection.cs` prepares mapped expression/reading changes against the
+current note and model schema, checks profile and 日本語 membership, guards raw
+field values, and calls `updateNoteFields` once. The exact payload changes only
+those fields; user meanings, sentence/media fields and tags are not replaced.
+The operation uses the existing note ID and does not invoke card/scheduling APIs.
+Simple formatting and sound markers survive targeted text replacement; ambiguous
+fragmented markup is rejected. All sibling cards use the edited note fields.
+
+The [AnkiConnect API documentation](https://github.com/FooSoft/anki-connect/blob/5b6fe5766c0e1ee476c78a9de1c085b37d817cd7/README.md#updatenotefields)
+describes field updates and notes an editor-related no-op case. A fresh `notesInfo`
+read verifies the intended values rather than trusting an error-free response.
+Lost acknowledgements are read back without automatically repeating the write.
+Receipts persist before sending; uncertain results remain Pending verification.
+The dashboard's status check is read-only. Popup Undo applies an inverse receipt
+only if the note's guarded fields still match. Isolated/synthetic UI sessions
+cannot reach the live edit path. See [Mappings](mappings.md) for controls and
+the distinction between local link buckets and actual field-edit receipts.
 
 [NoteCreationChecks.cs](../tests/AnkiStats.Checks/NoteCreationChecks.cs) simulates
 selection, spillover, exhaustion, payloads, profile changes, stale previews,

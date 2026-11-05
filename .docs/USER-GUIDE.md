@@ -139,7 +139,10 @@ If a word seems missing despite having a card, search **Inspect Anki matches**
 and check its reason. Select it and use **Review selected match** to choose a
 candidate, enter a verified JMdict ID, exclude it, or reset a correction. The
 dialog previews entries before confirmation. Corrections stay in Anki Stats and
-do not edit Anki. Changes to the note can make an old correction need review.
+do not edit Anki. The separate [Mappings popup](mappings.md) can also apply a
+displayed expression/reading correction when its checkbox is enabled. Grammar
+labels default to local links; your meaning is preserved. Changes to a note can
+make an old mapping need review.
 
 One valid spelling/reading is enough; you do not need every alternative. Reading
 and Definition warnings can retain coverage while asking you to inspect the
@@ -208,7 +211,8 @@ if the rest of a batch fails. Edit/delete unwanted notes in Anki itself.
 Settings, cached imports, dictionary data, corrections, and creation history live
 under `%LOCALAPPDATA%\AnkiStats`, accessible with **Open app data folder**. Exports
 go where you choose. There is no telemetry. Analysis never changes the source
-collection; only your explicit Create action adds notes through AnkiConnect.
+collection. Explicit Create adds notes through AnkiConnect; the Mappings popup
+can update displayed expression/reading fields when its correction checkbox is enabled.
 Keep ordinary Anki backups; the stats cache is not an Anki backup.
 
 For implementation details, read the [program guide](program-guide.md).

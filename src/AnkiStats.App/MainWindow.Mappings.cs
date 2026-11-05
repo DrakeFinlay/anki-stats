@@ -28,6 +28,7 @@ public partial class MainWindow
         if (vocabularyMatcher is null || MappingSource is not {} source)
         {
             mappingItems = []; mappingAnalysis = null; mediaMappingDecisions = []; mappingDeferred = [];
+            MappingCorrectionGrid.ItemsSource = null;
             MappingPossibleCards.Text = MappingSourceCount.Text = MappingCleanupCount.Text = "0";
             MappingNoteCount.Text = "No collection analyzed"; ApplyMappingFilter();
             MappingsScope.Text = "Connect a collection and install Word Coverage reference data first."; return;
@@ -37,6 +38,7 @@ public partial class MainWindow
         var aliases = LoadMappingAliases(scope);
         mediaMappingDecisions = store.LoadCoverageDecisions<MediaMappingDecision>(scope, "media-mappings");
         mappingDeferred = store.LoadCoverageDecisions<MappingDeferred>(scope, "mapping-cleanup");
+        MappingCorrectionGrid.ItemsSource = store.LoadCoverageDecisions<AnkiCorrectionLog>(scope, "note-corrections").OrderByDescending(l => l.Time).ToList();
         if (mappingAliasScope != scope)
         {
             mappingAliasRows.Clear(); foreach (var rule in aliases) mappingAliasRows.Add(rule);
@@ -62,10 +64,10 @@ public partial class MainWindow
         MappingCleanupGrid.ItemsSource = items.Where(IsDeferred).ToList();
         MappingsGrid.ItemsSource = items.Where(i => !i.Resolved || MappingShowResolved.IsChecked == true).ToList();
     }
-    private async Task RecalculateMappings()
+    private async Task RecalculateMappings(bool noteChanged = false)
     {
-        await UpdateCoverage();
-        await UpdateMappings();
+        if (noteChanged) await AnalyzeAndDisplay();
+        else { await UpdateCoverage(); await UpdateMappings(); }
         if (HasMediaComparison && mediaComparisonCollection is {} mediaSource && mediaSource.CollectionKey == MappingScope)
             mediaCoverage = await Task.Run(() => vocabularyMatcher!.Analyze(mediaSource,
                 store.LoadCoverageDecisions<MatchDecision>(MappingScope, "matches"), aliases: LoadMappingAliases(MappingScope)));

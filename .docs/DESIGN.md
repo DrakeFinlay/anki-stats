@@ -165,7 +165,12 @@ a correction. Decisions are collection/note-specific and app-owned. Current
 fingerprints include expression, readings, and English definition; changes or
 removed dictionary IDs require review. Older fingerprints remain readable.
 Created notes retain their recorded dictionary identity with the same staleness
-checks. Corrections do not modify Anki.
+checks. Local link corrections do not modify Anki. The Mappings popup also supports
+explicit expression/reading edits via AnkiConnect, defaulted on only for changed
+ordinary vocabulary proposals. Grammar/descriptive labels keep local-only defaults.
+Original values are checked, edits are journaled and read back, meaning is retained,
+and the saved link uses the corrected fingerprint. See [Mappings](mappings.md) for
+the confirmation, Undo and bucket definitions.
 
 Stem families cover confirmed Combined entries. 報う／報いる／報われる form one
 curated family while remaining separate dictionary/inventory entries. Other

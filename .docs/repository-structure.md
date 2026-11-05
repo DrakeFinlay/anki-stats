@@ -48,6 +48,8 @@ enrichment and the shared Anki preview/writer.
 `MainWindow.Mappings.cs` implements the mapping dashboard, filters, aliases and
 cleanup pile; `MainWindow.MappingReview.cs` implements keyboard review and Undo.
 Core `MappingReview.cs` provides review-only suggestions and source projections.
+`AnkiNoteCorrection.cs` implements guarded field updates and read-back verification;
+`MainWindow.MappingCorrections.cs` coordinates durable receipts and status checks.
 `MappingChecks.cs` tests grammar credit, stale decisions and duplicate protection.
 
 This project produces the executable. It references the core library and uses Windows Presentation Foundation (WPF) for the interface.
