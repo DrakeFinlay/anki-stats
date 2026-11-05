@@ -4,6 +4,12 @@ Word Coverage matches intended vocabulary fields to dictionary identities. It is
 not a standalone dictionary browser or sentence tokenizer. See [the user's guide](USER-GUIDE.md#use-word-coverage)
 for controls and [DESIGN.md](DESIGN.md) for metric definitions.
 
+The [Mappings dashboard](mappings.md) also reviews descriptive grammar fronts and
+unresolved media forms. Grammar requires per-note approval; confirmed links use
+the same dictionary-entry and deck-cohort rules. Exact label aliases produce
+review suggestions only. Deferred notes retain possible-match protection without
+receiving confirmed coverage.
+
 The **All entries** row uses the installed reference's entry count as its
 denominator and the existing distinct Known/Familiar/Combined/Database sets as
 numerators. It includes non-common, non-JLPT entries and follows the active deck

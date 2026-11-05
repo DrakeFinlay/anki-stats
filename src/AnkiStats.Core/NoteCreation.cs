@@ -4,8 +4,10 @@ using System.Text.RegularExpressions;
 namespace AnkiStats.Core;
 
 public sealed record CreationAttempt(string EntryId, string State, long? NoteId = null, string? Fingerprint = null);
-public sealed record NewVocabularyNote(string EntryId, string Tier, string Word, string Reading, string Meaning, string Front);
-public sealed record CreationPlan(string Profile, long ModelId, List<string> Fields, List<NewVocabularyNote> Notes, int Requested, int Pending);
+public sealed record NewVocabularyNote(string EntryId, string Tier, string Word, string Reading, string Meaning, string Front,
+    string Sentence = "", string Media = "");
+public sealed record CreationPlan(string Profile, long ModelId, List<string> Fields, List<NewVocabularyNote> Notes, int Requested, int Pending,
+    List<MatchDecision>? MatchDecisions = null);
 public sealed record CreationResult(List<CreationAttempt> Added, int Skipped, string? Error);
 
 public static class NoteCreation
@@ -19,9 +21,10 @@ public static class NoteCreation
         n.Tags.Where(t => t.StartsWith(IdentityTag, StringComparison.Ordinal)).Select(t => t[IdentityTag.Length..])
             .Concat(AttributionIdentity.Matches(n.Fields.GetValueOrDefault("English", "")).Select(m => m.Groups[1].Value))).ToHashSet();
 
-    public static HashSet<string> LiveExclusions(VocabularyMatcher matcher, AnkiInventory inventory, ImportedCollection imported, Settings settings)
+    public static HashSet<string> LiveExclusions(VocabularyMatcher matcher, AnkiInventory inventory, ImportedCollection imported, Settings settings,
+        IEnumerable<MatchDecision>? decisions = null)
     {
-        var vocabularyTypes = settings.Mappings.Where(m => m.Category == "Vocabulary").Select(m =>
+        var vocabularyTypes = settings.Mappings.Where(m => m.Category is "Vocabulary" or "Grammar").Select(m =>
             (Mapping: m, Type: imported.Metadata.NoteTypes.Find(t => t.Id == m.NoteTypeId))).Where(p => p.Type is not null)
             .ToDictionary(p => p.Type!.Name);
         var source = new ImportedCollection();
@@ -30,10 +33,10 @@ public static class NoteCreation
             if (!vocabularyTypes.TryGetValue(note.Model, out var mapped)) continue;
             string Value(int index) => index < 0 || index >= mapped.Type!.Fields.Count ? "" : note.Fields.GetValueOrDefault(mapped.Type.Fields[index], "");
             source.Notes.Add(new(note.Id, TextNormalizer.Clean(Value(mapped.Mapping.Expression)), TextNormalizer.Clean(Value(mapped.Mapping.Reading)),
-                TextNormalizer.Clean(Value(mapped.Mapping.Meaning)), "Vocabulary", note.Model));
+                TextNormalizer.Clean(Value(mapped.Mapping.Meaning)), mapped.Mapping.Category, note.Model));
             source.Cards.Add(new(note.Id, note.Id, "Live duplicate check", 0, 0, 0));
         }
-        var live = matcher.Analyze(source);
+        var live = matcher.Analyze(source, decisions);
         // An unresolved compatible entry must be reviewed instead of generating a potential duplicate.
         return live.Database.Concat(live.Matches.SelectMany(m => m.ReviewEntryIds)).Concat(RecordedEntries(inventory.Notes)).ToHashSet();
     }
@@ -64,12 +67,40 @@ public static class NoteCreation
         fields["Front"] = WebUtility.HtmlEncode(note.Front);
         fields["English"] = WebUtility.HtmlEncode(note.Meaning)
             + "<!-- JMdict © EDRDG; https://www.edrdg.org/jmdict/j_jmdict.html ; CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/ ; entry " + note.EntryId + " -->";
+        if (fields.ContainsKey("Sentence")) fields["Sentence"] = WebUtility.HtmlEncode(note.Sentence);
+        if (fields.ContainsKey("Media")) fields["Media"] = WebUtility.HtmlEncode(note.Media);
         return new { deckName = Destination, modelName = "Japanese", fields,
             options = new { allowDuplicate = false, duplicateScope = "collection" }, tags = Array.Empty<string>() };
     }
-    public static async Task<CreationPlan> Prepare(AnkiConnectClient client, CoverageAnalysis coverage, ImportedCollection imported, Settings settings,
-        int requested, List<CreationAttempt> journal, IProgress<string>? progress = null, Random? random = null)
+    public static Task<CreationPlan> Prepare(AnkiConnectClient client, CoverageAnalysis coverage, ImportedCollection imported, Settings settings,
+        int requested, List<CreationAttempt> journal, IProgress<string>? progress = null, Random? random = null, List<MatchDecision>? matchingDecisions = null)
+        => PrepareCandidates(client, coverage, imported, settings, requested, journal, Candidates(coverage, new HashSet<string>(), random), progress, matchingDecisions: matchingDecisions);
+
+    public static Task<CreationPlan> PrepareMedia(AnkiConnectClient client, CoverageAnalysis coverage, ImportedCollection imported, Settings settings,
+        IEnumerable<MediaMiningWord> words, int requested, List<CreationAttempt> journal, IProgress<string>? progress = null, CancellationToken token = default,
+        List<MatchDecision>? matchingDecisions = null)
     {
+        var entries = coverage.Reference.Entries.ToDictionary(e => e.Id);
+        IEnumerable<NewVocabularyNote> Notes()
+        {
+            foreach (var word in words.DistinctBy(w => w.EntryId))
+            {
+                if (!entries.TryGetValue(word.EntryId, out var entry) || entry.StudyForm is not {} form || string.IsNullOrWhiteSpace(entry.Meaning)) continue;
+                var front = form.Written == form.Reading ? form.Written : form.Written + "[" + form.Reading + "]";
+                var parsed = VocabularyExpression.Parse(new(0, front, "", entry.Meaning, "Vocabulary", "Japanese"));
+                if (parsed.Error is not null || parsed.Readings.Count != 1 || VocabularyMatcher.Key(parsed.Readings[0]) != VocabularyMatcher.Key(form.Reading)) continue;
+                yield return new(entry.Id, word.Eligible ? "Common / JLPT" : "Other", form.Written, form.Reading, entry.Meaning, front,
+                    word.Sentence, word.Sentence.Length > 0 ? word.SentenceSource : word.Titles);
+            }
+        }
+        return PrepareCandidates(client, coverage, imported, settings, requested, journal, Notes(), progress, token, matchingDecisions);
+    }
+
+    private static async Task<CreationPlan> PrepareCandidates(AnkiConnectClient client, CoverageAnalysis coverage, ImportedCollection imported, Settings settings,
+        int requested, List<CreationAttempt> journal, IEnumerable<NewVocabularyNote> candidates, IProgress<string>? progress, CancellationToken token = default,
+        List<MatchDecision>? matchingDecisions = null)
+    {
+        token.ThrowIfCancellationRequested();
         if (requested <= 0) throw new ArgumentOutOfRangeException(nameof(requested), "Enter a positive number of words.");
         if (coverage.Reference.Metadata.FormSelectionVersion < 1) throw new InvalidOperationException("Update reference data to retain preferred study forms before creating notes.");
         var model = imported.Metadata.NoteTypes.Find(t => t.Name == "Japanese") ?? throw new InvalidOperationException("The imported collection has no Japanese note type.");
@@ -78,20 +109,28 @@ public static class NoteCreation
             throw new InvalidOperationException("Map Japanese Front and English as vocabulary fields before creating notes.");
         var profile = Path.GetFileName(Path.TrimEndingDirectorySeparator(imported.SourceProfileFolder));
         var inventory = await AnkiConnection.ReadInventory(client, profile, model.Id, progress);
-        var excluded = LiveExclusions(new VocabularyMatcher(coverage.Reference), inventory, imported, settings);
+        token.ThrowIfCancellationRequested();
+        matchingDecisions ??= coverage.Matches.Where(m => m.Status is "Corrected" or "Generated").Select(m =>
+            new MatchDecision(m.NoteId, m.Fingerprint, m.EntryIds.FirstOrDefault(), AdditionalEntryIds: m.EntryIds.Skip(1).ToList())).ToList();
+        var excluded = LiveExclusions(new VocabularyMatcher(coverage.Reference), inventory, imported, settings, matchingDecisions);
+        excluded.UnionWith(coverage.Database.Concat(coverage.Matches.SelectMany(m => m.ReviewEntryIds)));
         excluded.UnionWith(journal.Where(a => a.State is "Added" or "Pending").Select(a => a.EntryId));
-        var selected = new List<NewVocabularyNote>(); var fronts = new HashSet<string>();
-        foreach (var candidate in Candidates(coverage, excluded, random))
+        var selected = new List<NewVocabularyNote>(); var fronts = new HashSet<string>(); var ids = new HashSet<string>();
+        foreach (var candidate in candidates)
         {
-            if (!fronts.Add(candidate.Front)) continue;
+            token.ThrowIfCancellationRequested();
+            if (excluded.Contains(candidate.EntryId) || !ids.Add(candidate.EntryId) || !fronts.Add(candidate.Front)) continue;
+            progress?.Report($"Preparing missing vocabulary… {selected.Count:N0} / {requested:N0} ready; checking {candidate.Front}");
             var allowed = await client.Call<bool[]>("canAddNotes", new { notes = new[] { Payload(candidate, inventory.ModelFields) } });
+            token.ThrowIfCancellationRequested();
             if (allowed.Length != 1) throw new InvalidDataException("Anki returned an invalid duplicate-check response.");
             if (!allowed[0]) continue;
-            selected.Add(candidate);
+            selected.Add(candidate with { Sentence = inventory.ModelFields.Contains("Sentence") ? candidate.Sentence : "",
+                Media = inventory.ModelFields.Contains("Media") ? candidate.Media : "" });
             if (selected.Count == requested) break;
         }
-        if (selected.Count == 0) throw new InvalidOperationException("No eligible missing words remain in N5 → N4 → N3 → N2 → N1 → Common. Possible matches, duplicates and pending attempts are excluded. Check pending additions or review uncertain matches if needed.");
-        return new(profile, model.Id, inventory.ModelFields, selected, requested, journal.Count(a => a.State == "Pending"));
+        if (selected.Count == 0) throw new InvalidOperationException("No eligible missing words remain in this batch after live duplicate, possible-match and pending-attempt checks. Check pending additions or review uncertain matches if needed.");
+        return new(profile, model.Id, inventory.ModelFields, selected, requested, journal.Count(a => a.State == "Pending"), matchingDecisions);
     }
     public static async Task<CreationResult> Create(AnkiConnectClient client, CreationPlan plan, CoverageAnalysis coverage, ImportedCollection imported, Settings settings,
         List<CreationAttempt> journal, Action<List<CreationAttempt>> persist, IProgress<string>? progress = null)
@@ -101,7 +140,7 @@ public static class NoteCreation
         {
             var inventory = await AnkiConnection.ReadInventory(client, plan.Profile, plan.ModelId, progress);
             if (!inventory.ModelFields.SequenceEqual(plan.Fields)) throw new InvalidOperationException("Japanese fields changed after preview. Prepare a new batch.");
-            var blocked = LiveExclusions(new VocabularyMatcher(coverage.Reference), inventory, imported, settings);
+            var blocked = LiveExclusions(new VocabularyMatcher(coverage.Reference), inventory, imported, settings, plan.MatchDecisions);
             blocked.UnionWith(journal.Where(a => a.State is "Pending" or "Added").Select(a => a.EntryId));
             foreach (var note in plan.Notes)
             {

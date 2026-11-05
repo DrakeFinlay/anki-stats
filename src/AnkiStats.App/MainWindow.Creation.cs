@@ -36,7 +36,8 @@ public partial class MainWindow
             }
             var journal = await Task.Run(() => store.LoadCoverageDecisions<CreationAttempt>(imported.CollectionKey, "creation"));
             SaveGeneratedMatches(imported.CollectionKey, journal);
-            var plan = await Task.Run(() => NoteCreation.Prepare(client, selectedCoverage, imported, chosenSettings, count, journal, progress));
+            var plan = await Task.Run(() => NoteCreation.Prepare(client, selectedCoverage, imported, chosenSettings, count, journal, progress,
+                matchingDecisions: store.LoadCoverageDecisions<MatchDecision>(imported.CollectionKey, "matches")));
             CreationStatus.Text = $"Prepared {plan.Notes.Count:N0} of {count:N0} requested words. Review the batch before creating notes.";
             await ReviewNewNotes(client, plan, selectedCoverage, imported, chosenSettings, journal);
         }
@@ -45,10 +46,13 @@ public partial class MainWindow
     private async Task ReviewNewNotes(AnkiConnectClient client, CreationPlan plan, CoverageAnalysis selectedCoverage, ImportedCollection imported,
         Settings chosenSettings, List<CreationAttempt> journal)
     {
-        var window = new Window { Owner = this, Title = "Preview new Anki notes", Width = 950, Height = 700, MinWidth = 700, MinHeight = 500, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        var mediaBatch = plan.Notes.Any(n => n.Media.Length > 0 || n.Tier is "Other" or "Common / JLPT");
+        var window = new Window { Owner = this, Title = "Preview new Anki notes", Width = mediaBatch ? 1200 : 950, Height = 700, MinWidth = 700, MinHeight = 500, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         var layout = new DockPanel { Margin = new Thickness(20) }; window.Content = layout;
         var header = new TextBlock { Text = $"{plan.Notes.Count:N0} / {plan.Requested:N0} requested words · profile {plan.Profile}\nDestination: {NoteCreation.Destination} · Japanese note type\n"
-            + "Front uses the dictionary-preferred form and reading; English contains dictionary glosses. Other fields remain blank. Anki decides how many cards each note generates.\n"
+            + "Front uses the dictionary-preferred form and reading; English contains dictionary glosses. Anki decides how many cards each note generates.\n"
+            + (mediaBatch ? $"Source titles use the Media field when available. Sentence is populated only where shown below: {plan.Notes.Count(n => n.Sentence.Length > 0):N0} with a source sentence, {plan.Notes.Count(n => n.Sentence.Length == 0):N0} blank. Other fields remain blank.\n"
+                : "Other fields remain blank.\n")
             + (plan.Notes.Count < plan.Requested ? "Only this many eligible words remain after duplicate and possible-match checks.\n" : "")
             + (plan.Pending > 0 ? $"{plan.Pending:N0} pending attempts are excluded; use Check pending additions to reconcile them.\n" : ""), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 14) };
         DockPanel.SetDock(header, Dock.Top); layout.Children.Add(header);
@@ -62,7 +66,11 @@ public partial class MainWindow
         var grid = new DataGrid { ItemsSource = plan.Notes, SelectionMode = DataGridSelectionMode.Single };
         foreach (var (label, path, width) in new[] { ("Priority", "Tier", 90), ("Front", "Front", 220), ("English", "Meaning", 400) })
             grid.Columns.Add(new DataGridTextColumn { Header = label, Binding = new Binding(path), Width = width });
-        grid.SelectionChanged += (_, _) => { if (grid.SelectedItem is NewVocabularyNote note) details.Text = note.Front + "\n" + note.Meaning + "\nJMdict " + note.EntryId; };
+        if (mediaBatch)
+            foreach (var (label, path, width) in new[] { ("Source sentence (blank when unavailable)", "Sentence", 380), ("Media / sentence source", "Media", 220) })
+                grid.Columns.Add(new DataGridTextColumn { Header = label, Binding = new Binding(path), Width = width });
+        grid.SelectionChanged += (_, _) => { if (grid.SelectedItem is NewVocabularyNote note) details.Text = note.Front + "\n" + note.Meaning + "\nJMdict " + note.EntryId
+            + (mediaBatch ? "\nSentence: " + (note.Sentence.Length == 0 ? "[blank]" : note.Sentence) + "\nMedia: " + note.Media : ""); };
         grid.SelectedIndex = 0; layout.Children.Add(grid);
         var sending = false;
         window.Closing += (_, args) => { if (sending) args.Cancel = true; };

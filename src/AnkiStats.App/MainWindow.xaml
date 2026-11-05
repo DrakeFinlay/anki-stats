@@ -9,6 +9,8 @@
           <Button Content="Overview" Tag="Overview" Click="Navigate" HorizontalContentAlignment="Left" Margin="0,0,0,8"/>
           <Button Content="Vocabulary" Tag="Vocabulary" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Word Coverage" Tag="Word Coverage" Click="Navigate" Margin="0,0,0,8"/>
+          <Button Content="Media" Tag="Media" Click="Navigate" Margin="0,0,0,8"/>
+          <Button Content="Mappings" Tag="Mappings" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Reviews" Tag="Reviews" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Insights" Tag="Insights" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Calendar" Tag="Calendar" Click="Navigate" Margin="0,0,0,8"/>
@@ -31,6 +33,96 @@
       <Border x:Name="StatusPanel" Grid.Row="1" Background="#283446" CornerRadius="6" Padding="12" Margin="0,0,0,14"><TextBlock x:Name="StatusText" Text="Choose your profile in Settings. No Anki data is modified." TextWrapping="Wrap"/></Border>
       <ProgressBar x:Name="Progress" Grid.Row="2" Height="3" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,0,12"/>
       <Grid Grid.Row="3">
+        <ScrollViewer x:Name="MappingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,0,12,0">
+          <TextBlock Text="Mapping dashboard" FontSize="24" FontWeight="SemiBold"/>
+          <TextBlock x:Name="MappingsScope" Text="Connect a collection and install dictionary data to review mappings." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8,0,16"/>
+          <UniformGrid Columns="3">
+            <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Cards with possible Anki matches" TextWrapping="Wrap"/><TextBlock x:Name="MappingPossibleCards" Text="—" FontSize="36" Margin="0,8"/><TextBlock x:Name="MappingNoteCount" TextWrapping="Wrap" Foreground="{StaticResource Muted}"/></StackPanel></Border>
+            <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Media forms · optional queue" TextWrapping="Wrap"/><TextBlock x:Name="MappingSourceCount" Text="—" FontSize="36" Margin="0,8"/><TextBlock Text="Unresolved downloaded vocabulary or locally imported text, grouped within each title. Includes names absent from JMdict." TextWrapping="Wrap" Foreground="{StaticResource Muted}"/></StackPanel></Border>
+            <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Manual cleanup"/><TextBlock x:Name="MappingCleanupCount" Text="—" FontSize="36" Margin="0,8"/><TextBlock Text="Items deferred with 1 remain available below." TextWrapping="Wrap" Foreground="{StaticResource Muted}"/></StackPanel></Border>
+          </UniformGrid>
+          <WrapPanel Margin="0,8,0,14"><ComboBox x:Name="MappingQueueKind" SelectedIndex="0" SelectionChanged="MappingFilterChanged" MinWidth="200"><ComboBoxItem Content="日本語 Anki matches"/><ComboBoxItem Content="Media source forms"/></ComboBox><Button Content="Launch mapping pop-up" Click="LaunchMappings" Margin="10,0"/><Button Content="Refresh 日本語 mappings" Click="RefreshMappingsClick"/></WrapPanel>
+          <TextBlock Text="Media review is optional: Jiten supplies analyzed vocabulary lists, not downloaded scripts. Local text contributes forms only after you import it. Missing dictionary IDs and incompatible forms/readings remain available for manual review." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,12"/>
+          <TextBlock Text="Space confirms the selected proposal and applies the displayed Anki correction when enabled. Grammar labels are preserved by default. 1 sends the item to manual cleanup. Media mappings only change local analysis." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,16"/>
+          <TextBlock Text="Manual cleanup pile" FontSize="20" Margin="0,0,0,8"/>
+          <DataGrid x:Name="MappingCleanupGrid" Height="170" AutoGenerateColumns="False" MouseDoubleClick="ReviewCleanupMapping"><DataGrid.Columns><DataGridTextColumn Header="Type" Binding="{Binding Kind}" Width="70"/><DataGridTextColumn Header="Original item" Binding="{Binding Expression}" Width="220"/><DataGridTextColumn Header="Reading" Binding="{Binding Reading}" Width="130"/><DataGridTextColumn Header="Details" Binding="{Binding Reason}" Width="*"/></DataGrid.Columns></DataGrid>
+          <Button Content="Review selected cleanup item" Click="ReviewCleanupMapping" HorizontalAlignment="Left" Margin="0,8,0,20"/>
+          <TextBlock Text="Full mapping list" FontSize="20"/>
+          <WrapPanel Margin="0,8"><TextBox x:Name="MappingSearch" Width="270" TextChanged="MappingFilterChanged" AutomationProperties.Name="Search mappings"/><CheckBox x:Name="MappingShowResolved" Content="Include confirmed / ignored mappings" Checked="MappingFilterChanged" Unchecked="MappingFilterChanged" Margin="12,0" VerticalAlignment="Center"/></WrapPanel>
+          <DataGrid x:Name="MappingsGrid" Height="300" AutoGenerateColumns="False" MouseDoubleClick="ReviewSelectedMapping"><DataGrid.Columns><DataGridTextColumn Header="Type" Binding="{Binding Kind}" Width="70"/><DataGridTextColumn Header="Original item" Binding="{Binding Expression}" Width="200"/><DataGridTextColumn Header="Reading" Binding="{Binding Reading}" Width="120"/><DataGridTextColumn Header="Meaning" Binding="{Binding Meaning}" Width="250"/><DataGridTextColumn Header="Status / reason" Binding="{Binding Reason}" Width="350"/></DataGrid.Columns></DataGrid>
+          <WrapPanel Margin="0,8,0,18"><Button Content="Review selected item" Click="ReviewSelectedMapping"/><Button Content="Reset selected saved decision" Click="ResetMappingClick"/></WrapPanel>
+          <Expander Header="Configure exact label aliases (suggestions only)"><StackPanel Margin="0,10"><TextBlock Text="Map an exact Anki label to a lookup, with optional reading and note type. Aliases suggest candidates; each note still requires confirmation. Blank note type applies to all mapped note types." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,0,0,8"/>
+            <DataGrid x:Name="MappingAliasGrid" Height="200" IsReadOnly="False" CanUserAddRows="True" CanUserDeleteRows="True" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="Exact Anki expression" Binding="{Binding Expression}" Width="*"/><DataGridTextColumn Header="Lookup" Binding="{Binding Lookup}" Width="180"/><DataGridTextColumn Header="Reading (optional)" Binding="{Binding Reading}" Width="160"/><DataGridTextColumn Header="Note type (optional)" Binding="{Binding NoteType}" Width="180"/></DataGrid.Columns></DataGrid>
+            <Button Content="Save alias suggestions" Click="SaveMappingAliases" HorizontalAlignment="Left" Margin="0,8"/>
+          </StackPanel></Expander>
+          <Expander Header="Anki field corrections · history and pending verification" Margin="0,12"><StackPanel><TextBlock Text="These records are field edits, separate from local mapping links. Pending verification means the write outcome is unknown. Check its status before retrying; the check only reads Anki. Undo in the review popup also reverts its field correction when those fields are unchanged." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8"/>
+            <DataGrid x:Name="MappingCorrectionGrid" Height="180" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="Note" Binding="{Binding NoteId}" Width="120"/><DataGridTextColumn Header="Status" Binding="{Binding State}" Width="170"/><DataGridTextColumn Header="Field changes" Binding="{Binding Fields}" Width="*"/></DataGrid.Columns></DataGrid><Button Content="Check selected correction status (read only)" Click="CheckMappingCorrection" HorizontalAlignment="Left" Margin="0,8"/>
+          </StackPanel></Expander>
+          <TextBlock x:Name="MappingStatus" TextWrapping="Wrap" Margin="0,12"/>
+        </StackPanel></ScrollViewer>
+        <Grid x:Name="MediaPage" Visibility="Collapsed">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <StackPanel Margin="0,0,0,12">
+            <TextBlock Text="Your media library" FontSize="22" FontWeight="SemiBold"/>
+            <TextBlock x:Name="MediaStatus" Text="Add a title online or import local text. Install reference data in Word Coverage first." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8"/>
+            <WrapPanel><Button Content="Compare all Anki vocabulary" Click="CompareMediaClick"/><Button Content="Refresh covers" Click="RefreshMediaCoversClick" ToolTip="Try original VNDB artwork for visual novels; retain existing artwork on failure."/><Button x:Name="CancelMediaButton" Content="Cancel" Click="CancelMediaClick" IsEnabled="False" Margin="8,0"/></WrapPanel>
+          </StackPanel>
+          <TabControl Grid.Row="1" x:Name="MediaTabs" Background="{StaticResource Panel}" BorderBrush="#3A4050">
+            <TabControl.Resources>
+              <Style TargetType="TabItem">
+                <Setter Property="Foreground" Value="#EFF1F6"/><Setter Property="Background" Value="#20232B"/>
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem"><Border x:Name="TabChrome" Background="{TemplateBinding Background}" Padding="16,10" Margin="0,0,4,0" CornerRadius="6,6,0,0"><ContentPresenter ContentSource="Header"/></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="TabChrome" Property="Background" Value="#3D659B"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TabChrome" Property="BorderBrush" Value="#86B7FF"/><Setter TargetName="TabChrome" Property="BorderThickness" Value="1"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="TabChrome" Property="BorderBrush" Value="#86B7FF"/><Setter TargetName="TabChrome" Property="BorderThickness" Value="1"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+              </Style>
+              <Style TargetType="ListBoxItem"><Setter Property="Foreground" Value="#EFF1F6"/><Setter Property="Padding" Value="8"/><Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#3D659B"/></Trigger></Style.Triggers></Style>
+            </TabControl.Resources>
+            <TabItem x:Name="ReadingMediaTab" Header="Currently reading"><ScrollViewer x:Name="CurrentMediaViewport" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><UniformGrid x:Name="CurrentMediaCards" Columns="1" MinHeight="{Binding ViewportHeight, ElementName=CurrentMediaViewport}"/></ScrollViewer></TabItem>
+            <TabItem x:Name="PlannedMediaTab" Header="Planned"><ScrollViewer VerticalScrollBarVisibility="Auto"><UniformGrid x:Name="PlannedMediaCards" Columns="1" VerticalAlignment="Top"/></ScrollViewer></TabItem>
+            <TabItem x:Name="CompletedMediaTab" Header="Completed"><ScrollViewer VerticalScrollBarVisibility="Auto"><UniformGrid x:Name="CompletedMediaCards" Columns="1" VerticalAlignment="Top"/></ScrollViewer></TabItem>
+            <TabItem Header="Add"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="16">
+              <TextBlock Text="Search online vocabulary" FontSize="20"/>
+              <TextBlock Text="Download a selected title's analyzed vocabulary from Jiten. No Anki data is uploaded. Edition and route completeness may be unverified." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8"/>
+              <TextBox x:Name="MediaQuery" Text="Fate/stay night" AutomationProperties.Name="Media title search"/>
+              <StackPanel Orientation="Horizontal" Margin="0,8"><ComboBox x:Name="MediaKind" SelectedIndex="0" Width="180"><ComboBoxItem Content="Visual novel" Tag="7"/><ComboBoxItem Content="Anime" Tag="1"/><ComboBoxItem Content="Book / novel" Tag="4"/><ComboBoxItem Content="Book / nonfiction" Tag="5"/><ComboBoxItem Content="Book / web novel" Tag="8"/></ComboBox><Button Content="Search" Click="SearchMediaClick" Margin="8,0"/><Button Content="Next 50" Click="NextMediaClick"/></StackPanel>
+              <ListBox x:Name="MediaResults" Height="180" Background="#20232B" Foreground="#EFF1F6" BorderBrush="#3A4050" DisplayMemberPath="Title" AutomationProperties.Name="Online media results"/>
+              <TextBlock Text="Edition / included routes or episodes (your annotation)" Margin="0,12,0,6"/>
+              <TextBox x:Name="MediaEdition" Text="Edition and completeness unverified" AutomationProperties.Name="Media edition"/>
+              <TextBlock Text="Shelf for new titles" Margin="0,12,0,6"/>
+              <ComboBox x:Name="NewMediaShelf" SelectedIndex="0" HorizontalAlignment="Left" MinWidth="220" AutomationProperties.Name="Shelf for new media"><ComboBoxItem Content="Planned"/><ComboBoxItem Content="Currently reading"/><ComboBoxItem Content="Completed"/></ComboBox>
+              <Button Content="Download selected vocabulary" Click="DownloadMediaClick" HorizontalAlignment="Left" Margin="0,8"/>
+              <Separator Margin="0,16"/>
+              <TextBlock Text="Analyze local text" FontSize="20"/>
+              <TextBlock Text="TXT, SRT, ASS, VTT or DRM-free EPUB. The selected media type and edition above also apply here. Text stays on this computer." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8"/>
+              <TextBlock Text="Title"/><TextBox x:Name="LocalMediaTitle" Text="Fate/stay night" AutomationProperties.Name="Local media title" Margin="0,4,0,8"/>
+              <TextBlock Text="Python executable with SudachiPy and SudachiDict-core installed"/>
+              <TextBox x:Name="MediaPython" Text="python" AutomationProperties.Name="Media Python executable" Margin="0,4,0,8"/>
+              <TextBlock Text="One-time setup in that Python environment: python -m pip install SudachiPy SudachiDict-core" TextWrapping="Wrap" Foreground="{StaticResource Muted}"/>
+              <Button Content="Choose text and analyze locally…" Click="ImportLocalMediaClick" HorizontalAlignment="Left" Margin="0,8"/>
+              <TextBlock Text="Vocabulary data: Jiten / JMdict (EDRDG), CC BY-SA 4.0. Selected-title downloads only; no catalogue mirroring." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,20"/>
+            </StackPanel></ScrollViewer></TabItem>
+            <TabItem x:Name="MediaImportTab" Header="Import"><Grid Margin="16"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+              <StackPanel><TextBlock Text="Missing words across completed media" FontSize="22" FontWeight="SemiBold"/><TextBlock Text="Ranked by number of completed titles, then total occurrences. Existing Anki vocabulary and possible matches are excluded. Counts use unique JMdict entries." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8"/></StackPanel>
+              <WrapPanel Grid.Row="1" Margin="0,8"><ComboBox x:Name="MediaMiningPool" SelectedIndex="0" SelectionChanged="MediaMiningFilterChanged" MinWidth="230" AutomationProperties.Name="Completed media word pool"><ComboBoxItem Content="Common or JLPT"/><ComboBoxItem Content="Uncommon: outside Common and JLPT"/></ComboBox><TextBlock Text="Minimum titles" VerticalAlignment="Center" Margin="12,0,6,0"/><TextBox x:Name="MediaMiningMinimum" Text="2" Width="55" TextChanged="MediaMiningFilterChanged" AutomationProperties.Name="Minimum completed title count"/><TextBox x:Name="MediaMiningSearch" Width="230" Margin="12,0" TextChanged="MediaMiningFilterChanged" AutomationProperties.Name="Search completed media missing words" ToolTip="Search word, reading, meaning or source titles"/></WrapPanel>
+              <StackPanel Grid.Row="2" Margin="0,0,0,12"><WrapPanel><Button Content="Preview selected → Anki" Click="PreviewMediaMining" Tag="selected"/><TextBlock Text="Number" VerticalAlignment="Center" Margin="6,0"/><TextBox x:Name="MediaMiningCount" Text="10" Width="65" AutomationProperties.Name="Number of media words to prepare"/><Button Content="Preview first N → Anki" Click="PreviewMediaMining" Tag="number" Margin="8,0"/><Button Content="Preview all filtered → Anki" Click="PreviewMediaMining" Tag="all"/></WrapPanel>
+                <Expander Header="Source sentences (optional; missing sentences stay blank)" Margin="0,10,0,0"><StackPanel>
+                  <WrapPanel Margin="0,10,0,0"><CheckBox x:Name="MediaMiningSentences" Content="Include available source sentence" IsChecked="True" VerticalAlignment="Center" Margin="0,0,16,0"/><Button Content="Find sentences in local scripts" Click="FindMediaMiningSentences"/><TextBlock Text="Python" VerticalAlignment="Center" Margin="8,0"/><TextBox x:Name="MediaMiningPython" Width="240" Text="{Binding Text, ElementName=MediaPython, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Python executable for local source sentences"/></WrapPanel>
+                  <TextBlock Text="A preview and explicit Create always precede writes. Local sentence search needs Python/Sudachi; online vocabulary lists alone do not contain full scripts." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8"/>
+                </StackPanel></Expander>
+              </StackPanel>
+              <DataGrid Grid.Row="3" x:Name="MediaMiningGrid" AutoGenerateColumns="False" SelectionMode="Extended" SelectionUnit="FullRow"><DataGrid.Columns><DataGridTextColumn Header="Word" Binding="{Binding Word}" Width="130"/><DataGridTextColumn Header="Reading" Binding="{Binding Reading}" Width="120"/><DataGridTextColumn Header="Meaning" Binding="{Binding Meaning}" Width="260"/><DataGridTextColumn Header="Lists" Binding="{Binding Lists}" Width="110"/><DataGridTextColumn Header="Titles" Binding="{Binding TitleCount}" Width="65"/><DataGridTextColumn Header="Uses" Binding="{Binding Occurrences}" Width="70"/><DataGridTextColumn Header="Source titles" Binding="{Binding Titles}" Width="220"/><DataGridTextColumn Header="Sentence" Binding="{Binding Sentence}" Width="300"/><DataGridTextColumn Header="Sentence source" Binding="{Binding SentenceSource}" Width="170"/></DataGrid.Columns></DataGrid>
+              <TextBlock Grid.Row="4" x:Name="MediaMiningStatus" Text="Compare all Anki vocabulary to browse missing words across Completed." TextWrapping="Wrap" Margin="0,12,0,0"/>
+            </Grid></TabItem>
+            <TabItem x:Name="MediaWordsTab" Header="Word list"><Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+              <TextBlock x:Name="MediaDetails" Text="Select a library card to inspect its vocabulary and source." TextWrapping="Wrap" Margin="0,0,0,10"/>
+              <StackPanel Grid.Row="1" Margin="0,0,0,10"><WrapPanel>
+                <ComboBox x:Name="MediaWordFilter" SelectedIndex="0" SelectionChanged="MediaWordFilterChanged" MinWidth="220"><ComboBoxItem Content="All resolved words"/><ComboBoxItem Content="Remaining eligible"/><ComboBoxItem Content="Other words"/><ComboBoxItem Content="Unresolved source words"/></ComboBox>
+                <Button x:Name="PreviewSelectedMediaWordsButton" Content="Preview selected for Anki…" Click="PreviewSelectedMediaWords" IsEnabled="False" Margin="10,0"/>
+                <CheckBox x:Name="MediaWordSentences" Content="Include available source sentence" IsChecked="True" VerticalAlignment="Center"/>
+              </WrapPanel><TextBlock x:Name="MediaWordSelectionSummary" Text="Select words to import with Ctrl-click, Shift-click, or Ctrl+A. Existing Anki notes, possible matches and unresolved forms are skipped." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,8,0,0"/></StackPanel>
+              <DataGrid Grid.Row="2" x:Name="MediaWordsGrid" AutoGenerateColumns="False" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="MediaWordsSelectionChanged"><DataGrid.Columns><DataGridTextColumn Header="Word" Binding="{Binding Form}" Width="140"/><DataGridTextColumn Header="Reading" Binding="{Binding Reading}" Width="130"/><DataGridTextColumn Header="Meaning" Binding="{Binding Meaning}" Width="*"/><DataGridTextColumn Header="Lists" Binding="{Binding Lists}" Width="120"/><DataGridTextColumn Header="Uses" Binding="{Binding Occurrences}" Width="65"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="150"/></DataGrid.Columns></DataGrid>
+              <TextBlock Grid.Row="3" x:Name="MediaWordImportStatus" TextWrapping="Wrap" Margin="0,10,0,0"/>
+            </Grid></TabItem>
+          </TabControl>
+        </Grid>
         <ScrollViewer x:Name="OverviewPage" VerticalScrollBarVisibility="Auto">
           <StackPanel>
             <TextBlock x:Name="OverviewScope" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,18"/>

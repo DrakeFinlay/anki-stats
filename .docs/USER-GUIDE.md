@@ -8,7 +8,8 @@ you have been reviewing. You can also preview and create notes for missing words
 The app is for Windows and stores its analysis locally.
 
 It measures recorded activity and vocabulary coverage, not fluency. Sentence
-analysis and media libraries are [future plans](FUTURE-PLANS.md).
+analysis is in [future plans](FUTURE-PLANS.md). The initial [Media library](media.md)
+supports online vocabulary lists and optional local text analysis.
 
 ## Install and open the app
 
@@ -42,7 +43,9 @@ statistics work without the add-on.
    children; exclude a child tree if you do not want it counted.
 5. Check each note type's category and field mappings. Use **Vocabulary** for
    word notes and map the expression, reading if separate, and English meaning.
-   Kanji/Grammar notes can contribute review activity without adding vocabulary.
+   Kanji/Grammar notes can contribute review activity without adding vocabulary
+   inventory. Confirmed Grammar dictionary links can count in Word Coverage;
+   see [Mappings](mappings.md).
    **Ignored** types are excluded.
 6. Check the review time zone. Use **Preview selection** and inspect the extracted
    examples. The bracket-reading option affects how inventory expressions are
@@ -79,6 +82,8 @@ previewing and saving a refreshed import.
 | Overview | Vocabulary inventory, total answers, ordinary-review Again rate, recorded hours, coverage summary, daily discovery, and review-rhythm charts |
 | Vocabulary | Search/sort entries, inspect supporting note/card IDs by double-clicking, inspect skipped expressions, and export the current table |
 | Word Coverage | Common/JLPT coverage, missing-word reports, match review, stem families, and creation of new vocabulary notes |
+| Media | Reading/completed covers, Jiten title search, local text analysis, and remaining Common/JLPT mining opportunities; see [Media guide](media.md) |
+| Mappings | Review uncertain Anki/media matches, confirm grammar links, configure label aliases, and manage manual cleanup; see [Mappings guide](mappings.md) |
 | Reviews | Daily/weekly volume, time-of-day breakdowns, Again rates, response times, and ordinary-review card rankings |
 | Insights | Explore the supported discoveries and their explanations |
 | Calendar | Select a current/historical streak, inspect daily answer counts, and scroll across years |
@@ -134,7 +139,10 @@ If a word seems missing despite having a card, search **Inspect Anki matches**
 and check its reason. Select it and use **Review selected match** to choose a
 candidate, enter a verified JMdict ID, exclude it, or reset a correction. The
 dialog previews entries before confirmation. Corrections stay in Anki Stats and
-do not edit Anki. Changes to the note can make an old correction need review.
+do not edit Anki. The separate [Mappings popup](mappings.md) can also apply a
+displayed expression/reading correction when its checkbox is enabled. Grammar
+labels default to local links; your meaning is preserved. Changes to a note can
+make an old mapping need review.
 
 One valid spelling/reading is enough; you do not need every alternative. Reading
 and Definition warnings can retain coverage while asking you to inspect the
@@ -203,7 +211,8 @@ if the rest of a batch fails. Edit/delete unwanted notes in Anki itself.
 Settings, cached imports, dictionary data, corrections, and creation history live
 under `%LOCALAPPDATA%\AnkiStats`, accessible with **Open app data folder**. Exports
 go where you choose. There is no telemetry. Analysis never changes the source
-collection; only your explicit Create action adds notes through AnkiConnect.
+collection. Explicit Create adds notes through AnkiConnect; the Mappings popup
+can update displayed expression/reading fields when its correction checkbox is enabled.
 Keep ordinary Anki backups; the stats cache is not an Anki backup.
 
 For implementation details, read the [program guide](program-guide.md).

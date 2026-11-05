@@ -320,7 +320,10 @@ AnkiConnect and are labeled unavailable. File imports and cached analysis remain
 available without the add-on. The API key, if configured, is entered in Settings
 and remains in memory for the session. See [live importing](anki-connect.md#live-importing).
 
-Importing, analysis, and corrections do not modify Anki. The optional Word Coverage
+Importing, analysis, and local link corrections do not modify Anki. Mappings can
+explicitly correct an existing note's displayed expression/reading via AnkiConnect,
+with current-field guards, durable receipts and read-back verification; see
+[Mappings](mappings.md). Your meaning and other fields are preserved. The optional Word Coverage
 creation panel adds new notes only after Preview and an explicit Create action.
 It uses AnkiConnect with Anki open, checks the entire live collection for duplicates,
 and always targets Japanese notes in 日本語::勉強してる. It never changes existing

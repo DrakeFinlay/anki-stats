@@ -10,10 +10,14 @@ profiles, review analysis, Calendar, Time Analysis, Learning Patterns, and daily
 discoveries. Analysis works locally; creating notes is an explicit action through
 AnkiConnect.
 
-Sentence analysis and media coverage are future work. Planned directions include
-remaining mining opportunities in a current title, missing words in existing
-Anki sentences, sentence statistics, and libraries of past/future media with
-artwork and script-based vocabulary comparisons. See [Future plans](.docs/FUTURE-PLANS.md).
+The initial [Media library](.docs/media.md) searches Jiten vocabulary lists or
+analyzes local text with optional Sudachi, caches reading/completed titles, and
+compares Common/JLPT mining opportunities against mapped vocabulary across Anki.
+Media → Import browses shared missing words from completed titles and can prepare
+previewed Anki notes, optionally including genuine local-script sentences.
+Each title's Word list also supports importing selected missing words from any shelf.
+Anki sentence-field analysis and unread-position tracking remain
+[future plans](.docs/FUTURE-PLANS.md).
 
 ## Documentation
 
@@ -199,7 +203,7 @@ attribution identity used for recovery. Legacy tags are still recognized if reta
 
 ## Data safety
 
-The file importer copies an idle collection under an exclusive read-only file handle, refusing active journals. SQLite opens only the temporary private copy, never the original collection or its sidecars. The app never bypasses locks, checkpoints, or repairs the source. Unavailable collections and unsupported schemas produce a recovery message. Refresh, analysis, exports, and match corrections do not change Anki records. Only the explicit Create action adds new notes through the running AnkiConnect API; the app never writes the source database, changes existing notes, adjusts schedules, or runs card HTML or JavaScript. Newly added notes can sync normally through Anki.
+The file importer copies an idle collection under an exclusive read-only file handle, refusing active journals. SQLite opens only the temporary private copy, never the original collection or its sidecars. The app never bypasses locks, checkpoints, or repairs the source. Unavailable collections and unsupported schemas produce a recovery message. Refresh, analysis, exports, and local mapping links do not change Anki records. Explicit Create adds new notes through AnkiConnect. The [Mappings popup](.docs/mappings.md#correcting-typos-in-existing-anki-notes) can also update an existing note's displayed expression/reading when its correction checkbox is enabled, with guarded Undo and read-back verification. It preserves your meaning and other fields. The app never writes the source database, sends scheduling changes, or runs card HTML or JavaScript. Anki changes can sync normally through Anki.
 
 When Anki holds the collection or has an active journal, the shared reader imports through local AnkiConnect instead. It checks the running profile, reads current notes/cards/full review history, preserves filtered cards' home decks, and rejects detected changes during the read. These batched API reads are not one database transaction. AnkiConnect cannot report orphaned reviews whose cards were deleted; live imports label that count unavailable. Isolated/synthetic sessions never fall back to the user's running Anki.
 

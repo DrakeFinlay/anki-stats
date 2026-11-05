@@ -3,6 +3,62 @@ using AnkiStats.Core;
 using Microsoft.Data.Sqlite;
 
 var checkCount = 0;
+if (args is ["--seed-corrections-ui", var correctionsUiRoot]) { CoverageUiFixture.Create(correctionsUiRoot, mappings: true, corrections: true); Console.WriteLine("Synthetic correction fixture ready."); return; }
+if (args is ["--seed-mappings-ui", var mappingsUiRoot]) { CoverageUiFixture.Create(mappingsUiRoot, mappings: true); Console.WriteLine("Synthetic mappings fixture ready."); return; }
+if (args is ["--media-revalidate", var revalidateReference, var revalidateRoot])
+{
+    var reference = new CoverageReferenceStore(revalidateReference).Load() ?? throw new InvalidOperationException("Install reference first.");
+    var library = new MediaLibraryStore(revalidateRoot);
+    foreach (var corpus in library.Load().Where(c => c.Source == "Jiten vocabulary"))
+    {
+        var revised = JitenClient.Revalidate(corpus, reference); library.Save(revised);
+        Console.WriteLine($"Revalidated {revised.Title}: {revised.Words.Count} forms, {revised.Words.Where(w => w.EntryId is not null).Select(w => w.EntryId).Distinct().Count()} JMdict IDs, {revised.Words.Count(w => w.EntryId is null)} reference mismatches.");
+    }
+    return;
+}
+if (args is ["--seed-media-ui", var mediaUiRoot])
+{
+    CoverageUiFixture.Create(mediaUiRoot);
+    var mediaStore = new MediaLibraryStore(mediaUiRoot);
+    var mediaReferenceStore = new CoverageReferenceStore(Path.Combine(mediaUiRoot, "reference"));
+    var mediaReference = mediaReferenceStore.Load()!;
+    mediaReference.Entries.Add(new("9000001", ["共有語"], [new("きょうゆうご", ["*"])], "synthetic shared eligible word", true, ["N3"], new("共有語", "きょうゆうご")));
+    mediaReference.Entries.Add(new("9000002", ["未登録語"], [new("みとうろくご", ["*"])], "synthetic shared uncommon word", false, [], new("未登録語", "みとうろくご")));
+    mediaReferenceStore.Save(mediaReference with { Metadata = mediaReference.Metadata with { FormSelectionVersion = 1 } });
+    for (var i = 0; i < 8; i++)
+    {
+        var words = new List<MediaWord> { new("1000001", "食べる", "たべる", 4, "Validated"), new("1000008", "甲", "こう", 2, "Validated"), new(null, "Synthetic unknown", "", 1, "Unmatched"),
+            new("9000001", "共有語", "きょうゆうご", i + 1, "Resolved", Sentence: "共有語を調べる。"), new("9000002", "未登録語", "みとうろくご", 20 - i, "Resolved") };
+        mediaStore.Save(new("synthetic:" + i, i == 0 ? "Synthetic Fate/stay night — UI fixture" : "Synthetic media " + i,
+            7, "Synthetic edition", "Synthetic test corpus", "", "Synthetic words; no actual title script", MediaAnalysis.Hash(words),
+            "Synthetic analyzer", "synthetic", DateTimeOffset.UtcNow, null, words, i == 0 ? MediaShelves.Reading : i < 4 ? MediaShelves.Planned : MediaShelves.Completed));
+    }
+    Console.WriteLine("Synthetic media UI fixture ready."); return;
+}
+if (args is ["--media-smoke", var mediaReferenceRoot, var mediaOutput])
+{
+    var reference = new CoverageReferenceStore(mediaReferenceRoot).Load() ?? throw new InvalidOperationException("Install the reference first.");
+    using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
+    var client = new JitenClient(http);
+    var title = (await client.Search("Fate/stay night", 7)).Single(t => t.Id == 233);
+    var corpus = await client.Download(title, "Provider edition unverified; accepted as a nearby edition for remaster testing", reference,
+        new Progress<string>(message => Console.WriteLine(message)));
+    new MediaLibraryStore(mediaOutput).Save(corpus);
+    Console.WriteLine($"Fate import complete: {corpus.Words.Count} forms; {corpus.Words.Where(w => w.EntryId is not null).Select(w => w.EntryId).Distinct().Count()} validated JMdict IDs; {corpus.Words.Count(w => w.EntryId is null)} reference mismatches. No Anki access.");
+    return;
+}
+if (args is ["--local-media-smoke", var localReferenceRoot, var pythonPath])
+{
+    var reference = new CoverageReferenceStore(localReferenceRoot).Load() ?? throw new InvalidOperationException("Install the reference first.");
+    const string text = "私は昨日、本を読んだ。食べた。山へ行く。";
+    var analysis = await LocalMediaText.Analyze(text, pythonPath);
+    var corpus = LocalMediaText.Resolve("Synthetic morphology smoke test", 7, "Synthetic", text, analysis, reference);
+    if (!corpus.Words.Any(w => w.EntryId is not null)) throw new Exception("Local morphology resolved no dictionary entries.");
+    if (!corpus.Words.Any(w => w.EntryId is not null && w.Sentence.Length > 0 && text.Contains(w.Sentence)))
+        throw new Exception("Local morphology retained no genuine source sentence.");
+    Console.WriteLine($"Local morphology passed: {analysis.Analyzer}; {corpus.Words.Count} token forms, {corpus.Words.Count(w => w.EntryId is not null)} resolved. Synthetic text only.");
+    return;
+}
 if (args is ["--prepare-coverage-reference", var referenceSources, var referenceTarget]) { CoverageChecks.PrepareReference(referenceSources, referenceTarget); return; }
 if (args is ["--audit-coverage", var coverageReferenceRoot, var appDatabase]) { CoverageChecks.Audit(coverageReferenceRoot, appDatabase); return; }
 if (args.Length >= 4 && args[0] == "--audit-coverage-report") { CoverageChecks.Audit(args[1], args[2], args[3], args.Skip(4)); return; }
@@ -85,6 +141,9 @@ Directory.CreateDirectory(sandbox);
 try
 {
     StreakChecks.Run(Check);
+    MappingChecks.Run(Check, sandbox);
+    NoteCorrectionChecks.Run(Check, sandbox);
+    MediaChecks.Run(Check, sandbox);
     ProfileChecks.Run(Check, sandbox);
     TimeChecks.Run(Check);
     LearningChecks.Run(Check);

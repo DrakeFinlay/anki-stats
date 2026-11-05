@@ -1,5 +1,22 @@
 # Third-party components
 
+## Optional media sources and analyzer
+
+Selected-title vocabulary downloaded from [Jiten](https://jiten.moe) is derived
+data licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/),
+with JMdict / EDRDG dictionary attribution. The app preserves attribution in each
+local corpus. Covers are third-party artwork with separate rights and are not
+bundled or redistributed. Optional original VN covers are requested through
+[VNDB's public API](https://api.vndb.org/kana) using a verified title link;
+artwork retains its separate third-party rights. See [Jiten terms](https://jiten.moe/terms).
+
+Local media analysis optionally interoperates with separately installed
+[SudachiPy](https://github.com/WorksApplications/sudachi.rs) and
+[SudachiDict](https://github.com/WorksApplications/SudachiDict), under their
+upstream Apache-2.0 licenses and dictionary source notices. Neither Python,
+Sudachi nor its dictionary is bundled in the application. The adapter is original
+project code. See the [media guide](.docs/media.md) for setup and provenance.
+
 The Windows build uses the following components. No Anki application code or Japanese dictionary data is bundled.
 
 - .NET runtime and Windows Presentation Foundation, Microsoft and contributors, MIT license. [Runtime license](https://github.com/dotnet/runtime/blob/main/LICENSE.TXT), [WPF license](https://github.com/dotnet/wpf/blob/main/LICENSE.TXT).

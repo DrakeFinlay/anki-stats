@@ -15,6 +15,8 @@ This guide describes the tools used by the checked-in implementation. Versions b
 | SQLitePCLRaw.bundle_e_sqlite3 `3.0.5` | Supplies the SQLite native engine and supporting bindings. |
 | JMdict via jmdict-simplified | Downloaded English dictionary identities, forms/readings, glosses, and common/preferred-form metadata; separate from application dependencies. |
 | OpenJLPT | Downloaded corrected N5–N1 memberships linked to JMdict IDs; separate from application dependencies. |
+| Jiten | Optional selected-title online vocabulary lists and metadata; no Anki data uploaded. |
+| Python / SudachiPy / SudachiDict-core | Separately installed optional local text morphology; versions recorded per corpus. |
 | AnkiConnect API v6 | Local HTTP bridge for live collection imports while Anki is open, explicitly requested note creation, and live checks. Closed-file imports and cached analysis work without it. |
 | NuGet | Downloads the project dependencies during restore/build. |
 | PowerShell | Runs the Windows publishing script and creates a normal application shortcut through Windows scripting support. |
@@ -33,8 +35,10 @@ subsequent matching and reporting work offline. No Anki content is sent to inter
 Live imports and explicit note creation use standard .NET HTTP against AnkiConnect API v6 at
 `127.0.0.1:8765`. It requires no additional application library or web backend.
 The reference engine uses standard .NET JSON, HTTP, compression, and SHA-256
-libraries, with no morphology runtime. Internet access may also be needed for SDK
-and NuGet dependencies when building from source. No media service is integrated.
+libraries. Optional local media morphology runs a separately installed Python /
+Sudachi environment. Internet access may also be needed for SDK and NuGet
+dependencies when building from source. [Media](media.md) integrates Jiten for
+selected-title vocabulary and artwork; cached comparisons work offline.
 The dictionary and JLPT pins/checksums are in CoverageReferenceStore.cs; their
 versions and licenses are documented in [third-party notices](../THIRD-PARTY-NOTICES.md).
 See [dictionary and coverage](dictionary-and-coverage.md) and [AnkiConnect integration](anki-connect.md)
@@ -79,6 +83,6 @@ Optional real-data audits are local, explicitly invoked checks. They should emit
 - Python, Node.js, a web backend, and a cloud account are not runtime dependencies.
 - AnkiConnect is required for imports while Anki holds an exclusive database lock and for new-note creation. File imports and cached analysis work without it.
 - No telemetry, hosted CI, or automatic release pipeline is configured.
-- Dictionary downloads and common/JLPT coverage are implemented; media integrations remain future work.
+- Dictionary downloads, Common/JLPT coverage and initial Jiten/local-text media integration are implemented; see [Media](media.md) for limits.
 
 For redistribution details, consult [third-party notices](../THIRD-PARTY-NOTICES.md) and the included license texts. For the code layout, see [repository structure](repository-structure.md).

@@ -19,11 +19,12 @@ create new notes for missing vocabulary.
 | Area | Implemented behavior |
 | --- | --- |
 | Desktop | Native dark WPF interface, Japanese text, tables, charts, and a development shortcut that builds the current checkout |
+| Media | Jiten vocabulary search/download, optional local Sudachi text analysis, large reading panels, Planned/Completed shelves, whole-collection mining comparison; see [media](media.md) |
 | Setup and import | Remembered Anki profile, editable deck selections and field mappings, safe snapshots with Anki open or closed, cached recovery after failure |
 | Deck profiles | Named selections, Japanese/Kanji/combined presets when available, shared mappings and time zone, synchronized active-profile selectors |
 | Vocabulary | Distinct expression/reading inventory, search, sorting, supporting note/card IDs, CSV export |
 | Word Coverage | JMdict common-word and corrected OpenJLPT N5–N1 coverage, cumulative unions, Markdown missing-word reports, match corrections, conservative stem families |
-| Note creation | Previewed batches from missing reference entries, fixed study deck, live duplicate checks, tag-free notes, interrupted-attempt recovery through AnkiConnect |
+| Note creation | Previewed batches from missing reference entries, Completed media pools, or selected words from a title on any shelf; fixed study deck, live duplicate checks, tag-free notes, interrupted-attempt recovery through AnkiConnect |
 | Reviews | Daily/weekly answer volume, Again rates and recorded response times by time bucket, card rankings |
 | Calendar | Current/historical review streaks and heatmaps using a fixed 4 AM study-day cutoff |
 | Time Analysis | Recorded hours, daily/weekly charts, calendar-day averages, mean/median answer time, weekday/hour tables |
@@ -35,9 +36,10 @@ reference coverage, matching and reports, and the explicitly requested new-note
 workflow. Calendar, deck profiles, time analysis, and learning patterns are also
 implemented. This does not imply that the broader roadmap is complete.
 
-There is no standalone dictionary browser, sentence tokenizer, media library,
-media-script ingestion, grammar-pattern inventory, or general kanji-knowledge
-score in the current app. Existing comparisons involving kanji cards do not
+There is no standalone dictionary browser, Anki sentence-field analysis,
+game-archive extraction, grammar-pattern inventory, or general kanji-knowledge
+score in the current app. Media accepts extracted text and analyzed lists;
+optional local tokenization uses separately installed Sudachi. Existing comparisons involving kanji cards do not
 constitute those broader analyses.
 
 ## 2. Collection selection and user experience
@@ -48,6 +50,11 @@ expression, reading, and meaning fields. Preview precedes saving and refresh.
 New, learning, review, suspended, and buried cards are included when their decks
 are selected. Grammar/Kanji notes can contribute review activity without inflating
 vocabulary inventory.
+
+The [Mappings workflow](mappings.md) can explicitly link a Grammar note to one or
+several dictionary entries for Word Coverage and media duplicate prevention.
+Descriptive-label suggestions alone receive no credit. This does not change
+inventory or learning-pattern category rules.
 
 Selecting a parent deck includes descendants unless a more specific rule excludes
 them. New descendants inherit those rules. Unrelated deck trees are not silently
@@ -62,7 +69,7 @@ Kanji, and combined presets are created when the corresponding trees exist;
 previous selection rules are retained. Settings changes take effect with a
 successful import, and a failed refresh retains the previous cache's scope.
 
-Navigation contains Overview, Vocabulary, Word Coverage, Reviews, Insights,
+Navigation contains Overview, Vocabulary, Word Coverage, Media, Reviews, Insights,
 Calendar, Time Analysis, Learning Patterns, and Settings. Overview links to
 details and displays a review-rhythm chart for each enabled deck profile. The
 header and Calendar profile selectors stay synchronized. Daily discovery history
@@ -98,10 +105,10 @@ outside Common/JLPT membership remain part of this overall denominator.
 
 | Cohort | Current definition |
 | --- | --- |
-| Known | Supported by vocabulary cards in 日本語::永遠 and descendants |
-| Familiar | Supported by vocabulary cards in 日本語::勉強してる and descendants |
+| Known | Supported by vocabulary cards or confirmed grammar links in 日本語::永遠 and descendants |
+| Familiar | Supported by vocabulary cards or confirmed grammar links in 日本語::勉強してる and descendants |
 | Combined | Union of Known and Familiar, deduplicated by dictionary entry |
-| In database | Matched vocabulary in the active imported selection, including 日本語::Suspended and other database-only decks |
+| In database | Matched vocabulary or confirmed grammar links in the active imported selection, including 日本語::Suspended and other database-only decks |
 
 These cohorts follow deck membership regardless of queue state. Known and
 Familiar can overlap; Suspended establishes neither. Excluded decks are outside
@@ -158,7 +165,12 @@ a correction. Decisions are collection/note-specific and app-owned. Current
 fingerprints include expression, readings, and English definition; changes or
 removed dictionary IDs require review. Older fingerprints remain readable.
 Created notes retain their recorded dictionary identity with the same staleness
-checks. Corrections do not modify Anki.
+checks. Local link corrections do not modify Anki. The Mappings popup also supports
+explicit expression/reading edits via AnkiConnect, defaulted on only for changed
+ordinary vocabulary proposals. Grammar/descriptive labels keep local-only defaults.
+Original values are checked, edits are journaled and read back, meaning is retained,
+and the saved link uses the corrected fingerprint. See [Mappings](mappings.md) for
+the confirmation, Undo and bucket definitions.
 
 Stem families cover confirmed Combined entries. 報う／報いる／報われる form one
 curated family while remaining separate dictionary/inventory entries. Other
@@ -186,8 +198,12 @@ always use the existing Japanese note type in 日本語::勉強してる. Front 
 JMdict common written form with a compatible reading, or kana for usually-kana
 entries/common kana alternatives: `食べる[たべる]`, but `ありがとう`. These are
 dictionary preferences, not a measured frequency ranking. English contains
-condensed glosses and a hidden attribution/entry-identity comment. Other fields,
-including Sentence and Media, are blank. New notes have no tags. Anki's templates
+condensed glosses and a hidden attribution/entry-identity comment. Word Coverage
+batches leave other fields, including Sentence and Media, blank. Media Import
+batches can include a genuine locally analyzed source sentence and source titles
+in the corresponding fields; unavailable sentences remain blank and visible in
+preview. See [Media](media.md) for Completed-only pools/ranking and selection-based
+imports from an individual title on any shelf. New notes have no tags. Anki's templates
 determine the number of generated cards; daily limits and schedules are unchanged.
 
 Anki must be open on the imported profile with AnkiConnect enabled. Requests use
@@ -318,7 +334,7 @@ Markdown exports carry reference attribution. Neither path executes note HTML or
 JavaScript, imports media, or follows remote content in fields.
 
 There is no telemetry or cloud account. Internet requests download explicit public
-reference snapshots without collection content; live importing and note creation
+reference snapshots and selected media vocabulary/metadata/artwork without collection content; live importing and note creation
 talk to loopback AnkiConnect. Cached analysis and matching work offline after reference installation.
 Reference data and derived lists retain source/version and CC BY-SA attribution;
 see [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). Newly created notes can sync
@@ -329,8 +345,9 @@ normally when Anki itself synchronizes.
 The implementation uses C#, .NET 10, WPF/XAML, and Microsoft.Data.Sqlite. WPF draws
 charts directly. Code-behind partials coordinate the desktop UI; the Core library
 contains import, analysis, matching, persistence, and AnkiConnect behavior. The
-check runner exercises Core without requiring real Anki. There is no web backend
-or morphology runtime. Reference data is a compressed local JSON index, while
+check runner exercises Core without requiring real Anki. There is no web backend.
+Optional local media analysis invokes separately installed Python/Sudachi;
+online media vocabulary comes from Jiten. Reference data is a compressed local JSON index, while
 app-owned settings and cached import data use SQLite.
 
 Long operations run off the UI thread and tables use virtualization. The normal

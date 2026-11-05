@@ -42,6 +42,7 @@ public partial class MainWindow : Window
         TimeZonePicker.SelectedValue = TimeZoneInfo.Local.Id;
         Loaded += async (_, _) => await Initialize();
         Closed += (_, _) => dayTimer.Stop();
+        Closed += (_, _) => mediaCancellation?.Cancel();
         dayTimer.Tick += async (_, _) =>
         {
             if (!busy && data is not null && Today(data.TimeZoneId) != insightDate)
@@ -57,6 +58,7 @@ public partial class MainWindow : Window
         await Guard(async () =>
         {
             store = new LocalStore();
+            InitializeMedia();
             UpdateSourceIndicator();
             try { settings = store.LoadSettings(); }
             catch (Exception e) when (e is IOException or System.Text.Json.JsonException) { SetStatus("Saved settings could not be read. Reconnect your profile in Settings.", true); }
@@ -146,6 +148,11 @@ public partial class MainWindow : Window
         settings = draft;
         PopulateSettings(next.Metadata, settings);
         await DisplayImport(next, prepared);
+        if (mediaLibrary.Count > 0)
+        {
+            try { await CompareMedia(); }
+            catch (Exception e) { mediaCoverage = null; DrawMedia(); MediaStatus.Text = "Media comparison unavailable: " + e.Message; }
+        }
         SetStatus($"Up to date. {prepared.Count:N0} enabled deck profiles · {next.Cards.Count:N0} unique included cards. Switch profiles without refreshing. Anki was read without modification.");
     }
     private async Task AnalyzeAndDisplay(AnalysisResult? computed = null)
@@ -169,6 +176,7 @@ public partial class MainWindow : Window
         await UpdateTimeAnalysis();
         await UpdateLearningPatterns();
         await UpdateCoverage();
+        await UpdateMappings();
         var orphans = data.UnresolvedReviewsAvailable ? $"{data.UnresolvedReviews:N0} orphaned review events excluded collection-wide" : "orphaned review count unavailable via AnkiConnect";
         Footer.Text = $"{data.TimeZoneId} · current deck membership · {orphans} · {data.UnknownReviewKinds:N0} unknown events excluded";
     }
@@ -226,10 +234,13 @@ public partial class MainWindow : Window
     private void Navigate(object sender, RoutedEventArgs e) => ShowPage((string)((Button)sender).Tag);
     private void ShowPage(string page)
     {
+        MinWidth = page == "Media" ? 620 : 1000;
         PageTitle.Text = page;
         OverviewPage.Visibility = page == "Overview" ? Visibility.Visible : Visibility.Collapsed;
         VocabularyPage.Visibility = page == "Vocabulary" ? Visibility.Visible : Visibility.Collapsed;
         CoveragePage.Visibility = page == "Word Coverage" ? Visibility.Visible : Visibility.Collapsed;
+        MediaPage.Visibility = page == "Media" ? Visibility.Visible : Visibility.Collapsed;
+        MappingsPage.Visibility = page == "Mappings" ? Visibility.Visible : Visibility.Collapsed;
         ReviewsPage.Visibility = page == "Reviews" ? Visibility.Visible : Visibility.Collapsed;
         InsightsPage.Visibility = page == "Insights" ? Visibility.Visible : Visibility.Collapsed;
         CalendarPage.Visibility = page == "Calendar" ? Visibility.Visible : Visibility.Collapsed;
