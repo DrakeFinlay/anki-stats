@@ -43,7 +43,9 @@ statistics work without the add-on.
    children; exclude a child tree if you do not want it counted.
 5. Check each note type's category and field mappings. Use **Vocabulary** for
    word notes and map the expression, reading if separate, and English meaning.
-   Kanji/Grammar notes can contribute review activity without adding vocabulary.
+   Kanji/Grammar notes can contribute review activity without adding vocabulary
+   inventory. Confirmed Grammar dictionary links can count in Word Coverage;
+   see [Mappings](mappings.md).
    **Ignored** types are excluded.
 6. Check the review time zone. Use **Preview selection** and inspect the extracted
    examples. The bracket-reading option affects how inventory expressions are
@@ -81,6 +83,7 @@ previewing and saving a refreshed import.
 | Vocabulary | Search/sort entries, inspect supporting note/card IDs by double-clicking, inspect skipped expressions, and export the current table |
 | Word Coverage | Common/JLPT coverage, missing-word reports, match review, stem families, and creation of new vocabulary notes |
 | Media | Reading/completed covers, Jiten title search, local text analysis, and remaining Common/JLPT mining opportunities; see [Media guide](media.md) |
+| Mappings | Review uncertain Anki/media matches, confirm grammar links, configure label aliases, and manage manual cleanup; see [Mappings guide](mappings.md) |
 | Reviews | Daily/weekly volume, time-of-day breakdowns, Again rates, response times, and ordinary-review card rankings |
 | Insights | Explore the supported discoveries and their explanations |
 | Calendar | Select a current/historical streak, inspect daily answer counts, and scroll across years |

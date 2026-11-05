@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -7,14 +8,35 @@ namespace AnkiStats.Core;
 // No account, Anki text, collection data or statistics are sent to this provider.
 public sealed class JitenClient(HttpClient client)
 {
+    public const string FormParserVersion = "form parser v2";
     public const string Attribution = "Vocabulary derived by Jiten (https://jiten.moe), CC BY-SA 4.0; dictionary data from JMdict / EDRDG. Analysis is provider-supplied; edition completeness is unverified.";
     private const string Host = "https://api.jiten.moe/";
+    public async Task<string?> OriginalVnCover(int deckId, CancellationToken token = default)
+    {
+        using var detail = await Get($"api/media-deck/{deckId}/detail", token);
+        if (!detail.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object
+            || !data.TryGetProperty("mainDeck", out var deck) || !deck.TryGetProperty("links", out var links)) return null;
+        string? vnId = null;
+        foreach (var link in links.EnumerateArray())
+            if (link.TryGetProperty("url", out var url) && Uri.TryCreate(url.GetString(), UriKind.Absolute, out var uri)
+                && uri.Host == "vndb.org" && Regex.IsMatch(uri.AbsolutePath, @"^/v\d+$")) { vnId = uri.AbsolutePath[1..]; break; }
+        if (vnId is null) return null;
+        using var response = await client.PostAsJsonAsync("https://api.vndb.org/kana/vn",
+            new { filters = new[] { "id", "=", vnId }, fields = "id,image.url,image.dims", results = 1 }, token);
+        response.EnsureSuccessStatusCode();
+        using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(token), cancellationToken: token);
+        var results = json.RootElement.GetProperty("results");
+        if (results.GetArrayLength() != 1 || !results[0].TryGetProperty("image", out var image) || image.ValueKind != JsonValueKind.Object) return null;
+        var original = image.GetProperty("url").GetString();
+        return Uri.TryCreate(original, UriKind.Absolute, out var imageUri) && imageUri.Scheme == "https"
+            && imageUri.Host is "t.vndb.org" or "s.vndb.org" ? original : null;
+    }
     public static MediaCorpus Revalidate(MediaCorpus corpus, CoverageReference reference)
     {
         var entries = reference.Entries.ToDictionary(e => e.Id);
         var words = corpus.Words.Select(w => ValidateWord(w.SourceEntryId ?? w.EntryId, w.Form, w.Occurrences, entries)).ToList();
         return corpus with { Words = words, DictionaryVersion = reference.Metadata.DictionaryVersion,
-            Analyzer = "Jiten (provider analysis version unavailable); form parser v1" };
+            Analyzer = "Jiten (provider analysis version unavailable); " + FormParserVersion };
     }
     private static MediaWord ValidateWord(string? id, string text, int occurrences, Dictionary<string, DictionaryEntry> entries)
     {
@@ -24,12 +46,20 @@ public sealed class JitenClient(HttpClient client)
         var headword = Regex.Replace(text, @"\[[^\[\]]+\]", "");
         var parsed = VocabularyExpression.Parse(new(0, headword, "", "", "Vocabulary", "Jiten", headword));
         var kanaReading = Regex.IsMatch(reading, @"^[ぁ-ゖァ-ヺー]+$") ? VocabularyMatcher.Key(reading) : "";
-        var valid = id is not null && parsed.Error is null && entries.TryGetValue(id, out var entry)
-            && (entry.Spellings.Contains(parsed.Word) || entry.Readings.Any(r => r.Text == parsed.Word))
-            && (!text.Contains('[') && kanaReading.Length == 0 || kanaReading.Length > 0 && entry.Readings.Any(r => VocabularyMatcher.Key(r.Text) == kanaReading
-                && (r.AppliesTo.Count == 0 || r.AppliesTo.Contains("*") || r.AppliesTo.Contains(parsed.Word))));
+        var entry = id is not null ? entries.GetValueOrDefault(id) : null;
+        var formValid = parsed.Error is null && entry is not null
+            && (entry.Spellings.Contains(parsed.Word) || entry.Readings.Any(r => r.Text == parsed.Word));
+        var readingValid = entry is not null && (!text.Contains('[') && kanaReading.Length == 0
+            || kanaReading.Length > 0 && entry.Readings.Any(r => VocabularyMatcher.Key(r.Text) == kanaReading
+                // Reading restrictions select kanji spellings, not kana-only headwords.
+                && (VocabularyMatcher.Key(parsed.Word) == VocabularyMatcher.Key(r.Text)
+                    || r.AppliesTo.Count == 0 || r.AppliesTo.Contains("*") || r.AppliesTo.Contains(parsed.Word))));
+        var valid = formValid && readingValid;
+        var status = valid ? "Validated" : entry is null ? $"Source ID {id} is absent from installed JMdict (possibly a name or provider-specific entry)"
+            : !formValid ? $"Source form does not match installed JMdict entry {id}"
+            : $"Source reading does not match installed JMdict entry {id}";
         if (occurrences <= 0) throw new InvalidDataException("Jiten returned an invalid occurrence count.");
-        return new(valid ? id : null, text, kanaReading, occurrences, valid ? "Validated" : $"Reference mismatch: source ID {id}", id);
+        return new(valid ? id : null, text, kanaReading, occurrences, status, id);
     }
     private async Task<JsonDocument> Get(string path, CancellationToken token)
     {
@@ -91,7 +121,7 @@ public sealed class JitenClient(HttpClient client)
         }
         // Mismatched rows retain their source identity for diagnostics, but never contribute coverage.
         return new("jiten:" + title.Id, title.Title, title.MediaType, edition.Trim(), "Jiten vocabulary", title.SourceUrl,
-            Attribution, MediaAnalysis.Hash(words), "Jiten (provider analysis version unavailable); form parser v1", reference.Metadata.DictionaryVersion,
+            Attribution, MediaAnalysis.Hash(words), "Jiten (provider analysis version unavailable); " + FormParserVersion, reference.Metadata.DictionaryVersion,
             DateTimeOffset.UtcNow, title.CoverUrl, words);
     }
 }

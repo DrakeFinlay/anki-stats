@@ -38,7 +38,7 @@ public partial class MainWindow
                 SaveGeneratedMatches(source.CollectionKey, store.LoadCoverageDecisions<CreationAttempt>(source.CollectionKey, "creation"));
                 return vocabularyMatcher.Analyze(source,
                     store.LoadCoverageDecisions<MatchDecision>(source.CollectionKey, "matches"),
-                    store.LoadCoverageDecisions<FamilyDecision>(source.CollectionKey, "families"));
+                    store.LoadCoverageDecisions<FamilyDecision>(source.CollectionKey, "families"), aliases: LoadMappingAliases(source.CollectionKey));
             });
             var selectedList = (CoverageGrid.SelectedItem as CoverageCount)?.List;
             CoverageGrid.ItemsSource = coverage.Counts;
@@ -52,7 +52,7 @@ public partial class MainWindow
                 + $"{coverage.Known.Count:N0} known entries · {coverage.Familiar.Count:N0} familiar · {coverage.Combined.Count:N0} combined · {coverage.Database.Count:N0} in imported database";
             CoverageStatus.Text = $"{source.Scope}\n{coverage.Known.Count:N0} known entries · {coverage.Familiar.Count:N0} familiar · {coverage.Combined.Count:N0} in their union · {coverage.Database.Count:N0} in database. "
                 + "Overlapping entries count once in Combined; Known and Familiar can overlap.\n"
-                + $"Cards in database: {databaseCards:N0} vocabulary cards / {vocabularyNotes.Count:N0} notes, including unresolved and Suspended-deck items. Coverage below counts dictionary entries.\n"
+                + $"Mapped vocabulary/grammar in database: {databaseCards:N0} cards / {vocabularyNotes.Count:N0} notes, including unresolved and Suspended-deck items. Grammar contributes only through confirmed links. Coverage below counts dictionary entries.\n"
                 + $"JMdict {coverage.Reference.Metadata.DictionaryDate} · OpenJLPT corrected lists · {coverage.Reference.Metadata.UnlinkedJlptItems:N0} unlinked source rows excluded. "
                 + "All entries uses the entire installed English JMdict snapshot; spelling/reading variants count once per entry. Other denominators use the selected reference list; Through N3 is the N5/N4/N3 union. Exact live Jisho parity is not claimed.";
             CoverageFamilySummary.Text = $"{coverage.Families.Count:N0} families across {coverage.Combined.Count:N0} confirmed known/familiar entries; {coverage.Families.Count(f => f.Entries.Count > 1):N0} groups contain multiple entries. "
@@ -77,6 +77,7 @@ public partial class MainWindow
         var reference = await Task.Run(() => ReferenceStore.Download(progress));
         vocabularyMatcher = await Task.Run(() => new VocabularyMatcher(reference));
         await UpdateCoverage();
+        await UpdateMappings();
         SetStatus("Reference data installed. Coverage now works offline; Anki and personal matching decisions were not modified.");
     });
 
@@ -113,7 +114,7 @@ public partial class MainWindow
             _ => true
         }).Where(m => search.Length == 0 || $"{m.Expression}\n{m.Reading}\n{m.Meaning}\n{m.Status}\n{m.Decks}\n{m.EntryIdsDisplay}".Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
         CoverageMatchGrid.ItemsSource = rows;
-        CoverageMatchSummary.Text = $"{rows.Count:N0} of {coverage.Matches.Count:N0} vocabulary notes · {coverage.Unresolved:N0} unresolved · {coverage.ReadingWarnings:N0} reading warnings · {coverage.DefinitionWarnings:N0} definition warnings. "
+        CoverageMatchSummary.Text = $"{rows.Count:N0} of {coverage.Matches.Count:N0} mapped vocabulary/grammar notes · {coverage.Unresolved:N0} unresolved · {coverage.ReadingWarnings:N0} reading warnings · {coverage.DefinitionWarnings:N0} definition warnings. "
             + "Corrections persist per collection and note across imports and profile changes. No Anki notes or tags are changed.";
     }
 
@@ -201,7 +202,7 @@ public partial class MainWindow
                 store.SaveCoverageDecisions(collection, "matches", decisions);
                 store.SaveCoverageDecisions(collection, "families", families);
             });
-            await UpdateCoverage();
+            await RecalculateMappings();
             SetStatus("Local matching decision saved; Anki was not modified.");
         });
     }

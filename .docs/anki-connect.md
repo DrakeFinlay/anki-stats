@@ -107,6 +107,10 @@ Cancel never adds notes. Zero eligible entries produces an exhaustion error.
 The fixed Japanese model and 日本語::勉強してる deck are used. Every field starts
 empty. HTML-encoded Front and English glosses are filled; English also receives a
 hidden JMdict attribution/license/entry-ID comment. Tags is an empty array.
+Media Import reuses this writer with a ranked Completed-media candidate list,
+including entries outside Common/JLPT. Available local-script sentences and source
+titles are HTML-encoded into Sentence/Media when those fields exist. The preview
+shows blank sentences explicitly; reference-list batches retain blank extra fields.
 allowDuplicate is false and duplicateScope is collection. Existing templates
 generate cards; no daily limits or schedules are adjusted.
 
@@ -151,6 +155,11 @@ refresh fails, it retains the creation result and reports how to retry Refresh;
 successful notes remain in Anki. File imports do not require AnkiConnect.
 
 ## Validation
+
+Confirmed per-note grammar links from [Mappings](mappings.md) are included in live
+duplicate checks across configured vocabulary and grammar note types. Current
+fields must still match the saved fingerprint. Mapping review itself writes only
+app-owned local decisions and never changes existing Anki notes.
 
 [NoteCreationChecks.cs](../tests/AnkiStats.Checks/NoteCreationChecks.cs) simulates
 selection, spillover, exhaustion, payloads, profile changes, stale previews,

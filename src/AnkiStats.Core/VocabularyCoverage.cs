@@ -160,13 +160,13 @@ public sealed class VocabularyMatcher
     }
 
     public CoverageAnalysis Analyze(ImportedCollection data, IEnumerable<MatchDecision>? decisions = null,
-        IEnumerable<FamilyDecision>? families = null, CoverageRules? rules = null)
+        IEnumerable<FamilyDecision>? families = null, CoverageRules? rules = null, IEnumerable<MappingAlias>? aliases = null)
     {
         rules ??= new();
         var saved = (decisions ?? []).ToDictionary(d => d.NoteId);
         var cards = data.Cards.ToLookup(c => c.NoteId);
         var matches = new List<VocabularyMatch>();
-        foreach (var note in data.Notes.Where(n => n.Category == "Vocabulary" && cards.Contains(n.Id)))
+        foreach (var note in data.Notes.Where(n => n.Category is "Vocabulary" or "Grammar" && cards.Contains(n.Id)))
         {
             var parsed = VocabularyExpression.Parse(note);
             var word = parsed.Word; var reading = string.Join(" / ", parsed.Readings);
@@ -180,14 +180,19 @@ public sealed class VocabularyMatcher
                     resolutions = [WithDefinition(new(joined, true, false, "Separated phonetic segments match one complete dictionary reading"), note.Meaning)];
             }
             var candidates = resolutions.SelectMany(r => r.Candidates).DistinctBy(e => e.Id).ToList();
+            if (note.Category == "Grammar" || candidates.Count == 0)
+                candidates = candidates.Concat(MappingSuggestions.Find(this, note.SourceExpression.Length > 0 ? note.SourceExpression : note.Expression,
+                    note.Reading, note.Meaning, aliases, note.NoteType)).DistinctBy(e => e.Id).ToList();
             var confirmed = new HashSet<string>(); var pending = new HashSet<string>();
             var unresolved = parsed.Error is not null; var warning = resolutions.Any(r => r.Warning);
             var definitionWarning = resolutions.Any(r => r.DefinitionWarning);
             foreach (var resolution in resolutions)
             {
-                if (resolution.Confirmed) confirmed.Add(resolution.Candidates[0].Id);
+                if (resolution.Confirmed && note.Category == "Vocabulary") confirmed.Add(resolution.Candidates[0].Id);
                 else { unresolved = true; pending.UnionWith(resolution.Candidates.Select(c => c.Id)); }
             }
+            if (confirmed.Count == 0 && candidates.Count > 0) { pending.UnionWith(candidates.Select(e => e.Id)); unresolved = true; }
+            if (note.Category == "Grammar") { pending.UnionWith(candidates.Select(e => e.Id)); unresolved = true; }
             var eligible = cards[note.Id].Where(c => !LearningAnalyzer.Under(c.Deck, rules.SuspendedDeck)).ToList();
             var known = eligible.Any(c => LearningAnalyzer.Under(c.Deck, rules.KnownDeck));
             var familiar = eligible.Any(c => LearningAnalyzer.Under(c.Deck, rules.FamiliarDeck));
@@ -197,7 +202,9 @@ public sealed class VocabularyMatcher
             if (confirmed.Count > 1) reason = "Explicit reading alternatives support separate entries. " + reason;
             if (saved.TryGetValue(note.Id, out var decision))
             {
-                if ((decision.Fingerprint != fingerprint && decision.Fingerprint != oldFingerprint && decision.Fingerprint != LegacyFingerprint(note))
+                if (decision.Origin == "Deferred" && decision.Fingerprint == fingerprint)
+                { status = "Manual cleanup"; reason = "Suggested match was not confirmed; awaiting manual cleanup"; confirmed.Clear(); pending.UnionWith(candidates.Select(c => c.Id)); unresolved = true; warning = definitionWarning = false; }
+                else if ((decision.Fingerprint != fingerprint && decision.Fingerprint != oldFingerprint && decision.Fingerprint != LegacyFingerprint(note))
                     || (!decision.Exclude && (decision.EntryIds.Count == 0 || decision.EntryIds.Any(id => !Entries.ContainsKey(id)))))
                 { status = "Stale decision"; reason = "The note or reference entry changed; review the saved decision"; confirmed.Clear(); pending.UnionWith(candidates.Select(c => c.Id)); unresolved = true; warning = definitionWarning = false; }
                 else if (decision.Exclude) { status = "Excluded"; reason = "Manually excluded from dictionary coverage"; confirmed.Clear(); pending.Clear(); unresolved = warning = definitionWarning = false; }

@@ -11,6 +11,7 @@ internal static class NoteCreationChecks
         public bool HasDeck = true;
         public long ModelId = 7;
         public bool LoseNextWrite;
+        public string[] Fields = ["Front", "English", "Sentence", "Media"];
         public readonly List<string> Actions = [];
         public readonly List<LiveAnkiNote> Notes = [];
         public readonly HashSet<string> RejectFronts = [];
@@ -27,7 +28,7 @@ internal static class NoteCreationChecks
                 "getActiveProfile" => Profile,
                 "modelNamesAndIds" => new Dictionary<string, long> { ["Japanese"] = ModelId },
                 "deckNames" => HasDeck ? new[] { NoteCreation.Destination } : [],
-                "modelFieldNames" => new[] { "Front", "English", "Sentence", "Media" },
+                "modelFieldNames" => Fields,
                 "findNotes" => Notes.Select(n => n.Id).ToArray(),
                 "notesInfo" => p.GetProperty("notes").EnumerateArray().Select(id => Notes.Single(n => n.Id == id.GetInt64()))
                     .Select(n => new { noteId = n.Id, modelName = n.Model, tags = n.Tags, fields = n.Fields.ToDictionary(f => f.Key, f => new { value = f.Value, order = 0 }) }).ToArray(),
@@ -139,6 +140,42 @@ internal static class NoteCreationChecks
         check(needsUpgrade, "legacy references cannot silently choose a rare written form");
         var payload = JsonSerializer.SerializeToElement(NoteCreation.Payload(new("99", "N5", "ありがとう", "ありがとう", "thanks <script>", "ありがとう"), ["Front", "English", "Sentence", "Media"]));
         check(payload.GetProperty("fields").GetProperty("Front").GetString() == "ありがとう" && payload.GetProperty("fields").GetProperty("English").GetString()!.Contains("&lt;script&gt;"), "preferred kana stays kana and dictionary HTML is encoded");
+        var mediaReference = reference with { Entries = [.. reference.Entries, Entry(17, "", false)] };
+        var mediaCoverage = new VocabularyMatcher(mediaReference).Analyze(imported);
+        var mediaMock = new MockAnki(); using var mediaClient = new AnkiConnectClient(handler: mediaMock);
+        mediaMock.Notes.Add(new(999, "Japanese", new() { ["Front"] = Entry(1, "N5").StudyForm!.Written, ["English"] = Entry(1, "N5").Meaning }, []));
+        MediaMiningWord MiningRow(string id, string sentence = "") => new(id, "Ignored display", "", "Ignored display definition", "", 2, 20, "Completed A · Completed B", id != "17", sentence, sentence.Length > 0 ? "Local script" : "");
+        var mediaPlan = await NoteCreation.PrepareMedia(mediaClient, mediaCoverage, imported, settings,
+            [MiningRow("1"), MiningRow("17", "本当の文 <引用>。"), MiningRow("17"), MiningRow("2")], 2, []);
+        check(mediaPlan.Notes.Select(n => n.EntryId).SequenceEqual(["17", "2"]) && !mediaMock.Actions.Contains("addNote"),
+            "media preview accepts uncommon entries in media ranking order, deduplicates and skips live Anki entries without writing");
+        check(mediaPlan.Notes[0].Meaning == Entry(17, "", false).Meaning && mediaPlan.Notes[0].Sentence == "本当の文 <引用>。" && mediaPlan.Notes[1].Sentence == "",
+            "media preparation uses reference definitions and preserves real versus missing sentences");
+        var wordListCorpus = new MediaCorpus("selected-title", "Selected VN", 7, "Synthetic", "Local text", "", "Synthetic", "hash", "test", "test",
+            DateTimeOffset.UtcNow, null, [new("1", "word 1", "", 1, "Resolved"), new("2", "unselected", "", 1, "Resolved"),
+                new("17", "word 17", "", 1, "Resolved", Sentence: "本当の文。")], MediaShelves.Planned);
+        var wordListChoices = MediaMining.Selected(wordListCorpus, mediaCoverage, ["1", "17"]);
+        var wordListPlan = await NoteCreation.PrepareMedia(mediaClient, mediaCoverage, imported, settings, wordListChoices, wordListChoices.Count, []);
+        check(wordListPlan.Notes.Count == 1 && wordListPlan.Notes[0].EntryId == "17" && wordListPlan.Notes[0].Media == "Selected VN"
+            && wordListPlan.Notes[0].Sentence == "本当の文。" && !mediaMock.Actions.Contains("addNote"),
+            "individual word-list preview skips a live duplicate without substituting unselected entries or creating notes");
+        var mediaJournal = new List<CreationAttempt>();
+        var mediaResult = await NoteCreation.Create(mediaClient, mediaPlan, mediaCoverage, imported, settings, mediaJournal, _ => { });
+        var mediaNote = mediaMock.Notes.Single(n => n.Id == mediaResult.Added[0].NoteId);
+        check(mediaResult.Added.Count == 2 && mediaNote.Fields["Sentence"] == "本当の文 &lt;引用&gt;。" && mediaNote.Fields["Media"] == "Local script" && mediaNote.Tags.Count == 0,
+            "media creation reuses safe writes, HTML-encodes sentences, stores source title and retains tag-free notes");
+        var mediaRetry = false;
+        try { await NoteCreation.PrepareMedia(mediaClient, mediaCoverage, imported, settings, [MiningRow("17")], 1, mediaJournal); }
+        catch (InvalidOperationException) { mediaRetry = true; }
+        check(mediaRetry, "media-generated entries cannot be prepared again after successful creation");
+        var noSentenceMock = new MockAnki { Fields = ["Front", "English"] }; using var noSentenceClient = new AnkiConnectClient(handler: noSentenceMock);
+        var noSentencePlan = await NoteCreation.PrepareMedia(noSentenceClient, mediaCoverage, imported, settings, [MiningRow("17", "元の文。")], 1, []);
+        check(noSentencePlan.Notes[0].Sentence == "" && noSentencePlan.Notes[0].Media == "",
+            "media preview reflects blank extra fields when the live note type lacks Sentence and Media");
+        var cancelledMock = new MockAnki(); using var cancelledClient = new AnkiConnectClient(handler: cancelledMock);
+        using var cancelledToken = new CancellationTokenSource(); cancelledToken.Cancel();
+        try { await NoteCreation.PrepareMedia(cancelledClient, mediaCoverage, imported, settings, [MiningRow("17")], 1, [], token: cancelledToken.Token); check(false, "cancelled media preparation should stop"); }
+        catch (OperationCanceledException) { check(cancelledMock.Actions.Count == 0, "cancelled media preparation makes no Anki requests"); }
         using var raw = new MemoryStream(Encoding.UTF8.GetBytes("""
             {"dictDate":"2026-11-02","words":[
               {"id":"9001","kanji":[{"text":"有難う","common":false}],"kana":[{"text":"ありがとう","common":true,"appliesToKanji":["*"]}],"sense":[{"misc":["uk"],"gloss":[{"lang":"eng","text":"thanks"}]}]},

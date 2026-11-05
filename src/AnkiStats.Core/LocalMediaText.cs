@@ -8,7 +8,7 @@ using System.Xml.Linq;
 
 namespace AnkiStats.Core;
 
-public sealed record MediaToken(string Surface, string Lemma, string Normalized, string Reading, string Pos, int Count);
+public sealed record MediaToken(string Surface, string Lemma, string Normalized, string Reading, string Pos, int Count, string Sentence = "");
 public sealed record MorphologyOutput(string Analyzer, List<MediaToken> Tokens);
 
 public static class LocalMediaText
@@ -124,7 +124,7 @@ public static class LocalMediaText
                 if (candidates.Count > 0) break;
             }
             words.Add(new(candidates.Count == 1 ? candidates[0].Id : null, token.Lemma, token.Reading, token.Count,
-                candidates.Count == 1 ? "Resolved" : candidates.Count > 1 ? "Ambiguous: " + string.Join(", ", candidates.Select(c => c.Id)) : "Unmatched"));
+                candidates.Count == 1 ? "Resolved" : candidates.Count > 1 ? "Ambiguous: " + string.Join(", ", candidates.Select(c => c.Id)) : "Unmatched", Sentence: token.Sentence));
         }
         var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(text)));
         return new("local:" + Guid.NewGuid().ToString("N"), title.Trim(), type, edition.Trim(), "Local text", "", "User-selected local text; no text uploaded.",

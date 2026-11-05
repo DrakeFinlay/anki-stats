@@ -63,13 +63,13 @@ an unperformed check passed.
 
 ## 4. Deliver through a pull request
 
-The normal delivery for an implementation task is to commit the task's changes,
-push its branch to `origin`, and open a GitHub pull request targeting `main`.
-These are standing workflow defaults unless the user requests local-only work
-or another delivery method. Follow environment permission requirements; these
-defaults do not bypass tool approvals. Never include unrelated user changes.
+Keep implementation work local by default. Validate and review the changes,
+and report the local branch and results. Push to GitHub or publish/update a pull
+request only when the user explicitly requests it. A local commit does not
+authorize a push. Follow environment permission requirements and never include
+unrelated user changes.
 
-Use an available GitHub integration or authenticated GitHub CLI. If publishing
+When publishing is explicitly requested, use an available GitHub integration or authenticated GitHub CLI. If publishing
 is unavailable, finish all local work and report the branch, validation results,
 and the specific remaining publishing step. Do not silently substitute a direct
 push to `main`.

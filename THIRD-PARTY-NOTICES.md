@@ -6,7 +6,9 @@ Selected-title vocabulary downloaded from [Jiten](https://jiten.moe) is derived
 data licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/),
 with JMdict / EDRDG dictionary attribution. The app preserves attribution in each
 local corpus. Covers are third-party artwork with separate rights and are not
-bundled or redistributed. See [Jiten terms](https://jiten.moe/terms).
+bundled or redistributed. Optional original VN covers are requested through
+[VNDB's public API](https://api.vndb.org/kana) using a verified title link;
+artwork retains its separate third-party rights. See [Jiten terms](https://jiten.moe/terms).
 
 Local media analysis optionally interoperates with separately installed
 [SudachiPy](https://github.com/WorksApplications/sudachi.rs) and

@@ -98,4 +98,16 @@ public sealed class LocalStore
         cmd.Parameters.AddWithValue("$collection", collection); cmd.Parameters.AddWithValue("$kind", kind);
         cmd.Parameters.AddWithValue("$payload", JsonSerializer.Serialize(decisions)); cmd.ExecuteNonQuery();
     }
+    public void SaveMappingState(string collection, List<MatchDecision> notes, List<MediaMappingDecision> media, List<MappingDeferred> deferred)
+    {
+        using var db = Open(); using var cmd = db.CreateCommand();
+        cmd.CommandText = "CREATE TABLE IF NOT EXISTS coverage_decisions (collection TEXT NOT NULL, kind TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(collection,kind));"; cmd.ExecuteNonQuery();
+        using var tx = db.BeginTransaction(); cmd.Transaction = tx;
+        foreach (var (kind, payload) in new[] { ("matches", JsonSerializer.Serialize(notes)), ("media-mappings", JsonSerializer.Serialize(media)), ("mapping-cleanup", JsonSerializer.Serialize(deferred)) })
+        {
+            cmd.CommandText = "INSERT INTO coverage_decisions(collection,kind,payload) VALUES($collection,$kind,$payload) ON CONFLICT(collection,kind) DO UPDATE SET payload=excluded.payload";
+            cmd.Parameters.Clear(); cmd.Parameters.AddWithValue("$collection", collection); cmd.Parameters.AddWithValue("$kind", kind); cmd.Parameters.AddWithValue("$payload", payload); cmd.ExecuteNonQuery();
+        }
+        tx.Commit();
+    }
 }

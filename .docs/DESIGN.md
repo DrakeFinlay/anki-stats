@@ -19,12 +19,12 @@ create new notes for missing vocabulary.
 | Area | Implemented behavior |
 | --- | --- |
 | Desktop | Native dark WPF interface, Japanese text, tables, charts, and a development shortcut that builds the current checkout |
-| Media | Jiten vocabulary search/download, optional local Sudachi text analysis, cached reading/completed shelves, whole-collection mining comparison; see [media](media.md) |
+| Media | Jiten vocabulary search/download, optional local Sudachi text analysis, large reading panels, Planned/Completed shelves, whole-collection mining comparison; see [media](media.md) |
 | Setup and import | Remembered Anki profile, editable deck selections and field mappings, safe snapshots with Anki open or closed, cached recovery after failure |
 | Deck profiles | Named selections, Japanese/Kanji/combined presets when available, shared mappings and time zone, synchronized active-profile selectors |
 | Vocabulary | Distinct expression/reading inventory, search, sorting, supporting note/card IDs, CSV export |
 | Word Coverage | JMdict common-word and corrected OpenJLPT N5–N1 coverage, cumulative unions, Markdown missing-word reports, match corrections, conservative stem families |
-| Note creation | Previewed batches from missing reference entries, fixed study deck, live duplicate checks, tag-free notes, interrupted-attempt recovery through AnkiConnect |
+| Note creation | Previewed batches from missing reference entries, Completed media pools, or selected words from a title on any shelf; fixed study deck, live duplicate checks, tag-free notes, interrupted-attempt recovery through AnkiConnect |
 | Reviews | Daily/weekly answer volume, Again rates and recorded response times by time bucket, card rankings |
 | Calendar | Current/historical review streaks and heatmaps using a fixed 4 AM study-day cutoff |
 | Time Analysis | Recorded hours, daily/weekly charts, calendar-day averages, mean/median answer time, weekday/hour tables |
@@ -50,6 +50,11 @@ expression, reading, and meaning fields. Preview precedes saving and refresh.
 New, learning, review, suspended, and buried cards are included when their decks
 are selected. Grammar/Kanji notes can contribute review activity without inflating
 vocabulary inventory.
+
+The [Mappings workflow](mappings.md) can explicitly link a Grammar note to one or
+several dictionary entries for Word Coverage and media duplicate prevention.
+Descriptive-label suggestions alone receive no credit. This does not change
+inventory or learning-pattern category rules.
 
 Selecting a parent deck includes descendants unless a more specific rule excludes
 them. New descendants inherit those rules. Unrelated deck trees are not silently
@@ -100,10 +105,10 @@ outside Common/JLPT membership remain part of this overall denominator.
 
 | Cohort | Current definition |
 | --- | --- |
-| Known | Supported by vocabulary cards in 日本語::永遠 and descendants |
-| Familiar | Supported by vocabulary cards in 日本語::勉強してる and descendants |
+| Known | Supported by vocabulary cards or confirmed grammar links in 日本語::永遠 and descendants |
+| Familiar | Supported by vocabulary cards or confirmed grammar links in 日本語::勉強してる and descendants |
 | Combined | Union of Known and Familiar, deduplicated by dictionary entry |
-| In database | Matched vocabulary in the active imported selection, including 日本語::Suspended and other database-only decks |
+| In database | Matched vocabulary or confirmed grammar links in the active imported selection, including 日本語::Suspended and other database-only decks |
 
 These cohorts follow deck membership regardless of queue state. Known and
 Familiar can overlap; Suspended establishes neither. Excluded decks are outside
@@ -188,8 +193,12 @@ always use the existing Japanese note type in 日本語::勉強してる. Front 
 JMdict common written form with a compatible reading, or kana for usually-kana
 entries/common kana alternatives: `食べる[たべる]`, but `ありがとう`. These are
 dictionary preferences, not a measured frequency ranking. English contains
-condensed glosses and a hidden attribution/entry-identity comment. Other fields,
-including Sentence and Media, are blank. New notes have no tags. Anki's templates
+condensed glosses and a hidden attribution/entry-identity comment. Word Coverage
+batches leave other fields, including Sentence and Media, blank. Media Import
+batches can include a genuine locally analyzed source sentence and source titles
+in the corresponding fields; unavailable sentences remain blank and visible in
+preview. See [Media](media.md) for Completed-only pools/ranking and selection-based
+imports from an individual title on any shelf. New notes have no tags. Anki's templates
 determine the number of generated cards; daily limits and schedules are unchanged.
 
 Anki must be open on the imported profile with AnkiConnect enabled. Requests use

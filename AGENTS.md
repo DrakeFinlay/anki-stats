@@ -17,6 +17,7 @@ may also remain in `LICENSES/`. Any other documentation file in the repository r
 requires explicit user approval before creating or moving it there. When moving
 documentation, update relative links and the documented repository structure.
 
-Follow the workflow's validation and pull request steps. Do not merge a pull
-request or push directly to `main` without an explicit user instruction. A newer,
+Follow the workflow's validation steps. Keep work local unless the user explicitly
+asks to push to GitHub or publish a pull request; do not automatically push task
+branches. Do not merge a pull request or push directly to `main` without an explicit user instruction. A newer,
 explicit user instruction takes precedence over these repository defaults.

@@ -3,6 +3,7 @@ using AnkiStats.Core;
 using Microsoft.Data.Sqlite;
 
 var checkCount = 0;
+if (args is ["--seed-mappings-ui", var mappingsUiRoot]) { CoverageUiFixture.Create(mappingsUiRoot, mappings: true); Console.WriteLine("Synthetic mappings fixture ready."); return; }
 if (args is ["--media-revalidate", var revalidateReference, var revalidateRoot])
 {
     var reference = new CoverageReferenceStore(revalidateReference).Load() ?? throw new InvalidOperationException("Install reference first.");
@@ -18,12 +19,18 @@ if (args is ["--seed-media-ui", var mediaUiRoot])
 {
     CoverageUiFixture.Create(mediaUiRoot);
     var mediaStore = new MediaLibraryStore(mediaUiRoot);
+    var mediaReferenceStore = new CoverageReferenceStore(Path.Combine(mediaUiRoot, "reference"));
+    var mediaReference = mediaReferenceStore.Load()!;
+    mediaReference.Entries.Add(new("9000001", ["共有語"], [new("きょうゆうご", ["*"])], "synthetic shared eligible word", true, ["N3"], new("共有語", "きょうゆうご")));
+    mediaReference.Entries.Add(new("9000002", ["未登録語"], [new("みとうろくご", ["*"])], "synthetic shared uncommon word", false, [], new("未登録語", "みとうろくご")));
+    mediaReferenceStore.Save(mediaReference with { Metadata = mediaReference.Metadata with { FormSelectionVersion = 1 } });
     for (var i = 0; i < 8; i++)
     {
-        var words = new List<MediaWord> { new("1000001", "食べる", "たべる", 4, "Validated"), new("1000008", "甲", "こう", 2, "Validated"), new(null, "Synthetic unknown", "", 1, "Unmatched") };
+        var words = new List<MediaWord> { new("1000001", "食べる", "たべる", 4, "Validated"), new("1000008", "甲", "こう", 2, "Validated"), new(null, "Synthetic unknown", "", 1, "Unmatched"),
+            new("9000001", "共有語", "きょうゆうご", i + 1, "Resolved", Sentence: "共有語を調べる。"), new("9000002", "未登録語", "みとうろくご", 20 - i, "Resolved") };
         mediaStore.Save(new("synthetic:" + i, i == 0 ? "Synthetic Fate/stay night — UI fixture" : "Synthetic media " + i,
             7, "Synthetic edition", "Synthetic test corpus", "", "Synthetic words; no actual title script", MediaAnalysis.Hash(words),
-            "Synthetic analyzer", "synthetic", DateTimeOffset.UtcNow, null, words, i > 0 ? "Completed" : "Currently reading"));
+            "Synthetic analyzer", "synthetic", DateTimeOffset.UtcNow, null, words, i == 0 ? MediaShelves.Reading : i < 4 ? MediaShelves.Planned : MediaShelves.Completed));
     }
     Console.WriteLine("Synthetic media UI fixture ready."); return;
 }
@@ -46,6 +53,8 @@ if (args is ["--local-media-smoke", var localReferenceRoot, var pythonPath])
     var analysis = await LocalMediaText.Analyze(text, pythonPath);
     var corpus = LocalMediaText.Resolve("Synthetic morphology smoke test", 7, "Synthetic", text, analysis, reference);
     if (!corpus.Words.Any(w => w.EntryId is not null)) throw new Exception("Local morphology resolved no dictionary entries.");
+    if (!corpus.Words.Any(w => w.EntryId is not null && w.Sentence.Length > 0 && text.Contains(w.Sentence)))
+        throw new Exception("Local morphology retained no genuine source sentence.");
     Console.WriteLine($"Local morphology passed: {analysis.Analyzer}; {corpus.Words.Count} token forms, {corpus.Words.Count(w => w.EntryId is not null)} resolved. Synthetic text only.");
     return;
 }
@@ -131,6 +140,7 @@ Directory.CreateDirectory(sandbox);
 try
 {
     StreakChecks.Run(Check);
+    MappingChecks.Run(Check, sandbox);
     MediaChecks.Run(Check, sandbox);
     ProfileChecks.Run(Check, sandbox);
     TimeChecks.Run(Check);

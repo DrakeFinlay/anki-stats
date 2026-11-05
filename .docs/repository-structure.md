@@ -14,6 +14,7 @@ anki-stats/
 │   ├── program-guide.md
 │   ├── dictionary-and-coverage.md
 │   ├── media.md
+│   ├── mappings.md
 │   └── anki-connect.md
 ├── src/
 │   ├── AnkiStats.App/
@@ -40,6 +41,14 @@ whole-collection comparison, source inspection and responsive cover shelves.
 Core media behavior lives in `MediaLibrary.cs`, `JitenClient.cs`, and
 `LocalMediaText.cs`; `media_tokenize.py` is an embedded local Sudachi adapter.
 `MediaChecks.cs` covers the shared corpus, metrics, resolution and API failures.
+`MediaMining.cs` aggregates missing words across Completed corpora;
+`MainWindow.MediaMining.cs` coordinates its Import table, local source-sentence
+enrichment and the shared Anki preview/writer.
+
+`MainWindow.Mappings.cs` implements the mapping dashboard, filters, aliases and
+cleanup pile; `MainWindow.MappingReview.cs` implements keyboard review and Undo.
+Core `MappingReview.cs` provides review-only suggestions and source projections.
+`MappingChecks.cs` tests grammar credit, stale decisions and duplicate protection.
 
 This project produces the executable. It references the core library and uses Windows Presentation Foundation (WPF) for the interface.
 

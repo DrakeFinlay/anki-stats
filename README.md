@@ -13,8 +13,11 @@ AnkiConnect.
 The initial [Media library](.docs/media.md) searches Jiten vocabulary lists or
 analyzes local text with optional Sudachi, caches reading/completed titles, and
 compares Common/JLPT mining opportunities against mapped vocabulary across Anki.
-Anki sentence-field analysis, unread-position tracking and media-driven note
-creation remain [future plans](.docs/FUTURE-PLANS.md).
+Media → Import browses shared missing words from completed titles and can prepare
+previewed Anki notes, optionally including genuine local-script sentences.
+Each title's Word list also supports importing selected missing words from any shelf.
+Anki sentence-field analysis and unread-position tracking remain
+[future plans](.docs/FUTURE-PLANS.md).
 
 ## Documentation
 

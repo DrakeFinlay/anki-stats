@@ -176,6 +176,7 @@ public partial class MainWindow : Window
         await UpdateTimeAnalysis();
         await UpdateLearningPatterns();
         await UpdateCoverage();
+        await UpdateMappings();
         var orphans = data.UnresolvedReviewsAvailable ? $"{data.UnresolvedReviews:N0} orphaned review events excluded collection-wide" : "orphaned review count unavailable via AnkiConnect";
         Footer.Text = $"{data.TimeZoneId} · current deck membership · {orphans} · {data.UnknownReviewKinds:N0} unknown events excluded";
     }
@@ -239,6 +240,7 @@ public partial class MainWindow : Window
         VocabularyPage.Visibility = page == "Vocabulary" ? Visibility.Visible : Visibility.Collapsed;
         CoveragePage.Visibility = page == "Word Coverage" ? Visibility.Visible : Visibility.Collapsed;
         MediaPage.Visibility = page == "Media" ? Visibility.Visible : Visibility.Collapsed;
+        MappingsPage.Visibility = page == "Mappings" ? Visibility.Visible : Visibility.Collapsed;
         ReviewsPage.Visibility = page == "Reviews" ? Visibility.Visible : Visibility.Collapsed;
         InsightsPage.Visibility = page == "Insights" ? Visibility.Visible : Visibility.Collapsed;
         CalendarPage.Visibility = page == "Calendar" ? Visibility.Visible : Visibility.Collapsed;

@@ -28,12 +28,40 @@ including deletion and undo regression cases. Consider caching derived analysis
 with reference/rule/settings version keys as well as raw imported records. Do not
 claim a speed improvement without measurements on a representative collection.
 
+### Observed near-complete startup counter
+
+The reported `Reading live cards and review history… 16,000 / 16,168` message
+is emitted before each 200-card batch in `LiveCollectionImporter.Import`.
+After the last 168-card batch, the same message remains while the importer reads
+note modification times and note fields, repeats deck/profile inventory, checks
+card modification times, rereads review history to reject concurrent changes,
+and projects the snapshot through the shared SQLite importer. These stages do
+not currently have separate progress messages. A nearly complete counter can
+therefore look frozen while work continues; the screenshot alone cannot identify
+a slow request or establish a deadlock.
+
+Media adds another cost: after the normal profile import and analysis,
+`RefreshInternal` calls `CompareMedia`, which discovers metadata again and performs
+another full all-deck import, including review history, although media presence
+only needs vocabulary notes/cards. The normal header can still show the preceding
+counter during this pass. The HTTP client permits up to 90 seconds per request;
+this is not a measured explanation of the user's individual delay.
+
+For the later performance pass, add phase timings/progress for the final card
+batch, notes, consistency validation, projection, dictionary matching, rendering
+and the second media read. Reuse compatible imported snapshots and cache derived
+matched-ID sets with collection/mapping/reference/rule versions. Evaluate an
+all-deck vocabulary-only snapshot and safe incremental validation for media so
+it does not require repeated review-history reads. Keep current source-safety
+checks until an equally reliable replacement is validated. No startup caching
+optimization or benchmark claim is included in the cover-layout changes.
+
 ## 1. Remaining mining opportunities in current media
 
 Initial whole-title media support is implemented; see [Media](media.md) for
 online/local acquisition, agreed mining criteria, metrics and current limits.
 The proposals below retain longer-term context; unread-position tracking and
-media-driven card creation remain unimplemented. The initial corpus is F/SN;
+broader media candidate sources remain unimplemented. The initial corpus is F/SN;
 Common ∪ JLPT is eligible, including particles/auxiliaries, and presence in any
 mapped Anki deck counts as mined. Names are not categorically excluded.
 
@@ -55,6 +83,24 @@ latter needs reading progress and ordered script segments or another reliable
 position mapping. Without that information, report whole-title coverage rather
 than assuming what remains unread. Manual versus integrated progress tracking
 remains an open decision for unread-portion analysis.
+
+### Media Import: implemented scope and follow-ups
+
+The Import tab now aggregates missing resolved entries from Completed corpora,
+with Common/JLPT and outside-both pools. Rank by number of completed titles, then
+total occurrences, with an adjustable minimum title count. Prepare selected
+rows, the first N, or all filtered rows through the existing Anki preview/writer.
+Genuine locally analyzed source sentences are optional; missing ones stay blank
+and are disclosed in preview. See [Media](media.md) for current behavior.
+An individual title's Word list also supports selected missing entries from any
+shelf, including both Common/JLPT and other words, without a title-count minimum.
+
+Future additions include aggregating a chosen subset of source titles (including
+current or planned works), alternative ordering controls, reviewing multiple sentence
+occurrences, acquiring additional permitted scripts, and configurable target
+decks/note types. Preserve unique-entry counting, inspectable source provenance,
+live duplicate checks and interrupted-write recovery. Ordinary refresh and media
+acquisition must continue to avoid silently creating notes.
 
 ## 2. Discover missing vocabulary in existing Anki sentences
 
