@@ -44,12 +44,13 @@ Manga and other media types are outside this version.
    enlarging it cannot restore detail absent from the source. Rendering uses
    native decoded resolution and high-quality scaling.
 
-Media comparison runs again after a normal successful refresh when the library
-is nonempty. Its timestamp appears separately from profile statistics. It reads
-the full collection in this first version, including review records required by
-the shared importer; incremental and vocabulary-only imports remain future work.
-Comparison is not persisted across app restarts; cached title corpora are.
-Cancellation during an Anki read takes effect after that safe read completes.
+When the library is nonempty, a successful collection refresh also updates the
+media comparison. It uses all-deck notes and cards from the same refresh. Clicking
+**Compare all Anki vocabulary** directly reads a vocabulary-only snapshot.
+The comparison displays its own timestamp. Nakama saves title corpora across
+restarts and calculates comparison results for each session. Cancellation during
+an Anki read takes effect after that safe read completes. See
+[refresh modes](anki-connect.md#refresh-modes).
 
 ## Browse and import missing words from Completed
 

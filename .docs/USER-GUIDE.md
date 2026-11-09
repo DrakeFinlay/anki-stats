@@ -1,8 +1,8 @@
-# Anki Stats — User's Guide
+# Nakama — User's Guide
 
 ## Welcome
 
-Anki Stats helps you explore your Japanese vocabulary and study history. It shows
+Nakama helps you explore your Japanese vocabulary and study history. It shows
 what is in your collection, how it overlaps common-word and JLPT lists, and how
 you have been reviewing. You can also preview and create notes for missing words.
 The app is for Windows and stores its analysis locally.
@@ -14,7 +14,7 @@ supports online vocabulary lists and optional local text analysis.
 ## Install and open the app
 
 If you have a packaged build, put the complete app folder somewhere convenient
-and open `AnkiStats.exe`. Keep its accompanying files, third-party notices, and
+and open `Nakama.exe`. Keep its accompanying files, third-party notices, and
 `LICENSES` folder together. There is no separate installer or automatic updater.
 A self-contained build includes its .NET runtime; no terminal or SDK is needed
 for everyday use. Close the app before replacing it with a newer packaged build.
@@ -22,9 +22,9 @@ Your saved settings live separately from the executable.
 
 If you have the source repository rather than a packaged app, a developer can
 build it on Windows with a .NET 10 SDK by running `scripts/publish.ps1` from
-PowerShell at the repository root. This produces `artifacts/AnkiStats` and
+PowerShell at the repository root. This produces `artifacts/Nakama` and
 shortcuts. See [build instructions](../README.md#build-and-validate). During ongoing
-development, the root **Anki Stats.lnk** rebuilds the current checkout before it
+development, the root **Nakama.lnk** rebuilds the current checkout before it
 opens, so it can take longer than launching a packaged executable.
 
 You need an existing local Anki collection for analysis. Install AnkiConnect to
@@ -34,7 +34,7 @@ statistics work without the add-on.
 ## Get started
 
 1. Anki may be open or closed during setup and refresh.
-2. Open Anki Stats and go to **Settings**.
+2. Open Nakama and go to **Settings**.
 3. Use **Browse…** to select your Anki profile folder containing `collection.anki2`,
    then select **Inspect profile**. On a standard Windows installation, profiles
    are under `%APPDATA%\Anki2`; choose your profile's subfolder. Custom Anki
@@ -52,22 +52,29 @@ statistics work without the add-on.
    displayed; confirm that the preview matches your field format.
 7. Select **Save and refresh**.
 
-The app remembers your settings and tries to refresh at startup. The source
-profile and last successful refresh time are shown near the top. A failed refresh
-keeps the previous successful results. A **TEST SESSION** banner means you are
-looking at isolated development data rather than the normal connected collection.
+The app remembers your settings and shows the saved import at startup. It runs
+**Fast Refresh** automatically when AnkiConnect and a compatible live cache are
+available. Otherwise, the previous results and timestamp stay in place. Use
+**Full Refresh** with Anki open to prepare a live cache. A **TEST SESSION** banner
+means you are looking at isolated development data.
 
 ## The everyday workflow
 
 | What you want to do | Should Anki be open? |
 | --- | --- |
-| Inspect your profile, save import settings, or Refresh | Either — keep AnkiConnect enabled for live access while Anki is open |
+| Inspect your profile, save import settings, or refresh | Either — keep AnkiConnect enabled for live access while Anki is open |
 | Explore already imported stats, switch deck profiles, or export | Either — these use cached data |
 | Preview/Create new notes or Check pending additions | Yes — open the same profile with AnkiConnect enabled |
 
-Refresh reads your local collection. If you review on another device, synchronize
-through Anki first, then refresh Anki Stats with Anki still open. Refresh itself does
-not synchronize AnkiWeb.
+- **Fast Refresh** is for everyday study. With Anki open, it reuses the local
+  cache and checks for card and note changes, new reviews, and recent undos. The
+  button can build a full baseline when the live cache is missing or too old.
+- **Full Refresh** rereads all available history. Use it after a restore, bulk
+  history edit, or a sync that brought in older reviews. AnkiConnect can miss
+  older review-only changes during Fast Refresh.
+
+With Anki closed, clicking either button reads a complete private copy. To pick up reviews
+from another device, synchronize through Anki before refreshing Nakama.
 
 Choose **Active profile** to switch between named deck selections, such as
 日本語, 漢字, and 日本語 + 漢字. These are selections within one connected Anki
@@ -138,7 +145,7 @@ from entries with no supporting vocabulary.
 If a word seems missing despite having a card, search **Inspect Anki matches**
 and check its reason. Select it and use **Review selected match** to choose a
 candidate, enter a verified JMdict ID, exclude it, or reset a correction. The
-dialog previews entries before confirmation. Corrections stay in Anki Stats and
+dialog previews entries before confirmation. Corrections stay in Nakama and
 do not edit Anki. The separate [Mappings popup](mappings.md) can also apply a
 displayed expression/reading correction when its checkbox is enabled. Grammar
 labels default to local links; your meaning is preserved. Changes to a note can
@@ -169,12 +176,12 @@ Refresh if live access requires it. Previous cached statistics remain available.
 
 ### Add a batch
 
-1. Open Anki on the same profile that Anki Stats imported.
+1. Open Anki on the same profile that Nakama imported.
 2. In **Word Coverage → Add missing words to Anki**, enter a positive whole number.
 3. Select **Preview new notes** and review the proposed Front/English fields.
 4. Select **Create … new notes**, or Cancel to add nothing.
 5. Inspect the notes in Anki. Adjust your new-card limits manually if desired.
-6. Statistics and coverage refresh automatically. If that fails, use **Refresh**
+6. Statistics and coverage refresh automatically. If that fails, use **Fast Refresh**
    to retry; Anki can stay open. Successful notes remain in Anki even if refresh fails.
 
 Selection is random without repeats within N5 → N4 → N3 → N2 → N1 → Common.
@@ -200,6 +207,7 @@ if the rest of a batch fails. Edit/delete unwanted notes in Anki itself.
 
 | Problem | What to check |
 | --- | --- |
+| Startup shows saved results | Open Anki on the matching profile with AnkiConnect enabled, then click **Fast Refresh**. Use **Full Refresh** to rebuild a missing or stale live cache |
 | Refresh cannot acquire a snapshot | Let Anki finish any busy operation, check profile access and disk space, then retry. If Anki needs recovery, let Anki recover the collection first |
 | Missing or unexpected statistics | Check source, timestamp, active profile, deck rules, categories, and field mappings before comparing metrics |
 | Cannot reach AnkiConnect | Keep Anki open with the add-on enabled on the correct profile; confirm its configured address/port |

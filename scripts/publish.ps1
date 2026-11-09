@@ -1,4 +1,4 @@
-param([string]$OutputDirectory = "artifacts\AnkiStats")
+param([string]$OutputDirectory = "artifacts\Nakama")
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $projectRoot
@@ -13,11 +13,12 @@ try {
     Copy-Item -LiteralPath 'THIRD-PARTY-NOTICES.md' -Destination $output
     Copy-Item -LiteralPath 'LICENSES' -Destination $output -Recurse -Force
     $shell = New-Object -ComObject WScript.Shell
-    $shortcut = $shell.CreateShortcut((Join-Path (Split-Path $output -Parent) 'Anki Stats.lnk'))
-    $shortcut.TargetPath = Join-Path $output 'AnkiStats.exe'
+    $shortcut = $shell.CreateShortcut((Join-Path (Split-Path $output -Parent) 'Nakama.lnk'))
+    $shortcut.TargetPath = Join-Path $output 'Nakama.exe'
     $shortcut.WorkingDirectory = $output
-    $shortcut.Description = 'Local, read-only Anki collection analysis'
+    $shortcut.IconLocation = (Join-Path $output 'Nakama.exe') + ',0'
+    $shortcut.Description = 'Nakama - your Japanese learning companion'
     $shortcut.Save()
     & (Join-Path $PSScriptRoot 'create-shortcut.ps1')
-    Write-Output "Ready: $output\AnkiStats.exe"
+    Write-Output "Ready: $output\Nakama.exe"
 } finally { Pop-Location }

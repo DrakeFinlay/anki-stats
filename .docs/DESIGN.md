@@ -1,4 +1,4 @@
-# Anki Stats — Current Design
+# Nakama — Current Design
 
 Status: Phase 1A and Phase 1B are implemented. This document describes the current
 application and its rules. [FUTURE-PLANS.md](FUTURE-PLANS.md) contains unimplemented
@@ -11,7 +11,7 @@ walkthroughs, see [how the program works](program-guide.md),
 
 ## 1. Product and completed scope
 
-Anki Stats is a local Windows desktop application for exploring a Japanese Anki
+Nakama is a local Windows desktop application for exploring a Japanese Anki
 collection. Anki remains the source of truth. The app measures vocabulary
 inventory, dictionary coverage, and recorded study activity, and can explicitly
 create new notes for missing vocabulary.
@@ -75,11 +75,11 @@ details and displays a review-rhythm chart for each enabled deck profile. The
 header and Calendar profile selectors stay synchronized. Daily discovery history
 is separate per collection and deck-profile ID.
 
-Startup shows cached results while attempting refresh. Inspection, settings
-preview/save, and refresh support Anki open or closed. Failures display recovery information and retain the latest successful
-scope and timestamp. The source profile is visible; isolated or synthetic sessions
-have a prominent warning and distinct window title. Refresh reads local data and
-does not synchronize AnkiWeb.
+Startup shows cached results and attempts Fast Refresh when AnkiConnect and a
+compatible live cache are available. Otherwise, it keeps the last successful
+scope and timestamp. Inspection, settings preview/save, and manual refresh work
+with Anki open or closed. The source profile is visible, and isolated or
+synthetic sessions display a warning and a distinct window title.
 
 ## 3. Vocabulary inventory and reference coverage
 
@@ -311,8 +311,8 @@ and refuses nonempty journals. SQLite opens only the private copy, never the
 original collection or source sidecars. When Anki holds the file or has an active
 journal, CollectionReader falls back to read-only AnkiConnect enumeration. Live
 imports verify the running profile, preserve home-deck membership, and reject
-detected record changes before replacing the cache. They reuse mapping validation
-and extraction through an app-owned in-memory schema. API reads span multiple
+detected record changes before replacing the cache. The file and live readers
+share mapping validation and text extraction. API reads span multiple
 requests, so they are not a database transaction. Orphaned review counts are
 unavailable via that API and explicitly labeled. Isolated/synthetic sessions
 cannot fall back to the user's Anki. Supported file collection
@@ -321,6 +321,14 @@ collations without launching Anki's collection API. Successful imports replace
 the app cache transactionally; failures retain previous results. Temporary copies
 and sidecars are cleaned up. Source files are never repaired, migrated,
 checkpointed, or written directly.
+
+Fast Refresh reuses a versioned live index of card and note details and
+modification times stored with the last successful projection. It checks current
+membership and replaces complete histories for changed cards and recent review
+candidates, including recently reviewed cards from the previous cache that no
+longer appear in Anki's recent search. Full Refresh rebuilds the baseline and
+reads all scoped review history. Media uses all-deck note/card data from the same
+refresh and needs no review history. See [live refresh modes](anki-connect.md#refresh-modes).
 
 Settings, the latest imported data, reference bundles, personal matching/family
 decisions, creation journals, and insight history live in per-user AnkiStats app

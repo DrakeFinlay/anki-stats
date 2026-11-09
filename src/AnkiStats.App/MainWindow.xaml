@@ -1,11 +1,11 @@
-<Window x:Class="AnkiStats.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:AnkiStats.App" Title="Anki Stats" Width="1320" Height="880" MinWidth="1000" MinHeight="680" WindowStartupLocation="CenterScreen" Style="{StaticResource {x:Type Window}}">
+<Window x:Class="AnkiStats.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:AnkiStats.App" Title="Nakama" Icon="Assets/Nakama.ico" Width="1320" Height="880" MinWidth="1000" MinHeight="680" WindowStartupLocation="CenterScreen" Style="{StaticResource {x:Type Window}}">
   <Grid>
     <Grid.ColumnDefinitions><ColumnDefinition Width="210"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
     <Border Background="#20232B" Padding="18,30,12,20">
       <DockPanel>
         <StackPanel DockPanel.Dock="Top">
-          <TextBlock Text="anki stats" FontSize="27" FontWeight="SemiBold" Margin="10,0,0,4"/>
-          <TextBlock Text="A closer look at your learning" Foreground="{StaticResource Muted}" FontSize="11" Margin="10,0,0,36"/>
+          <Image Source="Assets/Nakama-wordmark.png" Width="140" Height="99" HorizontalAlignment="Left" Margin="10,0,0,8" AutomationProperties.Name="Nakama · 仲間 · なかま · companion"/>
+          <TextBlock Text="Your Japanese learning companion" Foreground="{StaticResource Muted}" FontSize="10" Margin="10,0,0,24"/>
           <Button Content="Overview" Tag="Overview" Click="Navigate" HorizontalContentAlignment="Left" Margin="0,0,0,8"/>
           <Button Content="Vocabulary" Tag="Vocabulary" Click="Navigate" Margin="0,0,0,8"/>
           <Button Content="Word Coverage" Tag="Word Coverage" Click="Navigate" Margin="0,0,0,8"/>
@@ -27,7 +27,10 @@
     <Grid Grid.Column="1" Margin="30,26,24,20">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <DockPanel Margin="0,0,0,18">
-        <Button x:Name="RefreshButton" DockPanel.Dock="Right" Content="↻  Refresh" Click="RefreshClick" Background="#3D659B" Margin="12,0,0,0"/>
+        <StackPanel DockPanel.Dock="Right" VerticalAlignment="Top" Margin="12,0,0,0">
+          <Button x:Name="RefreshButton" Content="↻  Fast Refresh" Click="RefreshClick" Background="#3D659B" ToolTip="Check changed cards, notes, and recent review history."/>
+          <Button x:Name="FullRefreshButton" Content="Full Refresh" Click="FullRefreshClick" Margin="0,6,0,0" ToolTip="Rebuild the cache and reconcile all available Anki review history."/>
+        </StackPanel>
         <StackPanel><TextBlock x:Name="PageTitle" Text="Overview" FontSize="30" FontWeight="SemiBold"/><TextBlock x:Name="LastRefresh" Text="Connect a collection to get started" Foreground="{StaticResource Muted}" Margin="0,6,0,0"/><TextBlock x:Name="SourceInfo" Foreground="{StaticResource Muted}" TextWrapping="Wrap" FontSize="12" Margin="0,6,0,0"/><TextBlock x:Name="TestDataBanner" Text="TEST SESSION · isolated app data. These results may be synthetic; they are not your normal connected collection." Foreground="#FFD28F" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,8,0,0" Visibility="Collapsed"/><StackPanel Orientation="Horizontal" Margin="0,12,0,0"><TextBlock Text="Active profile" VerticalAlignment="Center" Margin="0,0,10,0"/><ComboBox x:Name="ActiveProfilePicker" DisplayMemberPath="Name" SelectionChanged="ActiveProfileChanged" AutomationProperties.Name="Active deck profile" MinWidth="220" IsEnabled="False"/></StackPanel></StackPanel>
       </DockPanel>
       <Border x:Name="StatusPanel" Grid.Row="1" Background="#283446" CornerRadius="6" Padding="12" Margin="0,0,0,14"><TextBlock x:Name="StatusText" Text="Choose your profile in Settings. No Anki data is modified." TextWrapping="Wrap"/></Border>

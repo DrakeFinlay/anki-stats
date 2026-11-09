@@ -1,3 +1,6 @@
+using System.Net.Http;
+using System.Net.Sockets;
+
 namespace AnkiStats.Core;
 
 // Keep file import available without Anki or its add-on. A running Anki commonly
@@ -11,6 +14,40 @@ public sealed class CollectionReader(string temporaryRoot, Func<AnkiConnectClien
     public Task<ImportedCollection> Import(Settings settings, IProgress<string>? progress = null) => Read(
         () => new CollectionImporter(temporaryRoot).Import(settings, progress),
         client => new LiveCollectionImporter(client).Import(settings, progress));
+
+    public Task<CollectionRefresh> Refresh(Settings settings, ImportedCollection? previous, bool includeMedia,
+        IProgress<string>? progress = null) => Read(
+        () => new CollectionImporter(temporaryRoot).WithPrivateCopy(settings.ProfileFolder, db =>
+        {
+            var metadata = CollectionImporter.ReadMetadata(db);
+            var stats = CollectionImporter.ReadCollection(db, settings, progress, metadata);
+            var media = includeMedia ? CollectionImporter.ReadCollection(db, MediaAnalysis.CollectionSettings(settings, metadata),
+                metadata: metadata, includeReviews: false) : null;
+            return new CollectionRefresh(stats, media);
+        }),
+        client => new LiveCollectionImporter(client).Refresh(settings, previous, includeMedia, progress));
+
+    public async Task<CollectionRefresh?> TryFastRefresh(Settings settings, ImportedCollection? previous, bool includeMedia,
+        IProgress<string>? progress = null)
+    {
+        // Preserve the saved view whenever a live incremental read is unavailable at startup.
+        if (!allowLive || previous?.LiveIndex is null || !File.Exists(Path.Combine(settings.ProfileFolder, "collection.anki2")))
+            return null;
+        using var client = clientFactory();
+        try { return await new LiveCollectionImporter(client).TryFastRefresh(settings, previous, includeMedia, progress); }
+        catch (IOException error) when (error.InnerException is HttpRequestException
+            { InnerException: SocketException { SocketErrorCode: SocketError.ConnectionRefused } })
+        { return null; }
+    }
+
+    public Task<ImportedCollection> ImportMedia(Settings settings) => Read(
+        () => new CollectionImporter(temporaryRoot).WithPrivateCopy(settings.ProfileFolder, db =>
+        {
+            var metadata = CollectionImporter.ReadMetadata(db);
+            return CollectionImporter.ReadCollection(db, MediaAnalysis.CollectionSettings(settings, metadata),
+                metadata: metadata, includeReviews: false);
+        }),
+        client => new LiveCollectionImporter(client).ImportMedia(settings));
 
     private async Task<T> Read<T>(Func<T> fileRead, Func<AnkiConnectClient, Task<T>> liveRead)
     {

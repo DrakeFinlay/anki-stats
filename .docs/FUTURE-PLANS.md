@@ -1,60 +1,37 @@
-# Anki Stats — Future Plans
+# Nakama — Future Plans
 
-This is the backlog after the completed Phase 1A/1B work. These are unimplemented
-ideas, with no delivery dates or selected integration providers. [DESIGN.md](DESIGN.md)
-describes the current app; [README.md](../README.md) explains setup and use.
+This roadmap records completed milestones and open work after Phase 1A/1B.
+[Current design](DESIGN.md) describes implemented behavior, and the
+[README](../README.md) explains setup and use.
 
-## Incremental imports and startup performance
+## Completed since Phase 1B
 
-Replace full live imports on every refresh with a persistent baseline and
-incremental reads where the source API provides reliable change evidence.
-Keep automatic startup refresh: the user normally wants fresh data immediately
-after opening, so replacing it with manual refresh is not the requested solution.
-Avoid presenting a cached timestamp as a fresh Anki sync.
+- **Nakama branding.** The window, packaged executable, and launcher use Nakama.
+  The app continues to load saved profiles and data from its existing app-data
+  folder. See [branding and compatibility](branding.md#names-and-compatibility).
+- **Fast Refresh and Full Refresh.** Fast Refresh uses a persisted live cache
+  and the existing AnkiConnect setup to check changed cards and notes and
+  reconcile recent reviews. Startup only attempts a live Fast Refresh and keeps
+  the saved results and timestamp when it cannot run. Full Refresh rereads the
+  complete available history for the saved deck scopes. Media shares the refresh's
+  all-deck vocabulary snapshot without a second review-history import. See
+  [refresh modes](anki-connect.md#refresh-modes).
 
-Handle added, edited, and deleted notes/cards; deck moves and filtered home-deck
-membership; changed field schemas/mappings; and added, edited, deleted, or undone
-reviews. Card/note modification times alone are insufficient for review-history
-changes and deletions, and their second resolution needs consideration. Detect
-profile/reference/scope changes, invalidate affected derived results, and fall
-back to a full import when continuity cannot be verified. Retain the last good
-cache if an incremental update fails, and keep note creation's live duplicate
-checks independent of cached statistics.
+## Refresh performance follow-ups
 
-Benchmark cache loading, reference indexing, matching, charts, HTTP enumeration,
-and review-history validation separately before selecting an implementation.
-Measure unchanged startup and one-note/one-review updates against a full import,
-including deletion and undo regression cases. Consider caching derived analysis
-with reference/rule/settings version keys as well as raw imported records. Do not
-claim a speed improvement without measurements on a representative collection.
+Measure refresh on representative live collections, including a review session
+that changes about 2,000 of 16,000 cards. Separate API enumeration, history
+transfer, cache persistence, profile analysis, and media matching when profiling.
+In the [synthetic 16,000-card check](../tests/AnkiStats.Checks/FastRefreshChecks.cs),
+Fast Refresh with 2,000 changed cards matched Full Refresh while receiving
+3.80 MB of simulated AnkiConnect responses versus 17.55 MB for Full Refresh.
+An unchanged pass received 1.73 MB. End-to-end timing on a live collection
+remains open.
 
-### Observed near-complete startup counter
-
-The reported `Reading live cards and review history… 16,000 / 16,168` message
-is emitted before each 200-card batch in `LiveCollectionImporter.Import`.
-After the last 168-card batch, the same message remains while the importer reads
-note modification times and note fields, repeats deck/profile inventory, checks
-card modification times, rereads review history to reject concurrent changes,
-and projects the snapshot through the shared SQLite importer. These stages do
-not currently have separate progress messages. A nearly complete counter can
-therefore look frozen while work continues; the screenshot alone cannot identify
-a slow request or establish a deadlock.
-
-Media adds another cost: after the normal profile import and analysis,
-`RefreshInternal` calls `CompareMedia`, which discovers metadata again and performs
-another full all-deck import, including review history, although media presence
-only needs vocabulary notes/cards. The normal header can still show the preceding
-counter during this pass. The HTTP client permits up to 90 seconds per request;
-this is not a measured explanation of the user's individual delay.
-
-For the later performance pass, add phase timings/progress for the final card
-batch, notes, consistency validation, projection, dictionary matching, rendering
-and the second media read. Reuse compatible imported snapshots and cache derived
-matched-ID sets with collection/mapping/reference/rule versions. Evaluate an
-all-deck vocabulary-only snapshot and safe incremental validation for media so
-it does not require repeated review-history reads. Keep current source-safety
-checks until an equally reliable replacement is validated. No startup caching
-optimization or benchmark claim is included in the cover-layout changes.
+An optional read-only Anki companion add-on is deferred. Revisit it if older
+review-history changes need incremental reconciliation. Consider caching derived
+matching and analysis by collection, mapping, reference, and rules versions if
+the live benchmark shows those stages dominate.
 
 ## 1. Remaining mining opportunities in current media
 
@@ -65,9 +42,8 @@ broader media candidate sources remain unimplemented. The initial corpus is F/SN
 Common ∪ JLPT is eligible, including particles/auxiliaries, and presence in any
 mapped Anki deck counts as mined. Names are not categorically excluded.
 
-Show how many vocabulary candidates still meet the user's mining criteria in a
-selected title, initially **F/SN**, the current reading project. Provide an
-inspectable list behind the count and recompute it against updated Anki data.
+Nakama shows the remaining eligible vocabulary candidates for each title and
+provides an inspectable list. The comparison updates after a successful refresh.
 
 Treat “remaining cards” as unique eligible vocabulary candidates; separately
 explain how many Anki cards the resulting notes might generate. Repeated word
@@ -161,14 +137,9 @@ coverage must not be presented as a comprehension score.
 
 ## 4. A library of consumed media
 
-The initial Currently reading / Completed / Add shelves and vocabulary summaries
-are implemented in [Media](media.md). Historical baselines and richer coverage
-breakdowns below remain future work.
-
-Track previously read or consumed works, including **Biman 4** and **Cafe Sourire**,
-with game/anime icons or cover images and vocabulary coverage summaries. Allow
-planned, in-progress, and completed status, with associated scripts, subtitles,
-vocabulary lists, or existing coverage records.
+The Planned, Currently reading, and Completed shelves, cover images, and current
+vocabulary summaries are implemented in [Media](media.md). Historical baselines
+and richer coverage breakdowns below remain future work.
 
 Show covered/total unique vocabulary and percentages for Known, Familiar,
 Combined, and In database. Offer separately labeled token-weighted coverage when
@@ -195,10 +166,9 @@ available scripts/subtitles/text through supported integrations, perform
 morphological analysis, build unique vocabulary lists, and compare them against
 the app whenever analysis runs with refreshed Anki data.
 
-Integrated acquisition and analysis is the preferred experience. User-selected
-local scripts, subtitles, or vocabulary lists are a fallback. No provider, script
-collection, extraction tool, or format has been selected; establish availability
-and permitted use per integration when work begins.
+Integrated acquisition and analysis is the preferred experience. Evaluate
+additional providers, script sources, formats, and permitted use when each
+integration begins.
 
 Cache versioned text-analysis results locally to avoid downloading and
 retokenizing everything on each comparison. Record title/edition, routes or
@@ -237,9 +207,9 @@ new-note workflow and need their own explicit scope.
 
 Start with sentence-field import and reusable local text analysis, then sentence
 statistics and missing-word inspection. Add candidate batch preparation using
-existing creation safeguards. Reuse that foundation for a first F/SN corpus and
-remaining-mining count, followed by consumed/future media libraries and
-integrations. This is a dependency-based proposal, not an agreed release plan.
+existing creation safeguards. Reuse that foundation in the existing Media
+library for unread-position tracking and broader source integrations. This is a
+dependency-based proposal, and the release order is open.
 
 Before building, settle mining criteria, sentence fields/splitting, the first
 text source/format, analyzer and dictionary, ambiguity handling, reading-progress

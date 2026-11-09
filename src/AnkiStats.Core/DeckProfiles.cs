@@ -65,6 +65,7 @@ public static class DeckProfiles
             Scope = profile.Name + " · " + string.Join(", ", profile.DeckRules.Select(r => (r.Include ? "+ " : "− ") + r.Name)),
             Cards = cards, Notes = source.Notes.Where(n => noteIds.Contains(n.Id)).ToList(), Reviews = reviews,
             UnresolvedReviews = source.UnresolvedReviews, UnresolvedReviewsAvailable = source.UnresolvedReviewsAvailable, ImportMethod = source.ImportMethod,
+            IsIncremental = source.IsIncremental,
             UnknownReviewKinds = reviews.Count(r => r.Kind is < 0 or > 5)
         };
     }

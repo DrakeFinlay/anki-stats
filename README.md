@@ -1,4 +1,8 @@
-# Anki Stats
+# Nakama
+
+<img src="src/AnkiStats.App/Assets/Nakama.png" alt="Nakama: 仲, companion" width="96" height="96"/>
+
+**仲間 · なかま · companion** — your Japanese learning companion.
 
 A local Windows desktop app for exploring Japanese vocabulary and Anki review history. Includes vocabulary inventory, common-word/JLPT coverage, review analysis, daily discoveries, exports, and explicitly triggered creation of missing vocabulary notes.
 
@@ -22,8 +26,9 @@ Anki sentence-field analysis and unread-position tracking remain
 ## Documentation
 
 - [User's guide](.docs/USER-GUIDE.md) — introduction, installation, setup, every page, creating notes, and troubleshooting.
+- [Branding](.docs/branding.md) — name, logo assets, colors, and compatibility with existing profiles.
 - [Current design](.docs/DESIGN.md) — implemented behavior, metric definitions, architecture, and data-safety boundaries.
-- [Future plans](.docs/FUTURE-PLANS.md) — unimplemented directions, sentence/media ideas, and decisions still to settle.
+- [Future plans](.docs/FUTURE-PLANS.md) — completed milestones, refresh follow-ups, and open product directions.
 - [Development workflow](.docs/development-workflow.md) — branch, validation, pull request, and merge rules for contributors and coding agents.
 - [Repository structure](.docs/repository-structure.md) — where the code, checks, build scripts, and documentation live.
 - [Tools used](.docs/tools-used.md) — languages, libraries, development tools, and build commands.
@@ -33,9 +38,9 @@ Anki sentence-field analysis and unread-position tracking remain
 
 ## Run
 
-During development, use **Anki Stats.lnk in the repository root**. It builds and packages the current checkout before opening, including uncommitted source changes, so it stays current as we iterate. It uses your normal saved profile and clears inherited test-data overrides. Startup may take a few seconds; a failed build shows a message and records details in `.tools/launch.log` instead of opening an old version. Close the app before launching after code changes. This development shortcut requires the project-local or an installed .NET 10 SDK. Regenerate it with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1` if the repository moves.
+During development, use **Nakama.lnk in the repository root**. It builds and packages the current checkout before opening, including uncommitted source changes, so it stays current as we iterate. It uses your normal saved profile and clears inherited test-data overrides. Startup may take a few seconds; a failed build shows a message and records details in `.tools/launch.log` instead of opening an old version. Close the app before launching after code changes. This development shortcut requires the project-local or an installed .NET 10 SDK. Regenerate it with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1` if the repository moves.
 
-For a standalone packaged build, open `artifacts/AnkiStats/AnkiStats.exe`. Published executables are snapshots: other artifact folders can contain older versions and do not update themselves. No terminal, browser, or separately installed .NET runtime is required for a self-contained build. Install AnkiConnect for live imports while Anki is running and for note creation. Closed-file imports and cached analysis need no add-on.
+For a standalone packaged build, open `artifacts/Nakama/Nakama.exe`. Published executables are snapshots: other artifact folders can contain older versions and do not update themselves. No terminal, browser, or separately installed .NET runtime is required for a self-contained build. Install AnkiConnect for live imports while Anki is running and for note creation. Closed-file imports and cached analysis need no add-on.
 
 On first launch:
 
@@ -45,7 +50,12 @@ On first launch:
 4. Confirm each note type's category and fields. Only Vocabulary types contribute to the vocabulary inventory; Grammar and Kanji types can contribute review events.
 5. Select **Preview selection**, check the extracted expressions, then **Save and refresh**.
 
-Subsequent launches refresh the saved selection automatically, with Anki open or closed. Keep AnkiConnect enabled on the matching profile for live access while Anki is open. A failed refresh leaves the latest successful import available with its original scope and timestamp.
+Subsequent launches show the saved import and run **Fast Refresh** when
+AnkiConnect and a compatible live cache are available. Otherwise, startup leaves
+the saved import and timestamp in place. Use **Full Refresh** to reconcile older
+history after a restore, bulk history edit, or sync. Run it with Anki open to
+rebuild the live cache. With Anki closed, clicking either refresh button reads a
+safe, complete file snapshot. See [refresh modes](.docs/anki-connect.md#refresh-modes).
 
 ## Deck profiles
 
@@ -152,7 +162,7 @@ Reference data is licensed under CC BY-SA 4.0; see [third-party notices](THIRD-P
 ### Create missing vocabulary notes
 
 Install [AnkiConnect](https://ankiweb.net/shared/info/2055492159) in Anki and restart
-Anki once. Keep Anki open on the same profile selected in Anki Stats. Inspect,
+Anki once. Keep Anki open on the same profile selected in Nakama. Inspect,
 preview, save settings, and refresh without closing Anki. In Word Coverage, enter a positive whole number under **Add missing
 words to Anki**, select **Preview new notes**, review the batch, and select
 **Create … new notes**. Preview and Cancel never add anything.
@@ -194,7 +204,7 @@ later batches. With Anki open, use **Check pending additions** to acknowledge
 identified notes or release entries that were not created. This check never creates
 or deletes notes. Successfully added entries remain excluded from future batches.
 After creation, statistics and coverage refresh automatically, including after a
-partial batch. If refresh fails, the creation result remains visible and **Refresh**
+partial batch. If refresh fails, the creation result remains visible and **Fast Refresh**
 retries the import with Anki still open. Edit or delete unwanted notes manually in Anki.
 
 Older app versions added `ankistats::generated` and `ankistats::jmdict::<ID>` tags.
@@ -205,7 +215,7 @@ attribution identity used for recovery. Legacy tags are still recognized if reta
 
 The file importer copies an idle collection under an exclusive read-only file handle, refusing active journals. SQLite opens only the temporary private copy, never the original collection or its sidecars. The app never bypasses locks, checkpoints, or repairs the source. Unavailable collections and unsupported schemas produce a recovery message. Refresh, analysis, exports, and local mapping links do not change Anki records. Explicit Create adds new notes through AnkiConnect. The [Mappings popup](.docs/mappings.md#correcting-typos-in-existing-anki-notes) can also update an existing note's displayed expression/reading when its correction checkbox is enabled, with guarded Undo and read-back verification. It preserves your meaning and other fields. The app never writes the source database, sends scheduling changes, or runs card HTML or JavaScript. Anki changes can sync normally through Anki.
 
-When Anki holds the collection or has an active journal, the shared reader imports through local AnkiConnect instead. It checks the running profile, reads current notes/cards/full review history, preserves filtered cards' home decks, and rejects detected changes during the read. These batched API reads are not one database transaction. AnkiConnect cannot report orphaned reviews whose cards were deleted; live imports label that count unavailable. Isolated/synthetic sessions never fall back to the user's running Anki.
+When Anki holds the collection or has an active journal, the shared reader imports through local AnkiConnect instead. It checks the running profile, preserves filtered cards' home decks, and rejects detected changes during the read. A first live read builds a baseline, which Fast Refresh uses on later runs. These batched API reads are not one database transaction. AnkiConnect cannot report orphaned reviews whose cards were deleted. Live imports label that count unavailable. Isolated/synthetic sessions never fall back to the user's running Anki.
 
 Settings, the latest imported data, reference data, matching decisions, creation journals, and insight rotation history stay in the per-user local application-data `AnkiStats` folder, accessible from Settings. There is no telemetry. Reference installation downloads public data; live imports and note creation communicate with local AnkiConnect; cached analysis works offline. Source files, personal settings, caches, and exports must not be committed.
 
@@ -221,7 +231,7 @@ dotnet run --project tests/AnkiStats.Checks -c Release
 .\scripts\publish.ps1
 ```
 
-Publish creates a self-contained x64 executable in the ignored `artifacts/AnkiStats` folder, a shortcut alongside that folder, and the development shortcut in the repository root. The root shortcut always rebuilds the canonical `artifacts/AnkiStats` output regardless of any custom publish folder. Keep the packaged license/notice files with the executable. Build dependencies are restored from NuGet; see [third-party notices](THIRD-PARTY-NOTICES.md).
+Publish creates a self-contained x64 executable in the ignored `artifacts/Nakama` folder, a shortcut alongside that folder, and the development shortcut in the repository root. The root shortcut always rebuilds the canonical `artifacts/Nakama` output regardless of any custom publish folder. Keep the packaged license/notice files with the executable. Build dependencies are restored from NuGet; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
 The focused checks use synthetic collections and cover vocabulary deduplication, Japanese entry distinctions, dictionary/definition matching, cohort scopes, preferred forms, tag-free note creation, tier spillover, live duplicate checks, interrupted-write recovery, HTTP framing, time boundaries and daylight saving, exports, daily rotation, cache isolation, exclusive-lock fallback, live import scope/mapping/review parity, changed-record rejection, schema rejection, and source integrity. AnkiConnect checks use simulated responses and a temporary loopback HTTP listener without writing real Anki notes. Optional local file-import validation accepts a profile folder through `--inspect`; `--inspect-live` validates full read-only AnkiConnect import without saving settings or creating notes.
 

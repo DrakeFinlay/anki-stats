@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using AnkiStats.Core;
@@ -10,13 +11,14 @@ internal static class LiveImportChecks
     {
         public List<string> Actions { get; } = [];
         public string Profile = "Synthetic";
-        public bool WrongProfile, MissingCard, ChangedCard, ChangedNote, ChangedReviews, ChangedFields;
+        public bool WrongProfile, MissingCard, ChangedCard, ChangedNote, ChangedReviews, ChangedFields, Unavailable;
         private int noteModReads, reviewReads;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             using var document = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
             var action = document.RootElement.GetProperty("action").GetString()!;
             var parameters = document.RootElement.GetProperty("params"); Actions.Add(action);
+            if (Unavailable) throw new HttpRequestException("AnkiConnect is offline", new SocketException((int)SocketError.ConnectionRefused));
             long[] Ids(string name) => parameters.GetProperty(name).EnumerateArray().Select(i => i.GetInt64()).ToArray();
             object? result = action switch
             {
@@ -25,7 +27,13 @@ internal static class LiveImportChecks
                 "deckNamesAndIds" => new Dictionary<string, long> { ["Language"] = 1, ["Filtered"] = 2, ["Language::Excluded"] = 3, ["Other"] = 4 },
                 "modelNamesAndIds" => new Dictionary<string, long> { ["Japanese"] = 7 },
                 "modelFieldNames" => ChangedFields ? new[] { "Renamed", "English" } : new[] { "Front", "English" },
-                "findCards" => parameters.GetProperty("query").GetString() switch { "did:1" => new long[] { 1, 4 }, "did:2" => [1], "did:3" => [2], "did:4" => [3], _ => throw new Exception("Unexpected query") },
+                "findCards" => parameters.GetProperty("query").GetString() switch
+                {
+                    "did:1" => new long[] { 1, 4 }, "did:2" => [1], "did:3" => [2], "did:4" => [3],
+                    "is:buried" => [],
+                    string query when query.StartsWith("rated:", StringComparison.Ordinal) => [],
+                    _ => throw new Exception("Unexpected query")
+                },
                 "getDecks" => Ids("cards").GroupBy(i => i == 1 ? "Filtered" : i == 2 ? "Language::Excluded" : i == 3 ? "Other" : "Language").ToDictionary(g => g.Key, g => g.ToArray()),
                 "cardsInfo" => Ids("cards").Select(i => MissingCard ? (object)new { } : new { cardId = i, note = 10, queue = -1, type = 2, lapses = 5, mod = 1, deckName = i == 1 ? "Filtered" : "Language" }).ToArray(),
                 "cardsModTime" => Ids("cards").Select(i => new { cardId = i, mod = ChangedCard ? 2 : 1 }).ToArray(),
@@ -75,6 +83,32 @@ internal static class LiveImportChecks
             check(rejected, "live import rejects changed/invalid " + failure);
         }
         check(store.LoadCache(settings.CollectionKey)!.Signature == data.Signature, "failed live reads preserve last successful cache");
+
+        Directory.CreateDirectory(settings.ProfileFolder);
+        File.Copy(fixture, Path.Combine(settings.ProfileFolder, "collection.anki2"));
+        var startupTemp = Path.Combine(sandbox, "startup-temp");
+        var startupCache = store.LoadCache(settings.CollectionKey)!;
+        Mock? startupAnki = null;
+        var changedFields = false;
+        var offline = false;
+        var startupReader = new CollectionReader(startupTemp, () => new AnkiConnectClient(handler:
+            startupAnki = new Mock { ChangedFields = changedFields, Unavailable = offline }));
+        check(await startupReader.TryFastRefresh(settings, null, includeMedia: false) is null && startupAnki is null,
+            "startup without a baseline skips AnkiConnect and the file snapshot");
+        var startup = await startupReader.TryFastRefresh(settings, startupCache, includeMedia: false);
+        check(startup?.Stats.IsIncremental == true && startupAnki is not null
+            && !startupAnki.Actions.Any(a => a is "cardsInfo" or "notesInfo" or "getReviewsOfCards"),
+            "startup with a saved live index requests only fast checks even when the source file is readable");
+        changedFields = true;
+        check(await startupReader.TryFastRefresh(settings, startupCache, includeMedia: false) is null
+            && !startupAnki!.Actions.Any(a => a is "cardsInfo" or "notesInfo" or "getReviewsOfCards"),
+            "startup with incompatible fields skips a full rebuild");
+        offline = true;
+        check(await startupReader.TryFastRefresh(settings, startupCache, includeMedia: false) is null && !Directory.Exists(startupTemp),
+            "startup with AnkiConnect offline retains the cache without taking a file snapshot");
+        startupCache.LiveIndex = startupCache.LiveIndex! with { ReadStartedAt = DateTimeOffset.UtcNow.AddDays(-29) };
+        check(await startupReader.TryFastRefresh(settings, startupCache, includeMedia: false) is null && startupAnki!.Actions.Count == 0,
+            "startup with an expired live index skips AnkiConnect reads");
 
         var offlineProfile = Path.Combine(sandbox, "reader-offline"); Directory.CreateDirectory(offlineProfile);
         var path = Path.Combine(offlineProfile, "collection.anki2"); File.Copy(fixture, path);

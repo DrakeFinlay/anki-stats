@@ -11,24 +11,45 @@ corrections. Closed-file imports and cached analysis work without it.
 read-only file snapshot. If the source is unavailable, it uses
 [LiveCollectionImporter.cs](../src/AnkiStats.Core/LiveCollectionImporter.cs) to read
 through AnkiConnect. Isolated and synthetic UI sessions never fall back to the
-user's running Anki. Startup, inspection, settings preview/save, manual refresh,
-and automatic refresh after creation all use this reader.
+user's running Anki. Inspection, settings preview/save, manual refresh, and
+automatic refresh after creation use this file-first path. Startup attempts only
+a live incremental read and keeps the saved results when that is unavailable.
 
 The live reader verifies API version and active profile before and after reads.
 It reads deck/model IDs and ordered field names, searches exact `did:` membership,
-and uses `getDecks` to distinguish current filtered decks from home decks. Cards
-stay assigned to their home decks, preserving import scope and counts. It reads
-selected cards in batches of 200, notes in batches of 500, and full review history
-through `getReviewsOfCards`. Selective `cardsInfo` fields avoid unnecessary card
-rendering where supported; older add-ons that reject that parameter use the
-standard response, which is read as data and never executed.
+and uses `getDecks` when a filtered card appears in both its current and home deck.
+Cards stay assigned to their home decks, preserving import scope and counts.
+Selective `cardsInfo` fields avoid unnecessary card rendering where supported.
+Older add-ons that reject that parameter use the standard response, which is read
+as data and never executed.
 
-Metadata, membership, modification times, and review records are checked again
+### Refresh modes
+
+**Full Refresh** fetches current card details and note fields, then reads and
+verifies all available review history for cards in the saved mapped scopes. It
+replaces the live change index and the projected statistics together in local
+SQLite. The **Fast Refresh** button can also build a full baseline when the
+index is missing, settings or note types changed, or more than 28 days passed
+since the last live read. With Anki closed, clicking either button reads a
+complete private file snapshot.
+
+**Fast Refresh** uses AnkiConnect's current deck membership, card and note
+modification times, and buried-card search to decide which details to fetch.
+Timestamps have second resolution, so it rereads rows near the last read boundary.
+It checks histories for changed or newly included cards, cards from Anki's recent
+answer search, and cards with cached reviews from the previous read's overlap
+window. This last group catches recent reviews removed by undo. The search covers
+the time since the previous read plus two Anki study days of overlap. Each fetched
+history replaces the prior history for its card. Older review-only edits or
+syncs can require **Full Refresh**.
+
+Metadata, membership, modification times, and the fetched histories are checked again
 before acceptance. Detected changes reject the import and retain the prior cache;
-these checks are not a transaction spanning all HTTP requests. Modification times
-have Anki's second resolution. The collected records are projected into an
-app-owned in-memory schema and use the same mapping validation and extraction as
-file imports. Source schema version is unknown (metadata value 0) through the API.
+these checks are not a transaction spanning all HTTP requests. Live and file
+imports share mapping validation and text extraction. When Media is in use it
+gets all-deck notes and cards from the same read without a second history pass.
+Manual Media comparison reads vocabulary only. Source schema version is unknown
+(metadata value 0) through the API.
 
 AnkiConnect cannot enumerate orphaned review rows whose cards were deleted. Live
 imports explicitly mark that count unavailable; ordinary card review history is
@@ -64,11 +85,11 @@ separately. There are no automatic request retries.
 | getActiveProfile | Match the running profile to the imported folder's basename |
 | modelNamesAndIds | Verify the Japanese model ID matches imported metadata |
 | deckNamesAndIds | Enumerate stable deck IDs for live imports |
-| findCards, exact did: query | Enumerate deck membership including filtered cards' home decks |
+| findCards, exact did:, rated:, is:buried | Enumerate deck membership and identify recent reviews and bury state |
 | getDecks | Read current physical membership to resolve filtered cards' home decks |
 | cardsInfo, batches of 200 | Read current card IDs, note IDs, queue, type, lapses and modification time |
-| getReviewsOfCards, batches of 200 | Read and recheck full review history of selected cards |
-| cardsModTime, notesModTime | Detect edits during a live import |
+| getReviewsOfCards, batches of 200 | Read and verify histories for the cards refreshed in this pass |
+| cardsModTime, notesModTime | Compare to cached stamps and detect edits during a live import |
 | deckNames | Require 日本語::勉強してる |
 | modelFieldNames | Require Front/English and retain all field names |
 | findNotes, query empty | Enumerate the running collection's notes across all decks |
@@ -154,10 +175,10 @@ readings, and normalized definition. Refresh recovers acknowledged identities
 from the journal if the app closed before separately saving them. Later target
 edits can make a decision stale. After a completed or partial creation batch,
 the UI automatically imports a fresh snapshot with Anki still open. If that
-refresh fails, it retains the creation result and reports how to retry Refresh;
+refresh fails, it retains the creation result and reports how to retry Fast Refresh;
 successful notes remain in Anki. File imports do not require AnkiConnect.
 
-## Validation
+## Confirmed grammar links
 
 Confirmed per-note grammar links from [Mappings](mappings.md) are included in live
 duplicate checks across configured vocabulary and grammar note types. Current
@@ -184,6 +205,8 @@ only if the note's guarded fields still match. Isolated/synthetic UI sessions
 cannot reach the live edit path. See [Mappings](mappings.md) for controls and
 the distinction between local link buckets and actual field-edit receipts.
 
+## Validation
+
 [NoteCreationChecks.cs](../tests/AnkiStats.Checks/NoteCreationChecks.cs) simulates
 selection, spillover, exhaustion, payloads, profile changes, stale previews,
 pre-write journal failure, lost responses, and tag-free recovery.
@@ -193,5 +216,11 @@ diagnostics. These checks do not add real notes.
 [LiveImportChecks.cs](../tests/AnkiStats.Checks/LiveImportChecks.cs) covers live
 mapping/extraction, home-deck membership, changed records, cache provenance,
 exclusive-lock fallback, wrong-profile rejection, and isolated-session protection.
+It verifies that startup reuses a compatible live cache and skips a full import
+when AnkiConnect is offline or the cache is missing, stale, or incompatible.
+[FastRefreshChecks.cs](../tests/AnkiStats.Checks/FastRefreshChecks.cs) covers recent
+review undo, deck moves, cache persistence, and parity with a full rebuild. Its
+16,000-card scenario measures simulated AnkiConnect response sizes and importer
+timing for unchanged data and 2,000 changed cards.
 The check runner's `--inspect-live <profile-folder>` command performs read-only
 discovery and a full live import without saving settings or creating notes.

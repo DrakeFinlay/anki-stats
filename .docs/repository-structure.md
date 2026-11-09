@@ -6,6 +6,7 @@ This repository contains a Windows desktop application, a reusable analysis libr
 anki-stats/
 ├── .docs/
 │   ├── development-workflow.md
+│   ├── branding.md
 │   ├── repository-structure.md
 │   ├── tools-used.md
 │   ├── DESIGN.md
@@ -24,6 +25,7 @@ anki-stats/
 ├── scripts/
 │   ├── publish.ps1
 │   ├── launch.ps1
+│   ├── create-brand-assets.ps1
 │   └── create-shortcut.ps1
 ├── LICENSES/
 ├── .gitignore
@@ -35,6 +37,10 @@ anki-stats/
 ```
 
 ## Application: `src/AnkiStats.App`
+
+`Assets/` contains Nakama's outlined SVG logos, PNG previews/sidebar wordmark,
+and multi-resolution Windows icon. See [branding](branding.md) for regeneration
+and naming compatibility.
 
 `MainWindow.Media.cs` implements Media navigation, online/local acquisition,
 whole-collection comparison, source inspection and responsive cover shelves.
@@ -85,8 +91,8 @@ This library contains the work that does not require a window. Keeping it separa
 | `TimeAnalysis.cs` | Calculates recorded time, mean/median answer duration, six-month comparisons, and study-day/week/hour aggregates. |
 | `LearningPatterns.cs` | Applies deck-role rules and three-lapse history criteria; produces cross-deck and explicit reading/written-form/gloss candidates. |
 | `CollectionImporter.cs` | Safely acquires a private collection copy, reads supported schemas, applies selections, and extracts notes, cards, and review events. |
-| `CollectionReader.cs` | Uses file snapshots with a live AnkiConnect fallback when Anki holds an exclusive lock; disables fallback for isolated sessions. |
-| `LiveCollectionImporter.cs` | Reads metadata, home-deck membership, cards, notes, and full review history through AnkiConnect and reuses the file importer's projection rules. |
+| `CollectionReader.cs` | Uses file snapshots with a live AnkiConnect fallback for manual refresh. Startup can only refresh incrementally through AnkiConnect. Isolated sessions use file access. |
+| `LiveCollectionImporter.cs` | Verifies live metadata and home-deck membership, builds and updates the Fast Refresh index, and reads review histories through AnkiConnect. Shares the file importer's projection rules. |
 | `Analysis.cs` | Cleans field text, groups vocabulary entries, calculates review statistics, generates discovery candidates, and writes CSV exports. |
 | `VocabularyCoverage.cs` | Matches expression/reading pairs to restricted dictionary forms, aggregates named-deck cohorts and entry coverage, groups conservative families, and produces Markdown missing-word reports. |
 | `VocabularyExpression.cs` | Extracts written forms and explicit reading alternatives, including segment furigana, spacing, numeric headwords, and dictionary-verifiable phonetic joins. |
@@ -128,6 +134,8 @@ This is an executable check runner, rather than a project using a separate unit-
 - `ProfileChecks.cs`, `StreakChecks.cs`, `TimeChecks.cs`, and `LearningChecks.cs` verify named scopes, study-day boundaries, recorded durations, and difficulty evidence. `LearningUiFixture.cs` supports isolated Learning Patterns checks.
 - `NoteCreationChecks.cs` uses an in-memory HTTP handler to verify tier spillover, preferred forms, live duplicates, profile checks, write payloads, and lost-response recovery without opening or modifying real Anki.
 - `AnkiTransportChecks.cs` exercises HTTP framing against a temporary loopback listener, verifying fixed-length JSON requests and actionable protocol errors without contacting real Anki.
+- `LiveImportChecks.cs` covers live import safety, filtered deck membership, and startup's incremental-only path with simulated AnkiConnect responses.
+- `FastRefreshChecks.cs` verifies cache reuse and full-refresh parity with a simulated 16,000-card collection and a 2,000-card update.
 
 Ordinary checks use temporary synthetic collections and clean up afterward. Real collections must never become committed test fixtures.
 
@@ -135,8 +143,8 @@ Ordinary checks use temporary synthetic collections and clean up afterward. Real
 
 - `AGENTS.md` directs coding agents to read `.docs/development-workflow.md` before each task; the workflow defines branching, validation, pull requests, and authorized merges.
 - `scripts/publish.ps1` publishes a self-contained Windows x64 build, copies third-party notices, and creates packaged and root development shortcuts.
-- `scripts/launch.ps1` rebuilds the current checkout into `artifacts/AnkiStats`, then opens it with normal saved settings. Build failures show a message and write `.tools/launch.log`; inherited test-data overrides are removed from the app's environment.
-- `scripts/create-shortcut.ps1` creates the ignored root `Anki Stats.lnk` pointing to the launcher. Run it again after moving the repository.
+- `scripts/launch.ps1` rebuilds the current checkout into `artifacts/Nakama`, then opens it with normal saved settings. Build failures show a message and write `.tools/launch.log`; inherited test-data overrides are removed from the app's environment.
+- `scripts/create-shortcut.ps1` creates the ignored root `Nakama.lnk` pointing to the launcher. Run it again after moving the repository.
 - `global.json` selects a stable .NET 10 SDK, allowing roll-forward within that SDK generation.
 - `Directory.Build.props` applies shared settings, including nullable-reference checks, deterministic builds, and treating compiler warnings as errors.
 - `.docs/DESIGN.md` records current product behavior, metric definitions, architecture, and safety boundaries.

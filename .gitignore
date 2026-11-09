@@ -13,3 +13,4 @@ artifacts/
 *.csv
 local-data/
 /Anki Stats.lnk
+/Nakama.lnk

@@ -1,4 +1,4 @@
-# Anki Stats: how the program works
+# Nakama: how the program works
 
 For installation and everyday use, start with the [user's guide](USER-GUIDE.md).
 This guide explains the implementation in plain language, with code links. The
@@ -6,7 +6,7 @@ This guide explains the implementation in plain language, with code links. The
 describe those subsystems in more depth. [DESIGN.md](DESIGN.md) is the current
 behavior specification; [future plans](FUTURE-PLANS.md) are not implemented yet.
 
-Anki Stats is a Windows desktop app that helps you explore the Japanese vocabulary and review history in a local Anki collection. It answers questions such as: how many different vocabulary entries are in the decks you selected, when you tend to review, which cards receive the most reviews, and which cards receive the most Again answers.
+Nakama is a Windows desktop app that helps you explore the Japanese vocabulary and review history in a local Anki collection. It answers questions such as: how many different vocabulary entries are in the decks you selected, when you tend to review, which cards receive the most reviews, and which cards receive the most Again answers.
 
 The app measures collection inventory, recorded study activity, and local
 dictionary coverage. Word Coverage adds common-word and corrected OpenJLPT N5–N1
@@ -31,7 +31,7 @@ These distinctions matter. Ten notes do not necessarily mean ten different words
 ## Connect your collection
 
 1. Anki may be open or closed. Keep AnkiConnect enabled for live access while Anki is open.
-2. Open the published `AnkiStats.exe` or its shortcut.
+2. Open the published `Nakama.exe` or its shortcut.
 3. In Settings, choose **Browse…** and select the profile folder containing `collection.anki2`.
 4. Select **Inspect profile** to load the available decks and note types.
 5. Include the deck tree you want to analyze. Descendants inherit a parent's rule. An explicit exclusion omits a subtree; unrelated decks remain excluded.
@@ -40,7 +40,10 @@ These distinctions matter. Ten notes do not necessarily mean ten different words
 8. Choose **Preview selection**. Inspect the counts and example expressions. If fields contain bracket readings such as 漢字[かんじ], use the explicit bracket-reading option when appropriate; it removes annotations from the expression and does not create a separate reading field.
 9. Choose **Save and refresh**.
 
-The app remembers this configuration. Later launches refresh automatically. A refresh reads what is already present in the local collection; it does not synchronize AnkiWeb or pull reviews directly from another device.
+Nakama remembers this configuration. Later launches show the saved results and
+attempt a live **Fast Refresh** when a compatible cache is available. A refresh
+reads the local collection. Synchronize in Anki first to pick up reviews from
+another device.
 
 ## Read the overview
 
@@ -153,7 +156,13 @@ narrowly scoped new-note feature.
 
 [MainWindow.xaml](../src/AnkiStats.App/MainWindow.xaml) defines the pages, buttons, tables, and named text controls. Its companion file, [MainWindow.xaml.cs](../src/AnkiStats.App/MainWindow.xaml.cs), contains event handlers: methods WPF calls when something happens in the window.
 
-For example, the Refresh button calls `RefreshClick`, which runs `RefreshInternal` through a shared `Guard` method. `Guard` disables conflicting controls, shows progress, catches errors, and restores the controls afterward. Startup follows the same refresh path after loading settings and any cached import. Without saved settings, it opens the setup page.
+The **Fast Refresh** and **Full Refresh** buttons call `RefreshInternal` through
+`Guard`, which disables conflicting controls, shows progress, and handles
+errors. Startup loads settings and displays the cached import before calling
+`CollectionReader.TryFastRefresh`. That path requires a compatible live cache
+and AnkiConnect. It leaves the saved results and timestamp in place when a live
+incremental read is unavailable. Without saved settings, startup opens Settings.
+See [refresh modes](anki-connect.md#refresh-modes) for the manual paths.
 
 The window uses **code-behind**, meaning its event-handling C# lives alongside its XAML. Table columns use **data binding**: a column names a property such as `Expression`, and WPF displays that property for each row object. Other controls are updated explicitly, for example:
 
@@ -269,7 +278,7 @@ app data. Its tables separate the following responsibilities:
 | Table | Stored content |
 | --- | --- |
 | settings | Serialized JSON for profile path, deck profiles/rules, mappings, and time zone |
-| cache | Latest imported records as gzip-compressed JSON, including the import's own identity, settings signature, scope, and timestamp |
+| cache | Latest imported records as gzip-compressed JSON, including identity, settings signature, scope, timestamp, and the versioned change index when imported through AnkiConnect |
 | insight_history | Daily template selections keyed by collection/profile scope |
 | coverage_decisions | Per-collection JSON lists keyed by kind: matches, families, or creation journal |
 
@@ -291,7 +300,9 @@ The separate [check runner](../tests/AnkiStats.Checks/Program.cs) builds synthet
 
 Specialized checks cover Calendar, deck profiles, time analysis, learning patterns,
 dictionary restrictions/definitions/reports, generated-note selection, and pending
-recovery. An in-memory HTTP handler simulates AnkiConnect; a temporary loopback
+recovery. [Live refresh checks](anki-connect.md#validation) cover cache reuse,
+startup without a compatible live source, and parity with a full rebuild. An
+in-memory HTTP handler simulates AnkiConnect, and a temporary loopback
 server checks actual HTTP framing. Real note creation is not part of automated
 tests. Marked synthetic fixtures support UI inspection with `ANKISTATS_DATA_DIR`;
 normal builds must not be left running against those fixtures as the user's app.
@@ -313,8 +324,9 @@ For a file-by-file map, read [repository structure](repository-structure.md). Fo
 The app copies an idle source under an exclusive read-only file handle, refusing active journals. SQLite queries run only against the private copy, never the original collection or its sidecars. The app does not bypass locks or repair, checkpoint, or write the source database. Temporary copies are removed after the operation.
 
 Anki commonly holds an exclusive lock. In that case CollectionReader uses local
-AnkiConnect to read notes, cards, and full review history, retaining home-deck
-membership and checking for detected changes before accepting the result. These
+AnkiConnect to read notes, cards, and review history, retaining home-deck
+membership and checking for detected changes before accepting the result. Fast
+Refresh reuses cached records and Full Refresh rereads all scoped history. These
 API reads span multiple requests. Orphaned review rows cannot be counted through
 AnkiConnect and are labeled unavailable. File imports and cached analysis remain
 available without the add-on. The API key, if configured, is entered in Settings
