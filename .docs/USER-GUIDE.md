@@ -207,6 +207,7 @@ if the rest of a batch fails. Edit/delete unwanted notes in Anki itself.
 
 | Problem | What to check |
 | --- | --- |
+| Startup shows saved results | Open Anki on the matching profile with AnkiConnect enabled, then click **Fast Refresh**. Use **Full Refresh** to rebuild a missing or stale live cache |
 | Refresh cannot acquire a snapshot | Let Anki finish any busy operation, check profile access and disk space, then retry. If Anki needs recovery, let Anki recover the collection first |
 | Missing or unexpected statistics | Check source, timestamp, active profile, deck rules, categories, and field mappings before comparing metrics |
 | Cannot reach AnkiConnect | Keep Anki open with the add-on enabled on the correct profile; confirm its configured address/port |

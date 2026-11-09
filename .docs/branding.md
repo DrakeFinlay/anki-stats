@@ -33,14 +33,14 @@ These assets are generated locally with WPF typography and drawing APIs.
 
 ## Names and compatibility
 
-Window titles, dialogs, executable metadata, the executable (`Nakama.exe`),
-packaged output (`artifacts/Nakama`), and shortcuts (`Nakama.lnk`) use the new name.
-Run `scripts/create-shortcut.ps1` to recreate the development shortcut; publishing
-also recreates it. Older ignored `Anki Stats.lnk` shortcuts and published folders
-may remain on an existing checkout. The new canonical launcher is `Nakama.lnk`.
+**Nakama** is the product name in documentation and the interface. The canonical
+development launcher is `Nakama.lnk`, and the default packaged executable is
+`artifacts/Nakama/Nakama.exe`. Run `scripts/create-shortcut.ps1` to recreate the
+development shortcut. Publishing also recreates it. Older ignored
+`Anki Stats.lnk` shortcuts and packaged folders may remain on an existing checkout.
 
-The repository folder and GitHub remote, project paths, C# namespaces, and core
-assembly still use `AnkiStats`. Saved app data stays under
+The `anki-stats` repository slug and `AnkiStats` project and namespace identifiers
+remain for compatibility with existing tooling. Saved app data stays under
 `%LOCALAPPDATA%\AnkiStats`, and `ANKISTATS_DATA_DIR` continues to select an isolated
 test session. Existing settings, imports, mapping decisions, and creation journals
 therefore remain available without migration. Legacy Anki attribution and tag

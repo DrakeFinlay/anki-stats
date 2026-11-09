@@ -91,7 +91,7 @@ This library contains the work that does not require a window. Keeping it separa
 | `TimeAnalysis.cs` | Calculates recorded time, mean/median answer duration, six-month comparisons, and study-day/week/hour aggregates. |
 | `LearningPatterns.cs` | Applies deck-role rules and three-lapse history criteria; produces cross-deck and explicit reading/written-form/gloss candidates. |
 | `CollectionImporter.cs` | Safely acquires a private collection copy, reads supported schemas, applies selections, and extracts notes, cards, and review events. |
-| `CollectionReader.cs` | Uses file snapshots with a live AnkiConnect fallback when Anki holds an exclusive lock; disables fallback for isolated sessions. |
+| `CollectionReader.cs` | Uses file snapshots with a live AnkiConnect fallback for manual refresh. Startup can only refresh incrementally through AnkiConnect. Isolated sessions use file access. |
 | `LiveCollectionImporter.cs` | Verifies live metadata and home-deck membership, builds and updates the Fast Refresh index, and reads review histories through AnkiConnect. Shares the file importer's projection rules. |
 | `Analysis.cs` | Cleans field text, groups vocabulary entries, calculates review statistics, generates discovery candidates, and writes CSV exports. |
 | `VocabularyCoverage.cs` | Matches expression/reading pairs to restricted dictionary forms, aggregates named-deck cohorts and entry coverage, groups conservative families, and produces Markdown missing-word reports. |
@@ -134,6 +134,8 @@ This is an executable check runner, rather than a project using a separate unit-
 - `ProfileChecks.cs`, `StreakChecks.cs`, `TimeChecks.cs`, and `LearningChecks.cs` verify named scopes, study-day boundaries, recorded durations, and difficulty evidence. `LearningUiFixture.cs` supports isolated Learning Patterns checks.
 - `NoteCreationChecks.cs` uses an in-memory HTTP handler to verify tier spillover, preferred forms, live duplicates, profile checks, write payloads, and lost-response recovery without opening or modifying real Anki.
 - `AnkiTransportChecks.cs` exercises HTTP framing against a temporary loopback listener, verifying fixed-length JSON requests and actionable protocol errors without contacting real Anki.
+- `LiveImportChecks.cs` covers live import safety, filtered deck membership, and startup's incremental-only path with simulated AnkiConnect responses.
+- `FastRefreshChecks.cs` verifies cache reuse and full-refresh parity with a simulated 16,000-card collection and a 2,000-card update.
 
 Ordinary checks use temporary synthetic collections and clean up afterward. Real collections must never become committed test fixtures.
 

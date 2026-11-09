@@ -178,7 +178,7 @@ the UI automatically imports a fresh snapshot with Anki still open. If that
 refresh fails, it retains the creation result and reports how to retry Fast Refresh;
 successful notes remain in Anki. File imports do not require AnkiConnect.
 
-## Validation
+## Confirmed grammar links
 
 Confirmed per-note grammar links from [Mappings](mappings.md) are included in live
 duplicate checks across configured vocabulary and grammar note types. Current
@@ -205,6 +205,8 @@ only if the note's guarded fields still match. Isolated/synthetic UI sessions
 cannot reach the live edit path. See [Mappings](mappings.md) for controls and
 the distinction between local link buckets and actual field-edit receipts.
 
+## Validation
+
 [NoteCreationChecks.cs](../tests/AnkiStats.Checks/NoteCreationChecks.cs) simulates
 selection, spillover, exhaustion, payloads, profile changes, stale previews,
 pre-write journal failure, lost responses, and tag-free recovery.
@@ -214,5 +216,11 @@ diagnostics. These checks do not add real notes.
 [LiveImportChecks.cs](../tests/AnkiStats.Checks/LiveImportChecks.cs) covers live
 mapping/extraction, home-deck membership, changed records, cache provenance,
 exclusive-lock fallback, wrong-profile rejection, and isolated-session protection.
+It verifies that startup reuses a compatible live cache and skips a full import
+when AnkiConnect is offline or the cache is missing, stale, or incompatible.
+[FastRefreshChecks.cs](../tests/AnkiStats.Checks/FastRefreshChecks.cs) covers recent
+review undo, deck moves, cache persistence, and parity with a full rebuild. Its
+16,000-card scenario measures simulated AnkiConnect response sizes and importer
+timing for unchanged data and 2,000 changed cards.
 The check runner's `--inspect-live <profile-folder>` command performs read-only
 discovery and a full live import without saving settings or creating notes.

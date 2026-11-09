@@ -40,7 +40,10 @@ These distinctions matter. Ten notes do not necessarily mean ten different words
 8. Choose **Preview selection**. Inspect the counts and example expressions. If fields contain bracket readings such as 漢字[かんじ], use the explicit bracket-reading option when appropriate; it removes annotations from the expression and does not create a separate reading field.
 9. Choose **Save and refresh**.
 
-The app remembers this configuration. Later launches refresh automatically. A refresh reads what is already present in the local collection; it does not synchronize AnkiWeb or pull reviews directly from another device.
+Nakama remembers this configuration. Later launches show the saved results and
+attempt a live **Fast Refresh** when a compatible cache is available. A refresh
+reads the local collection. Synchronize in Anki first to pick up reviews from
+another device.
 
 ## Read the overview
 
@@ -153,7 +156,13 @@ narrowly scoped new-note feature.
 
 [MainWindow.xaml](../src/AnkiStats.App/MainWindow.xaml) defines the pages, buttons, tables, and named text controls. Its companion file, [MainWindow.xaml.cs](../src/AnkiStats.App/MainWindow.xaml.cs), contains event handlers: methods WPF calls when something happens in the window.
 
-For example, the Refresh button calls `RefreshClick`, which runs `RefreshInternal` through a shared `Guard` method. `Guard` disables conflicting controls, shows progress, catches errors, and restores the controls afterward. Startup follows the same refresh path after loading settings and any cached import. Without saved settings, it opens the setup page.
+The **Fast Refresh** and **Full Refresh** buttons call `RefreshInternal` through
+`Guard`, which disables conflicting controls, shows progress, and handles
+errors. Startup loads settings and displays the cached import before calling
+`CollectionReader.TryFastRefresh`. That path requires a compatible live cache
+and AnkiConnect. It leaves the saved results and timestamp in place when a live
+incremental read is unavailable. Without saved settings, startup opens Settings.
+See [refresh modes](anki-connect.md#refresh-modes) for the manual paths.
 
 The window uses **code-behind**, meaning its event-handling C# lives alongside its XAML. Table columns use **data binding**: a column names a property such as `Expression`, and WPF displays that property for each row object. Other controls are updated explicitly, for example:
 
@@ -269,7 +278,7 @@ app data. Its tables separate the following responsibilities:
 | Table | Stored content |
 | --- | --- |
 | settings | Serialized JSON for profile path, deck profiles/rules, mappings, and time zone |
-| cache | Latest imported records as gzip-compressed JSON, including the import's own identity, settings signature, scope, and timestamp |
+| cache | Latest imported records as gzip-compressed JSON, including identity, settings signature, scope, timestamp, and the versioned change index when imported through AnkiConnect |
 | insight_history | Daily template selections keyed by collection/profile scope |
 | coverage_decisions | Per-collection JSON lists keyed by kind: matches, families, or creation journal |
 
@@ -291,7 +300,9 @@ The separate [check runner](../tests/AnkiStats.Checks/Program.cs) builds synthet
 
 Specialized checks cover Calendar, deck profiles, time analysis, learning patterns,
 dictionary restrictions/definitions/reports, generated-note selection, and pending
-recovery. An in-memory HTTP handler simulates AnkiConnect; a temporary loopback
+recovery. [Live refresh checks](anki-connect.md#validation) cover cache reuse,
+startup without a compatible live source, and parity with a full rebuild. An
+in-memory HTTP handler simulates AnkiConnect, and a temporary loopback
 server checks actual HTTP framing. Real note creation is not part of automated
 tests. Marked synthetic fixtures support UI inspection with `ANKISTATS_DATA_DIR`;
 normal builds must not be left running against those fixtures as the user's app.

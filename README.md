@@ -2,7 +2,7 @@
 
 <img src="src/AnkiStats.App/Assets/Nakama.png" alt="Nakama: 仲, companion" width="96" height="96"/>
 
-**仲間 · なかま · companion** — your Japanese learning companion, formerly Anki Stats.
+**仲間 · なかま · companion** — your Japanese learning companion.
 
 A local Windows desktop app for exploring Japanese vocabulary and Anki review history. Includes vocabulary inventory, common-word/JLPT coverage, review analysis, daily discoveries, exports, and explicitly triggered creation of missing vocabulary notes.
 
@@ -28,7 +28,7 @@ Anki sentence-field analysis and unread-position tracking remain
 - [User's guide](.docs/USER-GUIDE.md) — introduction, installation, setup, every page, creating notes, and troubleshooting.
 - [Branding](.docs/branding.md) — name, logo assets, colors, and compatibility with existing profiles.
 - [Current design](.docs/DESIGN.md) — implemented behavior, metric definitions, architecture, and data-safety boundaries.
-- [Future plans](.docs/FUTURE-PLANS.md) — unimplemented directions, sentence/media ideas, and decisions still to settle.
+- [Future plans](.docs/FUTURE-PLANS.md) — completed milestones, refresh follow-ups, and open product directions.
 - [Development workflow](.docs/development-workflow.md) — branch, validation, pull request, and merge rules for contributors and coding agents.
 - [Repository structure](.docs/repository-structure.md) — where the code, checks, build scripts, and documentation live.
 - [Tools used](.docs/tools-used.md) — languages, libraries, development tools, and build commands.
@@ -50,7 +50,12 @@ On first launch:
 4. Confirm each note type's category and fields. Only Vocabulary types contribute to the vocabulary inventory; Grammar and Kanji types can contribute review events.
 5. Select **Preview selection**, check the extracted expressions, then **Save and refresh**.
 
-Subsequent launches show the saved import and run **Fast Refresh** when AnkiConnect and a compatible live cache are available. Otherwise, startup leaves the saved import and timestamp in place. Use **Full Refresh** to rebuild the live cache or reconcile older history after a restore, bulk history edit, or sync. With Anki closed, clicking either refresh button reads a safe, complete file snapshot.
+Subsequent launches show the saved import and run **Fast Refresh** when
+AnkiConnect and a compatible live cache are available. Otherwise, startup leaves
+the saved import and timestamp in place. Use **Full Refresh** to reconcile older
+history after a restore, bulk history edit, or sync. Run it with Anki open to
+rebuild the live cache. With Anki closed, clicking either refresh button reads a
+safe, complete file snapshot. See [refresh modes](.docs/anki-connect.md#refresh-modes).
 
 ## Deck profiles
 

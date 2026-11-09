@@ -75,11 +75,11 @@ details and displays a review-rhythm chart for each enabled deck profile. The
 header and Calendar profile selectors stay synchronized. Daily discovery history
 is separate per collection and deck-profile ID.
 
-Startup shows cached results and attempts only a compatible live Fast Refresh. Inspection, settings
-preview/save, and refresh support Anki open or closed. Failures display recovery information and retain the latest successful
-scope and timestamp. The source profile is visible; isolated or synthetic sessions
-have a prominent warning and distinct window title. Refresh reads local data and
-does not synchronize AnkiWeb.
+Startup shows cached results and attempts Fast Refresh when AnkiConnect and a
+compatible live cache are available. Otherwise, it keeps the last successful
+scope and timestamp. Inspection, settings preview/save, and manual refresh work
+with Anki open or closed. The source profile is visible, and isolated or
+synthetic sessions display a warning and a distinct window title.
 
 ## 3. Vocabulary inventory and reference coverage
 
