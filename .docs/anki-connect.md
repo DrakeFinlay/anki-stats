@@ -11,8 +11,9 @@ corrections. Closed-file imports and cached analysis work without it.
 read-only file snapshot. If the source is unavailable, it uses
 [LiveCollectionImporter.cs](../src/AnkiStats.Core/LiveCollectionImporter.cs) to read
 through AnkiConnect. Isolated and synthetic UI sessions never fall back to the
-user's running Anki. Startup, inspection, settings preview/save, manual refresh,
-and automatic refresh after creation all use this reader.
+user's running Anki. Inspection, settings preview/save, manual refresh, and
+automatic refresh after creation use this file-first path. Startup attempts only
+a live incremental read and keeps the saved results when that is unavailable.
 
 The live reader verifies API version and active profile before and after reads.
 It reads deck/model IDs and ordered field names, searches exact `did:` membership,
@@ -27,9 +28,10 @@ as data and never executed.
 **Full Refresh** fetches current card details and note fields, then reads and
 verifies all available review history for cards in the saved mapped scopes. It
 replaces the live change index and the projected statistics together in local
-SQLite. This is also the live path when there is no compatible index, the
-settings or note types changed, or more than 28 days passed since the last live
-read. With Anki closed, either button reads a complete private file snapshot.
+SQLite. The **Fast Refresh** button can also build a full baseline when the
+index is missing, settings or note types changed, or more than 28 days passed
+since the last live read. With Anki closed, clicking either button reads a
+complete private file snapshot.
 
 **Fast Refresh** uses AnkiConnect's current deck membership, card and note
 modification times, and buried-card search to decide which details to fetch.

@@ -50,7 +50,7 @@ On first launch:
 4. Confirm each note type's category and fields. Only Vocabulary types contribute to the vocabulary inventory; Grammar and Kanji types can contribute review events.
 5. Select **Preview selection**, check the extracted expressions, then **Save and refresh**.
 
-Subsequent launches run **Fast Refresh** automatically. With Anki open, it checks for changed cards and notes and rechecks recent review history using AnkiConnect. Use **Full Refresh** to reconcile older review history after a restore, bulk history edit, or sync that brought in older reviews. With Anki closed, either button reads a safe, complete file snapshot. A failed refresh leaves the latest successful import available with its original scope and timestamp.
+Subsequent launches show the saved import and run **Fast Refresh** when AnkiConnect and a compatible live cache are available. Otherwise, startup leaves the saved import and timestamp in place. Use **Full Refresh** to rebuild the live cache or reconcile older history after a restore, bulk history edit, or sync. With Anki closed, clicking either refresh button reads a safe, complete file snapshot.
 
 ## Deck profiles
 

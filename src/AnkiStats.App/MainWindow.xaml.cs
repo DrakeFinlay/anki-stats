@@ -12,6 +12,7 @@ namespace AnkiStats.App;
 
 public partial class MainWindow : Window
 {
+    private enum RefreshMode { Fast, Full, Startup }
     private LocalStore store = null!;
     private Settings? settings;
     private ImportedCollection? data;
@@ -67,14 +68,17 @@ public partial class MainWindow : Window
             TimeZonePicker.SelectedValue = settings.TimeZoneId;
             try { importedData = await Task.Run(() => store.LoadCache(settings.CollectionKey)); }
             catch (Exception e) when (e is IOException or InvalidDataException or System.Text.Json.JsonException or Microsoft.Data.Sqlite.SqliteException)
-            { SetStatus("The previous cache could not be read. Attempting a fresh import.", true); }
+            {
+                SetStatus("The previous cache could not be read. Use Full Refresh to rebuild it.", true);
+                return;
+            }
             if (importedData is not null)
             {
                 PopulateSettings(importedData.Metadata, settings);
                 await DisplayImport(importedData);
                 SetStatus("Showing the last successful import while refreshing…");
             }
-            await RefreshInternal();
+            await RefreshInternal(RefreshMode.Startup);
         });
         dayTimer.Start();
     }
@@ -128,20 +132,31 @@ public partial class MainWindow : Window
         return new(store.TemporaryRoot, () => new AnkiConnectClient(key),
             allowLive: !store.IsIsolated && !File.Exists(Path.Combine(profile, ".ankistats-test-data")));
     }
-    private async Task RefreshInternal(bool full = false)
+    private async Task RefreshInternal(RefreshMode mode = RefreshMode.Fast)
     {
         if (settings is null) { ShowPage("Settings"); SetStatus("Choose a profile, select decks, and preview the field mappings first."); return; }
-        SetStatus("Acquiring a safe private copy of the collection…");
+        SetStatus(mode == RefreshMode.Startup ? "Checking for a live Fast Refresh…" : "Acquiring a safe private copy of the collection…");
         var progress = new Progress<string>(s => SetStatus(s));
         var draft = DeckProfiles.Copy(settings);
-        if (draft.Profiles.Count == 0)
+        if (mode != RefreshMode.Startup && draft.Profiles.Count == 0)
         {
             var found = await ReaderFor(draft.ProfileFolder).Discover(draft.ProfileFolder);
             DeckProfiles.Ensure(draft, found);
             foreach (var type in found.NoteTypes.Where(t => draft.Mappings.All(m => m.NoteTypeId != t.Id)))
                 draft.Mappings.Add(new MappingChoice(type, null).ToMapping());
         }
-        var refreshed = await ReaderFor(draft.ProfileFolder).Refresh(draft, full ? null : importedData, mediaLibrary.Count > 0, progress);
+        var reader = ReaderFor(draft.ProfileFolder);
+        var includeMedia = mediaLibrary.Count > 0;
+        var refreshed = mode == RefreshMode.Startup
+            ? await reader.TryFastRefresh(draft, importedData, includeMedia, progress)
+            : await reader.Refresh(draft, mode == RefreshMode.Full ? null : importedData, includeMedia, progress);
+        if (refreshed is null)
+        {
+            SetStatus(importedData is null
+                ? "No saved import is available. Use Full Refresh to load your collection."
+                : "Showing saved results. Automatic Fast Refresh needs AnkiConnect and a compatible live cache.");
+            return;
+        }
         var next = refreshed.Stats;
         // Validate and compute before replacing the last successful persistent result.
         SetStatus("Updating statistics for the saved deck profiles…");
@@ -156,8 +171,8 @@ public partial class MainWindow : Window
             try { await CompareMedia(default, media); }
             catch (Exception e) { mediaCoverage = null; DrawMedia(); MediaStatus.Text = "Media comparison unavailable: " + e.Message; }
         }
-        var mode = next.IsIncremental ? "Fast refresh complete. Use Full Refresh to reconcile all review history." : "Full refresh complete.";
-        SetStatus($"{mode} {prepared.Count:N0} enabled deck profiles · {next.Cards.Count:N0} unique included cards.");
+        var result = next.IsIncremental ? "Fast refresh complete. Use Full Refresh to reconcile all review history." : "Full refresh complete.";
+        SetStatus($"{result} {prepared.Count:N0} enabled deck profiles · {next.Cards.Count:N0} unique included cards.");
     }
     private async Task AnalyzeAndDisplay(AnalysisResult? computed = null)
     {
@@ -253,7 +268,7 @@ public partial class MainWindow : Window
         SettingsPage.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
     }
     private async void RefreshClick(object sender, RoutedEventArgs e) => await Guard(() => RefreshInternal());
-    private async void FullRefreshClick(object sender, RoutedEventArgs e) => await Guard(() => RefreshInternal(full: true));
+    private async void FullRefreshClick(object sender, RoutedEventArgs e) => await Guard(() => RefreshInternal(RefreshMode.Full));
     private void SearchChanged(object sender, TextChangedEventArgs e) { if (ready) ApplySearch(); }
     private void ApplySearch()
     {

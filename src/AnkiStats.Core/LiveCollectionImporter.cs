@@ -62,24 +62,34 @@ public sealed class LiveCollectionImporter(AnkiConnectClient client)
         (await Refresh(settings, progress: progress)).Stats;
 
     public async Task<ImportedCollection> ImportMedia(Settings settings) =>
-        (await Read(settings, null, false, mediaOnly: true, progress: null)).Stats;
+        (await Read(settings, null, false, mediaOnly: true, progress: null))!.Stats;
 
-    public Task<CollectionRefresh> Refresh(Settings settings, ImportedCollection? previous = null,
-        bool includeMedia = false, IProgress<string>? progress = null) => Read(settings, previous, includeMedia, mediaOnly: false, progress);
+    public async Task<CollectionRefresh> Refresh(Settings settings, ImportedCollection? previous = null,
+        bool includeMedia = false, IProgress<string>? progress = null) =>
+        (await Read(settings, previous, includeMedia, mediaOnly: false, progress))!;
 
-    private async Task<CollectionRefresh> Read(Settings settings, ImportedCollection? previous, bool includeMedia,
-        bool mediaOnly, IProgress<string>? progress)
+    internal Task<CollectionRefresh?> TryFastRefresh(Settings settings, ImportedCollection previous,
+        bool includeMedia, IProgress<string>? progress) => Read(settings, previous, includeMedia, mediaOnly: false, progress, fastOnly: true);
+
+    private async Task<CollectionRefresh?> Read(Settings settings, ImportedCollection? previous, bool includeMedia,
+        bool mediaOnly, IProgress<string>? progress, bool fastOnly = false)
     {
         var started = DateTimeOffset.UtcNow;
-        progress?.Report("Checking live deck membership and field definitions…");
-        var inventory = await InventoryFor(settings.ProfileFolder);
-        if (mediaOnly) settings = MediaAnalysis.CollectionSettings(settings, inventory.Metadata);
         var index = previous?.LiveIndex;
         // A long gap uses a full baseline. Keep the rated search within a bounded range.
         if (index?.Version != IndexVersion || previous!.CollectionKey != settings.CollectionKey || previous.Signature != settings.Signature
-            || started < index.ReadStartedAt || started - index.ReadStartedAt > TimeSpan.FromDays(28)
-            || !SameNoteTypes(previous.Metadata, inventory.Metadata))
+            || started < index.ReadStartedAt || started - index.ReadStartedAt > TimeSpan.FromDays(28))
             index = null;
+        if (fastOnly && index is null) return null;
+
+        progress?.Report("Checking live deck membership and field definitions…");
+        var inventory = await InventoryFor(settings.ProfileFolder);
+        if (mediaOnly) settings = MediaAnalysis.CollectionSettings(settings, inventory.Metadata);
+        if (index is not null && !SameNoteTypes(previous!.Metadata, inventory.Metadata))
+        {
+            if (fastOnly) return null;
+            index = null;
+        }
 
         var selectedDecks = inventory.Metadata.Decks.Where(d => settings.Includes(d.Name)).Select(d => d.Name).ToHashSet();
         var expectedDecks = inventory.HomeDecks.Where(c => includeMedia || selectedDecks.Contains(c.Value)).ToDictionary();

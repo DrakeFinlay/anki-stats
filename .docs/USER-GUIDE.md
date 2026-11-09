@@ -52,10 +52,11 @@ statistics work without the add-on.
    displayed; confirm that the preview matches your field format.
 7. Select **Save and refresh**.
 
-The app remembers your settings and runs **Fast Refresh** at startup. The source
-profile and last successful refresh time are shown near the top. A failed refresh
-keeps the previous successful results. A **TEST SESSION** banner means you are
-looking at isolated development data rather than the normal connected collection.
+The app remembers your settings and shows the saved import at startup. It runs
+**Fast Refresh** automatically when AnkiConnect and a compatible live cache are
+available. Otherwise, the previous results and timestamp stay in place. Use
+**Full Refresh** with Anki open to prepare a live cache. A **TEST SESSION** banner
+means you are looking at isolated development data.
 
 ## The everyday workflow
 
@@ -67,12 +68,12 @@ looking at isolated development data rather than the normal connected collection
 
 - **Fast Refresh** is for everyday study. With Anki open, it reuses the local
   cache and checks for card and note changes, new reviews, and recent undos. The
-  first live refresh or a refresh after a long gap builds a full baseline.
+  button can build a full baseline when the live cache is missing or too old.
 - **Full Refresh** rereads all available history. Use it after a restore, bulk
   history edit, or a sync that brought in older reviews. AnkiConnect can miss
   older review-only changes during Fast Refresh.
 
-With Anki closed, both buttons read a complete private copy. To pick up reviews
+With Anki closed, clicking either button reads a complete private copy. To pick up reviews
 from another device, synchronize through Anki before refreshing Nakama.
 
 Choose **Active profile** to switch between named deck selections, such as

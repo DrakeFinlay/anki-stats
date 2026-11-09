@@ -1,3 +1,6 @@
+using System.Net.Http;
+using System.Net.Sockets;
+
 namespace AnkiStats.Core;
 
 // Keep file import available without Anki or its add-on. A running Anki commonly
@@ -23,6 +26,19 @@ public sealed class CollectionReader(string temporaryRoot, Func<AnkiConnectClien
             return new CollectionRefresh(stats, media);
         }),
         client => new LiveCollectionImporter(client).Refresh(settings, previous, includeMedia, progress));
+
+    public async Task<CollectionRefresh?> TryFastRefresh(Settings settings, ImportedCollection? previous, bool includeMedia,
+        IProgress<string>? progress = null)
+    {
+        // Preserve the saved view whenever a live incremental read is unavailable at startup.
+        if (!allowLive || previous?.LiveIndex is null || !File.Exists(Path.Combine(settings.ProfileFolder, "collection.anki2")))
+            return null;
+        using var client = clientFactory();
+        try { return await new LiveCollectionImporter(client).TryFastRefresh(settings, previous, includeMedia, progress); }
+        catch (IOException error) when (error.InnerException is HttpRequestException
+            { InnerException: SocketException { SocketErrorCode: SocketError.ConnectionRefused } })
+        { return null; }
+    }
 
     public Task<ImportedCollection> ImportMedia(Settings settings) => Read(
         () => new CollectionImporter(temporaryRoot).WithPrivateCopy(settings.ProfileFolder, db =>
