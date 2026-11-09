@@ -1,4 +1,8 @@
-# Anki Stats
+# Nakama
+
+<img src="src/AnkiStats.App/Assets/Nakama.png" alt="Nakama: 仲, companion" width="96" height="96"/>
+
+**仲間 · なかま · companion** — your Japanese learning companion, formerly Anki Stats.
 
 A local Windows desktop app for exploring Japanese vocabulary and Anki review history. Includes vocabulary inventory, common-word/JLPT coverage, review analysis, daily discoveries, exports, and explicitly triggered creation of missing vocabulary notes.
 
@@ -22,6 +26,7 @@ Anki sentence-field analysis and unread-position tracking remain
 ## Documentation
 
 - [User's guide](.docs/USER-GUIDE.md) — introduction, installation, setup, every page, creating notes, and troubleshooting.
+- [Branding](.docs/branding.md) — name, logo assets, colors, and compatibility with existing profiles.
 - [Current design](.docs/DESIGN.md) — implemented behavior, metric definitions, architecture, and data-safety boundaries.
 - [Future plans](.docs/FUTURE-PLANS.md) — unimplemented directions, sentence/media ideas, and decisions still to settle.
 - [Development workflow](.docs/development-workflow.md) — branch, validation, pull request, and merge rules for contributors and coding agents.
@@ -33,9 +38,9 @@ Anki sentence-field analysis and unread-position tracking remain
 
 ## Run
 
-During development, use **Anki Stats.lnk in the repository root**. It builds and packages the current checkout before opening, including uncommitted source changes, so it stays current as we iterate. It uses your normal saved profile and clears inherited test-data overrides. Startup may take a few seconds; a failed build shows a message and records details in `.tools/launch.log` instead of opening an old version. Close the app before launching after code changes. This development shortcut requires the project-local or an installed .NET 10 SDK. Regenerate it with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1` if the repository moves.
+During development, use **Nakama.lnk in the repository root**. It builds and packages the current checkout before opening, including uncommitted source changes, so it stays current as we iterate. It uses your normal saved profile and clears inherited test-data overrides. Startup may take a few seconds; a failed build shows a message and records details in `.tools/launch.log` instead of opening an old version. Close the app before launching after code changes. This development shortcut requires the project-local or an installed .NET 10 SDK. Regenerate it with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1` if the repository moves.
 
-For a standalone packaged build, open `artifacts/AnkiStats/AnkiStats.exe`. Published executables are snapshots: other artifact folders can contain older versions and do not update themselves. No terminal, browser, or separately installed .NET runtime is required for a self-contained build. Install AnkiConnect for live imports while Anki is running and for note creation. Closed-file imports and cached analysis need no add-on.
+For a standalone packaged build, open `artifacts/Nakama/Nakama.exe`. Published executables are snapshots: other artifact folders can contain older versions and do not update themselves. No terminal, browser, or separately installed .NET runtime is required for a self-contained build. Install AnkiConnect for live imports while Anki is running and for note creation. Closed-file imports and cached analysis need no add-on.
 
 On first launch:
 
@@ -152,7 +157,7 @@ Reference data is licensed under CC BY-SA 4.0; see [third-party notices](THIRD-P
 ### Create missing vocabulary notes
 
 Install [AnkiConnect](https://ankiweb.net/shared/info/2055492159) in Anki and restart
-Anki once. Keep Anki open on the same profile selected in Anki Stats. Inspect,
+Anki once. Keep Anki open on the same profile selected in Nakama. Inspect,
 preview, save settings, and refresh without closing Anki. In Word Coverage, enter a positive whole number under **Add missing
 words to Anki**, select **Preview new notes**, review the batch, and select
 **Create … new notes**. Preview and Cancel never add anything.
@@ -221,7 +226,7 @@ dotnet run --project tests/AnkiStats.Checks -c Release
 .\scripts\publish.ps1
 ```
 
-Publish creates a self-contained x64 executable in the ignored `artifacts/AnkiStats` folder, a shortcut alongside that folder, and the development shortcut in the repository root. The root shortcut always rebuilds the canonical `artifacts/AnkiStats` output regardless of any custom publish folder. Keep the packaged license/notice files with the executable. Build dependencies are restored from NuGet; see [third-party notices](THIRD-PARTY-NOTICES.md).
+Publish creates a self-contained x64 executable in the ignored `artifacts/Nakama` folder, a shortcut alongside that folder, and the development shortcut in the repository root. The root shortcut always rebuilds the canonical `artifacts/Nakama` output regardless of any custom publish folder. Keep the packaged license/notice files with the executable. Build dependencies are restored from NuGet; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
 The focused checks use synthetic collections and cover vocabulary deduplication, Japanese entry distinctions, dictionary/definition matching, cohort scopes, preferred forms, tag-free note creation, tier spillover, live duplicate checks, interrupted-write recovery, HTTP framing, time boundaries and daylight saving, exports, daily rotation, cache isolation, exclusive-lock fallback, live import scope/mapping/review parity, changed-record rejection, schema rejection, and source integrity. AnkiConnect checks use simulated responses and a temporary loopback HTTP listener without writing real Anki notes. Optional local file-import validation accepts a profile folder through `--inspect`; `--inspect-live` validates full read-only AnkiConnect import without saving settings or creating notes.
 

@@ -1,4 +1,4 @@
-# Anki Stats — Future Plans
+# Nakama — Future Plans
 
 This is the backlog after the completed Phase 1A/1B work. These are unimplemented
 ideas, with no delivery dates or selected integration providers. [DESIGN.md](DESIGN.md)

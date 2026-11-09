@@ -13,7 +13,7 @@ public partial class App : Application
         base.OnStartup(e);
         DispatcherUnhandledException += (_, args) =>
         {
-            MessageBox.Show("An operation could not finish. Your Anki collection has not been modified.\n\n" + args.Exception.Message, "Anki Stats", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("An operation could not finish. Your Anki collection has not been modified.\n\n" + args.Exception.Message, "Nakama", MessageBoxButton.OK, MessageBoxImage.Warning);
             args.Handled = true;
         };
     }

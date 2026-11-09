@@ -1,4 +1,4 @@
-# Anki Stats — Current Design
+# Nakama — Current Design
 
 Status: Phase 1A and Phase 1B are implemented. This document describes the current
 application and its rules. [FUTURE-PLANS.md](FUTURE-PLANS.md) contains unimplemented
@@ -11,7 +11,7 @@ walkthroughs, see [how the program works](program-guide.md),
 
 ## 1. Product and completed scope
 
-Anki Stats is a local Windows desktop application for exploring a Japanese Anki
+Nakama is a local Windows desktop application for exploring a Japanese Anki
 collection. Anki remains the source of truth. The app measures vocabulary
 inventory, dictionary coverage, and recorded study activity, and can explicitly
 create new notes for missing vocabulary.

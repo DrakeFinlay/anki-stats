@@ -62,7 +62,7 @@ dotnet run --project tests/AnkiStats.Checks -c Release
 .\scripts\publish.ps1
 ```
 
-The default publish output is `artifacts/AnkiStats`. Keep the executable, notices, and accompanying `LICENSES` folder together. Close a running copy before replacing its executable, or publish to another output folder with the script's `-OutputDirectory` parameter.
+The default publish output is `artifacts/Nakama`. Keep the executable, notices, and accompanying `LICENSES` folder together. Close a running copy before replacing its executable, or publish to another output folder with the script's `-OutputDirectory` parameter.
 
 ## Validation tools and approach
 

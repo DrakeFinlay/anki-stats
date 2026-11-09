@@ -6,6 +6,7 @@ This repository contains a Windows desktop application, a reusable analysis libr
 anki-stats/
 ├── .docs/
 │   ├── development-workflow.md
+│   ├── branding.md
 │   ├── repository-structure.md
 │   ├── tools-used.md
 │   ├── DESIGN.md
@@ -24,6 +25,7 @@ anki-stats/
 ├── scripts/
 │   ├── publish.ps1
 │   ├── launch.ps1
+│   ├── create-brand-assets.ps1
 │   └── create-shortcut.ps1
 ├── LICENSES/
 ├── .gitignore
@@ -35,6 +37,10 @@ anki-stats/
 ```
 
 ## Application: `src/AnkiStats.App`
+
+`Assets/` contains Nakama's outlined SVG logos, PNG previews/sidebar wordmark,
+and multi-resolution Windows icon. See [branding](branding.md) for regeneration
+and naming compatibility.
 
 `MainWindow.Media.cs` implements Media navigation, online/local acquisition,
 whole-collection comparison, source inspection and responsive cover shelves.
@@ -135,8 +141,8 @@ Ordinary checks use temporary synthetic collections and clean up afterward. Real
 
 - `AGENTS.md` directs coding agents to read `.docs/development-workflow.md` before each task; the workflow defines branching, validation, pull requests, and authorized merges.
 - `scripts/publish.ps1` publishes a self-contained Windows x64 build, copies third-party notices, and creates packaged and root development shortcuts.
-- `scripts/launch.ps1` rebuilds the current checkout into `artifacts/AnkiStats`, then opens it with normal saved settings. Build failures show a message and write `.tools/launch.log`; inherited test-data overrides are removed from the app's environment.
-- `scripts/create-shortcut.ps1` creates the ignored root `Anki Stats.lnk` pointing to the launcher. Run it again after moving the repository.
+- `scripts/launch.ps1` rebuilds the current checkout into `artifacts/Nakama`, then opens it with normal saved settings. Build failures show a message and write `.tools/launch.log`; inherited test-data overrides are removed from the app's environment.
+- `scripts/create-shortcut.ps1` creates the ignored root `Nakama.lnk` pointing to the launcher. Run it again after moving the repository.
 - `global.json` selects a stable .NET 10 SDK, allowing roll-forward within that SDK generation.
 - `Directory.Build.props` applies shared settings, including nullable-reference checks, deterministic builds, and treating compiler warnings as errors.
 - `.docs/DESIGN.md` records current product behavior, metric definitions, architecture, and safety boundaries.

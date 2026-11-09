@@ -1,4 +1,4 @@
-# Anki Stats: how the program works
+# Nakama: how the program works
 
 For installation and everyday use, start with the [user's guide](USER-GUIDE.md).
 This guide explains the implementation in plain language, with code links. The
@@ -6,7 +6,7 @@ This guide explains the implementation in plain language, with code links. The
 describe those subsystems in more depth. [DESIGN.md](DESIGN.md) is the current
 behavior specification; [future plans](FUTURE-PLANS.md) are not implemented yet.
 
-Anki Stats is a Windows desktop app that helps you explore the Japanese vocabulary and review history in a local Anki collection. It answers questions such as: how many different vocabulary entries are in the decks you selected, when you tend to review, which cards receive the most reviews, and which cards receive the most Again answers.
+Nakama is a Windows desktop app that helps you explore the Japanese vocabulary and review history in a local Anki collection. It answers questions such as: how many different vocabulary entries are in the decks you selected, when you tend to review, which cards receive the most reviews, and which cards receive the most Again answers.
 
 The app measures collection inventory, recorded study activity, and local
 dictionary coverage. Word Coverage adds common-word and corrected OpenJLPT N5–N1
@@ -31,7 +31,7 @@ These distinctions matter. Ten notes do not necessarily mean ten different words
 ## Connect your collection
 
 1. Anki may be open or closed. Keep AnkiConnect enabled for live access while Anki is open.
-2. Open the published `AnkiStats.exe` or its shortcut.
+2. Open the published `Nakama.exe` or its shortcut.
 3. In Settings, choose **Browse…** and select the profile folder containing `collection.anki2`.
 4. Select **Inspect profile** to load the available decks and note types.
 5. Include the deck tree you want to analyze. Descendants inherit a parent's rule. An explicit exclusion omits a subtree; unrelated decks remain excluded.

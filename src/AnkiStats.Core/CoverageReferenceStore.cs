@@ -55,7 +55,7 @@ public sealed class CoverageReferenceStore(string root)
     {
         // Fixed public URLs only. No collection data, vocabulary, IDs, or personal paths are transmitted.
         using var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("AnkiStats/1B");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Nakama/1B");
         progress?.Report("Downloading the versioned Japanese reference dictionary…");
         var encoded = Uri.EscapeDataString(DictionaryVersion);
         var zipBytes = await client.GetByteArrayAsync($"https://github.com/scriptin/jmdict-simplified/releases/download/{encoded}/jmdict-eng-{encoded}.json.zip", cancellationToken);

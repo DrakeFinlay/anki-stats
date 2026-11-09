@@ -87,7 +87,7 @@ public partial class MainWindow : Window
     private void UpdateSourceIndicator()
     {
         var isolated = store.IsIsolated || data?.IsSynthetic == true;
-        Title = isolated ? "Anki Stats — TEST DATA SESSION" : "Anki Stats";
+        Title = isolated ? "Nakama — TEST DATA SESSION" : "Nakama";
         TestDataBanner.Visibility = isolated ? Visibility.Visible : Visibility.Collapsed;
         var source = data?.SourceProfileFolder;
         if (string.IsNullOrWhiteSpace(source)) source = settings?.ProfileFolder;
