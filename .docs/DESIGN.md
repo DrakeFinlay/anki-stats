@@ -311,8 +311,8 @@ and refuses nonempty journals. SQLite opens only the private copy, never the
 original collection or source sidecars. When Anki holds the file or has an active
 journal, CollectionReader falls back to read-only AnkiConnect enumeration. Live
 imports verify the running profile, preserve home-deck membership, and reject
-detected record changes before replacing the cache. They reuse mapping validation
-and extraction through an app-owned in-memory schema. API reads span multiple
+detected record changes before replacing the cache. The file and live readers
+share mapping validation and text extraction. API reads span multiple
 requests, so they are not a database transaction. Orphaned review counts are
 unavailable via that API and explicitly labeled. Isolated/synthetic sessions
 cannot fall back to the user's Anki. Supported file collection
@@ -321,6 +321,14 @@ collations without launching Anki's collection API. Successful imports replace
 the app cache transactionally; failures retain previous results. Temporary copies
 and sidecars are cleaned up. Source files are never repaired, migrated,
 checkpointed, or written directly.
+
+Fast Refresh reuses a versioned live index of card and note details and
+modification times stored with the last successful projection. It checks current
+membership and replaces complete histories for changed cards and recent review
+candidates, including recently reviewed cards from the previous cache that no
+longer appear in Anki's recent search. Full Refresh rebuilds the baseline and
+reads all scoped review history. Media uses all-deck note/card data from the same
+refresh and needs no review history. See [live refresh modes](anki-connect.md#refresh-modes).
 
 Settings, the latest imported data, reference bundles, personal matching/family
 decisions, creation journals, and insight history live in per-user AnkiStats app

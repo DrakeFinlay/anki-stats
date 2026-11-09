@@ -115,19 +115,17 @@ public partial class MainWindow
         await UpdateMappings();
         DrawMedia();
     }
-    private async void CompareMediaClick(object sender, RoutedEventArgs e) => await MediaAction(CompareMedia);
-    private async Task CompareMedia(CancellationToken token = default)
+    private async void CompareMediaClick(object sender, RoutedEventArgs e) => await MediaAction(token => CompareMedia(token));
+    private async Task CompareMedia(CancellationToken token, ImportedCollection? snapshot = null)
     {
         if (settings is null) throw new InvalidOperationException("Connect an Anki collection and map vocabulary fields in Settings first.");
         await RequireMediaReference();
         foreach (var corpus in mediaLibrary.Where(c => c.Source == "Jiten vocabulary").ToList())
             if (corpus.DictionaryVersion != vocabularyMatcher!.Reference.Metadata.DictionaryVersion || !corpus.Analyzer.EndsWith(JitenClient.FormParserVersion, StringComparison.Ordinal))
                 await SaveMedia(await Task.Run(() => JitenClient.Revalidate(corpus, vocabularyMatcher.Reference), token));
-        MediaStatus.Text = "Reading vocabulary across every Anki deck using your configured vocabulary field mappings…";
-        var metadata = await ReaderFor(settings.ProfileFolder).Discover(settings.ProfileFolder);
         token.ThrowIfCancellationRequested();
-        var allSettings = MediaAnalysis.CollectionSettings(settings, metadata);
-        var collection = await ReaderFor(settings.ProfileFolder).Import(allSettings);
+        MediaStatus.Text = snapshot is null ? "Reading vocabulary across every Anki deck…" : "Matching vocabulary from the refreshed collection…";
+        var collection = snapshot ?? await ReaderFor(settings.ProfileFolder).ImportMedia(settings);
         token.ThrowIfCancellationRequested();
         var result = await Task.Run(() => vocabularyMatcher!.Analyze(collection,
             store.LoadCoverageDecisions<MatchDecision>(collection.CollectionKey, "matches"), [], aliases: LoadMappingAliases(collection.CollectionKey)));

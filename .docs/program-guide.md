@@ -313,8 +313,9 @@ For a file-by-file map, read [repository structure](repository-structure.md). Fo
 The app copies an idle source under an exclusive read-only file handle, refusing active journals. SQLite queries run only against the private copy, never the original collection or its sidecars. The app does not bypass locks or repair, checkpoint, or write the source database. Temporary copies are removed after the operation.
 
 Anki commonly holds an exclusive lock. In that case CollectionReader uses local
-AnkiConnect to read notes, cards, and full review history, retaining home-deck
-membership and checking for detected changes before accepting the result. These
+AnkiConnect to read notes, cards, and review history, retaining home-deck
+membership and checking for detected changes before accepting the result. Fast
+Refresh reuses cached records and Full Refresh rereads all scoped history. These
 API reads span multiple requests. Orphaned review rows cannot be counted through
 AnkiConnect and are labeled unavailable. File imports and cached analysis remain
 available without the add-on. The API key, if configured, is entered in Settings

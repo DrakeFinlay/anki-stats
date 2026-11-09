@@ -25,7 +25,11 @@ public partial class MainWindow
             for (var i = 0; i < source!.Notes.Count; i++) if (source.Notes[i].Id == note.Id) source.Notes[i] = note;
         // The cache timestamp still describes the original import; this patches only
         // the verified note content, not scheduling or collection provenance.
-        if (importedData is not null) store.SaveCache(importedData);
+        if (importedData is not null)
+        {
+            importedData.LiveIndex?.Notes.Remove(note.Id);
+            store.SaveCache(importedData);
+        }
         profileViews = profileViews.Select(v => v with { Analysis = Analyzer.Analyze(v.Data, kind: null) }).ToList();
     }
     private async void CheckMappingCorrection(object sender, RoutedEventArgs e) => await MediaAction(async _ =>

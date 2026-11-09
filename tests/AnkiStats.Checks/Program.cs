@@ -247,11 +247,17 @@ try
     var metadata = importer.Discover(profile);
     Check(metadata.Schema == 18 && metadata.NoteTypes[0].Fields[0] == "Expression", "normalized metadata and custom collation");
     Check(metadata.Decks[0].Cards == 1, "filtered deck counts use original deck");
-    var imported = importer.Import(new Settings { ProfileFolder = profile, DeckRules = [new("Language",true)], Mappings = [new() { NoteTypeId=1,Category="Vocabulary",Expression=0 }] });
+    var fixtureSettings = new Settings { ProfileFolder = profile, DeckRules = [new("Language",true)], Mappings = [new() { NoteTypeId=1,Category="Vocabulary",Expression=0 }] };
+    var imported = importer.Import(fixtureSettings);
     Check(imported.SourceProfileFolder == profile && !imported.IsSynthetic, "import retains its actual source identity");
     File.WriteAllText(Path.Combine(profile,".ankistats-test-data"), "Synthetic fixture");
-    Check(importer.Import(new Settings { ProfileFolder = profile, DeckRules = [new("Language",true)], Mappings = [new() { NoteTypeId=1,Category="Vocabulary",Expression=0 }] }).IsSynthetic, "synthetic sources explicitly marked");
+    Check(importer.Import(fixtureSettings).IsSynthetic, "synthetic sources explicitly marked");
     Check(imported.Cards.Count == 1 && imported.Notes.Count == 1 && imported.UnresolvedReviews == 1, "selection, suspended cards, orphaned reviews");
+    var fileReader = new CollectionReader(Path.Combine(sandbox, "refresh-temp"), () => throw new Exception("File refresh contacted Anki"));
+    var fileRefresh = await fileReader.Refresh(fixtureSettings, imported, includeMedia: true);
+    Check(!fileRefresh.Stats.IsIncremental && fileRefresh.Stats.Reviews.SequenceEqual(imported.Reviews)
+        && fileRefresh.Media is { Reviews.Count: 0 } && fileRefresh.Media.Cards.SequenceEqual(imported.Cards),
+        "closed refresh reads complete stats and vocabulary-only media from a private snapshot");
     Throws<InvalidDataException>(() => importer.Import(new Settings { ProfileFolder = profile, DeckRules = [new("Language",true)], Mappings = [new() { NoteTypeId=1, Category="Vocabulary", Expression=0, ExpressionName="Renamed field" }] }), "mapping drift rejected");
     Check(SHA256.HashData(File.ReadAllBytes(file)).SequenceEqual(beforeHash), "source bytes unchanged");
     Check(!File.Exists(file+"-wal") && !File.Exists(file+"-shm"), "no source SQLite sidecars");
@@ -267,6 +273,7 @@ try
     Check(bracketData.Notes[0].Expression == "晴れる" && bracketData.Notes[0].SourceExpression == "晴れる[はれる]", "import preserves furigana separately from stripped inventory expression");
     Check(!LearningAnalyzer.Readings(bracketData.Notes[0].SourceExpression).Unresolved, "preserved imported furigana remains usable by learning analysis");
     LiveImportChecks.Run(Check, sandbox, file);
+    FastRefreshChecks.Run(Check, sandbox);
     using (var held = new FileStream(file,FileMode.Open,FileAccess.ReadWrite,FileShare.None))
         Throws<IOException>(() => importer.Discover(profile), "file importer refuses locked sources for live-reader fallback");
     File.WriteAllBytes(file+"-wal", [1,2,3]);

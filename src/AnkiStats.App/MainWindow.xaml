@@ -27,7 +27,10 @@
     <Grid Grid.Column="1" Margin="30,26,24,20">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <DockPanel Margin="0,0,0,18">
-        <Button x:Name="RefreshButton" DockPanel.Dock="Right" Content="↻  Refresh" Click="RefreshClick" Background="#3D659B" Margin="12,0,0,0"/>
+        <StackPanel DockPanel.Dock="Right" VerticalAlignment="Top" Margin="12,0,0,0">
+          <Button x:Name="RefreshButton" Content="↻  Fast Refresh" Click="RefreshClick" Background="#3D659B" ToolTip="Check changed cards, notes, and recent review history."/>
+          <Button x:Name="FullRefreshButton" Content="Full Refresh" Click="FullRefreshClick" Margin="0,6,0,0" ToolTip="Rebuild the cache and reconcile all available Anki review history."/>
+        </StackPanel>
         <StackPanel><TextBlock x:Name="PageTitle" Text="Overview" FontSize="30" FontWeight="SemiBold"/><TextBlock x:Name="LastRefresh" Text="Connect a collection to get started" Foreground="{StaticResource Muted}" Margin="0,6,0,0"/><TextBlock x:Name="SourceInfo" Foreground="{StaticResource Muted}" TextWrapping="Wrap" FontSize="12" Margin="0,6,0,0"/><TextBlock x:Name="TestDataBanner" Text="TEST SESSION · isolated app data. These results may be synthetic; they are not your normal connected collection." Foreground="#FFD28F" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,8,0,0" Visibility="Collapsed"/><StackPanel Orientation="Horizontal" Margin="0,12,0,0"><TextBlock Text="Active profile" VerticalAlignment="Center" Margin="0,0,10,0"/><ComboBox x:Name="ActiveProfilePicker" DisplayMemberPath="Name" SelectionChanged="ActiveProfileChanged" AutomationProperties.Name="Active deck profile" MinWidth="220" IsEnabled="False"/></StackPanel></StackPanel>
       </DockPanel>
       <Border x:Name="StatusPanel" Grid.Row="1" Background="#283446" CornerRadius="6" Padding="12" Margin="0,0,0,14"><TextBlock x:Name="StatusText" Text="Choose your profile in Settings. No Anki data is modified." TextWrapping="Wrap"/></Border>

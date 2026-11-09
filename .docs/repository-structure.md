@@ -92,7 +92,7 @@ This library contains the work that does not require a window. Keeping it separa
 | `LearningPatterns.cs` | Applies deck-role rules and three-lapse history criteria; produces cross-deck and explicit reading/written-form/gloss candidates. |
 | `CollectionImporter.cs` | Safely acquires a private collection copy, reads supported schemas, applies selections, and extracts notes, cards, and review events. |
 | `CollectionReader.cs` | Uses file snapshots with a live AnkiConnect fallback when Anki holds an exclusive lock; disables fallback for isolated sessions. |
-| `LiveCollectionImporter.cs` | Reads metadata, home-deck membership, cards, notes, and full review history through AnkiConnect and reuses the file importer's projection rules. |
+| `LiveCollectionImporter.cs` | Verifies live metadata and home-deck membership, builds and updates the Fast Refresh index, and reads review histories through AnkiConnect. Shares the file importer's projection rules. |
 | `Analysis.cs` | Cleans field text, groups vocabulary entries, calculates review statistics, generates discovery candidates, and writes CSV exports. |
 | `VocabularyCoverage.cs` | Matches expression/reading pairs to restricted dictionary forms, aggregates named-deck cohorts and entry coverage, groups conservative families, and produces Markdown missing-word reports. |
 | `VocabularyExpression.cs` | Extracts written forms and explicit reading alternatives, including segment furigana, spacing, numeric headwords, and dictionary-verifiable phonetic joins. |

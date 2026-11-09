@@ -97,7 +97,7 @@ public partial class MainWindow : Window
     private async Task Guard(Func<Task> action)
     {
         if (busy) return;
-        busy = true; RefreshButton.IsEnabled = false; SettingsContent.IsEnabled = false;
+        busy = true; FullRefreshButton.IsEnabled = RefreshButton.IsEnabled = false; SettingsContent.IsEnabled = false;
         RangePicker.IsEnabled = KindPicker.IsEnabled = false;
         ActiveProfilePicker.IsEnabled = false;
         TimeRangePicker.IsEnabled = TimeGroupingPicker.IsEnabled = false;
@@ -113,7 +113,7 @@ public partial class MainWindow : Window
         }
         finally
         {
-            busy = false; RefreshButton.IsEnabled = true; SettingsContent.IsEnabled = true;
+            busy = false; FullRefreshButton.IsEnabled = RefreshButton.IsEnabled = true; SettingsContent.IsEnabled = true;
             RangePicker.IsEnabled = KindPicker.IsEnabled = true;
             ActiveProfilePicker.IsEnabled = profileViews.Count > 0;
             TimeRangePicker.IsEnabled = TimeGroupingPicker.IsEnabled = true;
@@ -128,7 +128,7 @@ public partial class MainWindow : Window
         return new(store.TemporaryRoot, () => new AnkiConnectClient(key),
             allowLive: !store.IsIsolated && !File.Exists(Path.Combine(profile, ".ankistats-test-data")));
     }
-    private async Task RefreshInternal()
+    private async Task RefreshInternal(bool full = false)
     {
         if (settings is null) { ShowPage("Settings"); SetStatus("Choose a profile, select decks, and preview the field mappings first."); return; }
         SetStatus("Acquiring a safe private copy of the collection…");
@@ -141,19 +141,23 @@ public partial class MainWindow : Window
             foreach (var type in found.NoteTypes.Where(t => draft.Mappings.All(m => m.NoteTypeId != t.Id)))
                 draft.Mappings.Add(new MappingChoice(type, null).ToMapping());
         }
-        var next = await ReaderFor(draft.ProfileFolder).Import(draft, progress);
+        var refreshed = await ReaderFor(draft.ProfileFolder).Refresh(draft, full ? null : importedData, mediaLibrary.Count > 0, progress);
+        var next = refreshed.Stats;
         // Validate and compute before replacing the last successful persistent result.
+        SetStatus("Updating statistics for the saved deck profiles…");
         var prepared = await Task.Run(() => PrepareProfiles(next));
         await Task.Run(() => store.SaveCache(next, draft));
         settings = draft;
         PopulateSettings(next.Metadata, settings);
         await DisplayImport(next, prepared);
-        if (mediaLibrary.Count > 0)
+        if (refreshed.Media is {} media)
         {
-            try { await CompareMedia(); }
+            SetStatus("Updating media vocabulary from the refreshed collection…");
+            try { await CompareMedia(default, media); }
             catch (Exception e) { mediaCoverage = null; DrawMedia(); MediaStatus.Text = "Media comparison unavailable: " + e.Message; }
         }
-        SetStatus($"Up to date. {prepared.Count:N0} enabled deck profiles · {next.Cards.Count:N0} unique included cards. Switch profiles without refreshing. Anki was read without modification.");
+        var mode = next.IsIncremental ? "Fast refresh complete. Use Full Refresh to reconcile all review history." : "Full refresh complete.";
+        SetStatus($"{mode} {prepared.Count:N0} enabled deck profiles · {next.Cards.Count:N0} unique included cards.");
     }
     private async Task AnalyzeAndDisplay(AnalysisResult? computed = null)
     {
@@ -167,7 +171,7 @@ public partial class MainWindow : Window
         UpdateSourceIndicator();
         AgainRate.Text = overview.AgainDisplay;
         OverviewScope.Text = "Active profile: " + data.Scope;
-        LastRefresh.Text = "Last successful refresh · " + data.RefreshedAt.ToLocalTime().ToString("MMM d, yyyy · HH:mm");
+        LastRefresh.Text = (data.IsIncremental ? "Last fast refresh · " : "Last full refresh · ") + data.RefreshedAt.ToLocalTime().ToString("MMM d, yyyy · HH:mm");
         ApplySearch();
         SkippedButton.IsEnabled = overview.Skipped.Count > 0;
         UpdateInsight();
@@ -248,7 +252,8 @@ public partial class MainWindow : Window
         LearningPage.Visibility = page == "Learning Patterns" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPage.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
     }
-    private async void RefreshClick(object sender, RoutedEventArgs e) => await Guard(RefreshInternal);
+    private async void RefreshClick(object sender, RoutedEventArgs e) => await Guard(() => RefreshInternal());
+    private async void FullRefreshClick(object sender, RoutedEventArgs e) => await Guard(() => RefreshInternal(full: true));
     private void SearchChanged(object sender, TextChangedEventArgs e) { if (ready) ApplySearch(); }
     private void ApplySearch()
     {

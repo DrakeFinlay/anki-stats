@@ -52,7 +52,7 @@ statistics work without the add-on.
    displayed; confirm that the preview matches your field format.
 7. Select **Save and refresh**.
 
-The app remembers your settings and tries to refresh at startup. The source
+The app remembers your settings and runs **Fast Refresh** at startup. The source
 profile and last successful refresh time are shown near the top. A failed refresh
 keeps the previous successful results. A **TEST SESSION** banner means you are
 looking at isolated development data rather than the normal connected collection.
@@ -61,13 +61,19 @@ looking at isolated development data rather than the normal connected collection
 
 | What you want to do | Should Anki be open? |
 | --- | --- |
-| Inspect your profile, save import settings, or Refresh | Either — keep AnkiConnect enabled for live access while Anki is open |
+| Inspect your profile, save import settings, or refresh | Either — keep AnkiConnect enabled for live access while Anki is open |
 | Explore already imported stats, switch deck profiles, or export | Either — these use cached data |
 | Preview/Create new notes or Check pending additions | Yes — open the same profile with AnkiConnect enabled |
 
-Refresh reads your local collection. If you review on another device, synchronize
-through Anki first, then refresh Nakama with Anki still open. Refresh itself does
-not synchronize AnkiWeb.
+- **Fast Refresh** is for everyday study. With Anki open, it reuses the local
+  cache and checks for card and note changes, new reviews, and recent undos. The
+  first live refresh or a refresh after a long gap builds a full baseline.
+- **Full Refresh** rereads all available history. Use it after a restore, bulk
+  history edit, or a sync that brought in older reviews. AnkiConnect can miss
+  older review-only changes during Fast Refresh.
+
+With Anki closed, both buttons read a complete private copy. To pick up reviews
+from another device, synchronize through Anki before refreshing Nakama.
 
 Choose **Active profile** to switch between named deck selections, such as
 日本語, 漢字, and 日本語 + 漢字. These are selections within one connected Anki
@@ -174,7 +180,7 @@ Refresh if live access requires it. Previous cached statistics remain available.
 3. Select **Preview new notes** and review the proposed Front/English fields.
 4. Select **Create … new notes**, or Cancel to add nothing.
 5. Inspect the notes in Anki. Adjust your new-card limits manually if desired.
-6. Statistics and coverage refresh automatically. If that fails, use **Refresh**
+6. Statistics and coverage refresh automatically. If that fails, use **Fast Refresh**
    to retry; Anki can stay open. Successful notes remain in Anki even if refresh fails.
 
 Selection is random without repeats within N5 → N4 → N3 → N2 → N1 → Common.

@@ -94,14 +94,55 @@ public sealed class CollectionImporter(string temporaryRoot)
 
     public ImportedCollection Import(Settings settings, IProgress<string>? progress = null) => WithPrivateCopy(settings.ProfileFolder, db => ReadCollection(db, settings, progress));
 
-    internal static ImportedCollection ReadCollection(SqliteConnection db, Settings settings, IProgress<string>? progress = null)
+    internal static ImportedCollection ReadCollection(SqliteConnection db, Settings settings, IProgress<string>? progress = null,
+        CollectionMetadata? metadata = null, bool includeReviews = true)
     {
         progress?.Report("Reading deck and field definitions…");
-        var metadata = ReadMetadata(db);
+        metadata ??= ReadMetadata(db);
+        var deckNames = metadata.Decks.Where(d => settings.Includes(d.Name)).ToDictionary(d => d.Id, d => d.Name);
+        var cards = new List<CardRecord>();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "SELECT id,nid,did,odid,queue,type,lapses FROM cards";
+        using (var r = cmd.ExecuteReader()) while (r.Read())
+        {
+            var deckId = r.GetInt64(3) != 0 ? r.GetInt64(3) : r.GetInt64(2);
+            if (deckNames.TryGetValue(deckId, out var name))
+                cards.Add(new(r.GetInt64(0), r.GetInt64(1), name, r.GetInt32(4), r.GetInt32(5), r.GetInt32(6)));
+        }
+        var data = Project(settings, metadata, cards, ReadNotes(), progress);
+        if (!includeReviews) { data.UnresolvedReviewsAvailable = false; return data; }
+
+        progress?.Report("Reading review history…");
+        var cardIds = data.Cards.Select(c => c.Id).ToHashSet();
+        cmd.CommandText = "SELECT id,cid,ease,time,type FROM revlog";
+        using (var r = cmd.ExecuteReader()) while (r.Read())
+        {
+            var cardId = r.GetInt64(1);
+            if (!cardIds.Contains(cardId)) continue;
+            var kind = r.GetInt32(4);
+            if (kind is < 0 or > 5) data.UnknownReviewKinds++;
+            data.Reviews.Add(new(r.GetInt64(0), cardId, r.GetInt32(2), r.GetInt32(3), kind));
+        }
+        cmd.CommandText = "SELECT COUNT(*) FROM revlog r LEFT JOIN cards c ON c.id=r.cid WHERE c.id IS NULL";
+        data.UnresolvedReviews = Convert.ToInt32(cmd.ExecuteScalar());
+        return data;
+
+        IEnumerable<CollectionNote> ReadNotes()
+        {
+            cmd.CommandText = "SELECT id,mid,flds FROM notes";
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read()) yield return new(reader.GetInt64(0), reader.GetInt64(1), reader.GetString(2));
+        }
+    }
+
+    internal static ImportedCollection Project(Settings settings, CollectionMetadata metadata, IEnumerable<CardRecord> cards,
+        IEnumerable<CollectionNote> notes, IProgress<string>? progress = null)
+    {
         var mappings = settings.Mappings.ToDictionary(m => m.NoteTypeId);
+        var types = metadata.NoteTypes.ToDictionary(t => t.Id);
         foreach (var m in settings.Mappings.Where(m => m.Category != "Ignored"))
         {
-            var type = metadata.NoteTypes.Find(t => t.Id == m.NoteTypeId) ?? throw new InvalidDataException("A mapped note type no longer exists. Inspect the profile again in Settings.");
+            if (!types.TryGetValue(m.NoteTypeId, out var type)) throw new InvalidDataException("A mapped note type no longer exists. Inspect the profile again in Settings.");
             if (m.Expression < 0 || m.Expression >= type.Fields.Count || m.Reading < -1 || m.Reading >= type.Fields.Count || m.Meaning < -1 || m.Meaning >= type.Fields.Count)
                 throw new InvalidDataException("A field mapping is no longer valid. Inspect the profile and update its mappings.");
             foreach (var (index, name) in new[] { (m.Expression, m.ExpressionName), (m.Reading, m.ReadingName), (m.Meaning, m.MeaningName) })
@@ -112,42 +153,18 @@ public sealed class CollectionImporter(string temporaryRoot)
             Scope = settings.Profiles.Count > 0 ? "Saved deck profiles: " + string.Join(", ", settings.Profiles.Select(p => p.Name))
                 : string.Join(", ", settings.DeckRules.Select(r => (r.Include ? "+ " : "− ") + r.Name)), SourceProfileFolder = settings.ProfileFolder,
             IsSynthetic = File.Exists(Path.Combine(settings.ProfileFolder, ".ankistats-test-data")), RefreshedAt = DateTimeOffset.UtcNow };
-        var deckNames = metadata.Decks.Where(d => settings.Includes(d.Name)).ToDictionary(d => d.Id, d => d.Name);
-        var selectedNotes = new HashSet<long>();
-        var candidateCards = new List<CardRecord>();
-        using var cmd = db.CreateCommand();
-        cmd.CommandText = "SELECT id,nid,did,odid,queue,type,lapses FROM cards";
-        using (var r = cmd.ExecuteReader()) while (r.Read())
-        {
-            var deckId = r.GetInt64(3) != 0 ? r.GetInt64(3) : r.GetInt64(2);
-            if (!deckNames.TryGetValue(deckId, out var name)) continue;
-            selectedNotes.Add(r.GetInt64(1));
-            candidateCards.Add(new(r.GetInt64(0), r.GetInt64(1), name, r.GetInt32(4), r.GetInt32(5), r.GetInt32(6)));
-        }
+        var candidateCards = cards.ToList();
+        var selectedNotes = candidateCards.Select(c => c.NoteId).ToHashSet();
         progress?.Report("Extracting selected vocabulary…");
-        cmd.CommandText = "SELECT id,mid,flds FROM notes";
-        using (var r = cmd.ExecuteReader()) while (r.Read())
+        foreach (var note in notes)
         {
-            var id = r.GetInt64(0); var mid = r.GetInt64(1);
-            if (!selectedNotes.Contains(id) || !mappings.TryGetValue(mid, out var m) || m.Category == "Ignored") continue;
-            var fields = r.GetString(2).Split('\u001f');
+            if (!selectedNotes.Contains(note.Id) || !mappings.TryGetValue(note.TypeId, out var m) || m.Category == "Ignored") continue;
+            var fields = note.Fields.Split('\u001f');
             string Field(int index, bool expression = false) => index < 0 || index >= fields.Length ? "" : TextNormalizer.Clean(fields[index], expression && m.StripBracketReadings);
-            data.Notes.Add(new(id, Field(m.Expression, true), Field(m.Reading), Field(m.Meaning), m.Category, metadata.NoteTypes.First(t => t.Id == mid).Name, Field(m.Expression)));
+            data.Notes.Add(new(note.Id, Field(m.Expression, true), Field(m.Reading), Field(m.Meaning), m.Category, types[note.TypeId].Name, Field(m.Expression)));
         }
         var noteIds = data.Notes.Select(n => n.Id).ToHashSet();
         data.Cards = candidateCards.Where(c => noteIds.Contains(c.NoteId)).ToList();
-        var cardIds = data.Cards.Select(c => c.Id).ToHashSet();
-        progress?.Report("Reading review history…");
-        cmd.CommandText = "SELECT id,cid,ease,time,type FROM revlog";
-        using (var r = cmd.ExecuteReader()) while (r.Read())
-        {
-            if (!cardIds.Contains(r.GetInt64(1))) continue;
-            var kind = r.GetInt32(4);
-            if (kind is < 0 or > 5) data.UnknownReviewKinds++;
-            data.Reviews.Add(new(r.GetInt64(0), r.GetInt64(1), r.GetInt32(2), r.GetInt32(3), kind));
-        }
-        cmd.CommandText = "SELECT COUNT(*) FROM revlog r LEFT JOIN cards c ON c.id=r.cid WHERE c.id IS NULL";
-        data.UnresolvedReviews = Convert.ToInt32(cmd.ExecuteScalar());
         return data;
     }
 }

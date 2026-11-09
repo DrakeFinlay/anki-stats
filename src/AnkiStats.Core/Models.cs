@@ -37,6 +37,11 @@ public sealed class Settings
 public sealed record NoteRecord(long Id, string Expression, string Reading, string Meaning, string Category, string NoteType, string SourceExpression = "");
 public sealed record CardRecord(long Id, long NoteId, string Deck, int Queue, int Type, int LifetimeLapses);
 public sealed record ReviewRecord(long Id, long CardId, int Rating, int Milliseconds, int Kind);
+public sealed record CollectionNote(long Id, long TypeId, string Fields);
+public sealed record LiveCard(CardRecord Card, long Modified);
+public sealed record LiveNote(CollectionNote Note, long Modified);
+public sealed record LiveRefreshIndex(int Version, DateTimeOffset ReadStartedAt, Dictionary<long, LiveCard> Cards, Dictionary<long, LiveNote> Notes);
+public sealed record CollectionRefresh(ImportedCollection Stats, ImportedCollection? Media);
 public sealed class ImportedCollection
 {
     public List<DeckProfile> Profiles { get; set; } = [];
@@ -54,6 +59,8 @@ public sealed class ImportedCollection
     public int UnresolvedReviews { get; set; }
     public bool UnresolvedReviewsAvailable { get; set; } = true;
     public string ImportMethod { get; set; } = "File snapshot";
+    public bool IsIncremental { get; set; }
+    public LiveRefreshIndex? LiveIndex { get; set; }
     public int UnknownReviewKinds { get; set; }
 }
 public sealed record VocabularyRow(string Expression, string Reading, string Meaning, int Notes, int Cards, string Decks, string NoteIds, string CardIds);

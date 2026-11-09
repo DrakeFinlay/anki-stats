@@ -109,7 +109,7 @@ public partial class MainWindow
         {
             refreshError = true;
             CreationStatus.Text += " Automatic refresh failed: " + error.Message
-                + " Created notes remain in Anki. Previous statistics are retained; use Refresh to retry.";
+                + " Created notes remain in Anki. Previous statistics are retained. Use Fast Refresh to retry.";
         }
         SetStatus(CreationStatus.Text, outcome.Error is not null || identityError || refreshError);
     }

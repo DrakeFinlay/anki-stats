@@ -1,13 +1,16 @@
 using System.Text.Json;
-using Microsoft.Data.Sqlite;
 
 namespace AnkiStats.Core;
 
 /// <summary>Read-only AnkiConnect import for Anki's exclusively locked collection.</summary>
 public sealed class LiveCollectionImporter(AnkiConnectClient client)
 {
+    private const int IndexVersion = 1;
+    private const int RecentReviewDays = 2;
     private sealed record Inventory(CollectionMetadata Metadata, Dictionary<long, string> HomeDecks);
-    private static InvalidDataException Changed() => new("Anki changed during the live import. Let the current operation finish, then Refresh again. Previous results are retained.");
+
+    private static InvalidDataException Changed() => new("Anki changed during the live import. Let the current operation finish, then refresh again. Previous results are retained.");
+
     private async Task Verify(string folder)
     {
         if (await client.Call<int>("version") < 6) throw new InvalidOperationException("Live import requires AnkiConnect API version 6 or later.");
@@ -22,154 +25,271 @@ public sealed class LiveCollectionImporter(AnkiConnectClient client)
         var types = new List<NoteType>();
         foreach (var model in models)
             types.Add(new(model.Value, model.Key, await client.Call<List<string>>("modelFieldNames", new { modelName = model.Key })));
+
         var membership = new Dictionary<long, List<string>>();
         foreach (var deck in decks)
         {
-            // did: matches exactly this ID (no descendants), including a filtered
-            // card's original deck. IDs avoid escaping/wildcards in deck names.
+            // Anki's exact did: search includes both physical and original deck IDs.
             foreach (var id in await client.Call<long[]>("findCards", new { query = "did:" + deck.Value }))
             {
                 if (!membership.TryGetValue(id, out var names)) membership[id] = names = [];
-                if (!names.Contains(deck.Key)) names.Add(deck.Key);
+                if (names.Contains(deck.Key) || names.Count == 2) throw Changed();
+                names.Add(deck.Key);
             }
         }
-        var home = new Dictionary<long, string>();
-        foreach (var batch in membership.Keys.Chunk(500))
+        var home = membership.Where(c => c.Value.Count == 1).ToDictionary(c => c.Key, c => c.Value[0]);
+        foreach (var batch in membership.Where(c => c.Value.Count == 2).Select(c => c.Key).Chunk(500))
         {
+            var expected = batch.ToHashSet();
             var current = await client.Call<Dictionary<string, long[]>>("getDecks", new { cards = batch });
             foreach (var deck in current)
                 foreach (var id in deck.Value)
                 {
-                    if (!batch.Contains(id) || !membership.TryGetValue(id, out var names)) throw Changed();
-                    var original = names.Where(n => n != deck.Key).ToList();
-                    if (original.Count > 1 || !names.Contains(deck.Key) || !home.TryAdd(id, original.SingleOrDefault() ?? deck.Key)) throw Changed();
+                    if (!expected.Remove(id) || !membership[id].Contains(deck.Key)) throw Changed();
+                    home.Add(id, membership[id].Single(n => n != deck.Key));
                 }
-            if (batch.Any(id => !home.ContainsKey(id))) throw Changed();
+            if (expected.Count > 0) throw Changed();
         }
         await Verify(folder);
-        // API metadata does not expose the source SQLite schema version.
-        return new(new(0, decks.Select(d => new Deck(d.Value, d.Key, home.Values.Count(n => n == d.Key))).OrderBy(d => d.Name, StringComparer.Ordinal).ToList(),
+        var counts = home.Values.CountBy(n => n).ToDictionary();
+        return new(new(0, decks.Select(d => new Deck(d.Value, d.Key, counts.GetValueOrDefault(d.Key))).OrderBy(d => d.Name, StringComparer.Ordinal).ToList(),
             types.OrderBy(t => t.Name, StringComparer.Ordinal).ToList()), home);
     }
 
     public async Task<CollectionMetadata> Discover(string profileFolder) => (await InventoryFor(profileFolder)).Metadata;
 
-    public async Task<ImportedCollection> Import(Settings settings, IProgress<string>? progress = null)
+    public async Task<ImportedCollection> Import(Settings settings, IProgress<string>? progress = null) =>
+        (await Refresh(settings, progress: progress)).Stats;
+
+    public async Task<ImportedCollection> ImportMedia(Settings settings) =>
+        (await Read(settings, null, false, mediaOnly: true, progress: null)).Stats;
+
+    public Task<CollectionRefresh> Refresh(Settings settings, ImportedCollection? previous = null,
+        bool includeMedia = false, IProgress<string>? progress = null) => Read(settings, previous, includeMedia, mediaOnly: false, progress);
+
+    private async Task<CollectionRefresh> Read(Settings settings, ImportedCollection? previous, bool includeMedia,
+        bool mediaOnly, IProgress<string>? progress)
     {
-        progress?.Report("Reading the running Anki collection through AnkiConnect…");
+        var started = DateTimeOffset.UtcNow;
+        progress?.Report("Checking live deck membership and field definitions…");
         var inventory = await InventoryFor(settings.ProfileFolder);
-        var selected = inventory.HomeDecks.Where(c => settings.Includes(c.Value)).Select(c => c.Key).ToArray();
-        var noteIds = new HashSet<long>();
-        var cards = new List<JsonElement>();
-        var reviews = new List<ReviewRecord>();
-        foreach (var batch in selected.Chunk(200))
+        if (mediaOnly) settings = MediaAnalysis.CollectionSettings(settings, inventory.Metadata);
+        var index = previous?.LiveIndex;
+        // A long gap uses a full baseline. Keep the rated search within a bounded range.
+        if (index?.Version != IndexVersion || previous!.CollectionKey != settings.CollectionKey || previous.Signature != settings.Signature
+            || started < index.ReadStartedAt || started - index.ReadStartedAt > TimeSpan.FromDays(28)
+            || !SameNoteTypes(previous.Metadata, inventory.Metadata))
+            index = null;
+
+        var selectedDecks = inventory.Metadata.Decks.Where(d => settings.Includes(d.Name)).Select(d => d.Name).ToHashSet();
+        var expectedDecks = inventory.HomeDecks.Where(c => includeMedia || selectedDecks.Contains(c.Value)).ToDictionary();
+        Dictionary<long, long>? initialCardMods = null;
+        var cards = new Dictionary<long, LiveCard>();
+        var changedCards = expectedDecks.Keys.ToArray();
+        var buried = new HashSet<long>();
+        // Modification times have second precision. Re-fetch rows near the prior
+        // read boundary even when the timestamp is equal.
+        var overlap = index?.ReadStartedAt.AddSeconds(-2).ToUnixTimeSeconds() ?? long.MaxValue;
+        if (index is not null)
         {
-            progress?.Report($"Reading live cards and review history… {cards.Count:N0} / {selected.Length:N0}");
-            JsonElement[] info;
-            try { info = await client.Call<JsonElement[]>("cardsInfo", new { cards = batch, fields = new[] { "cardId", "note", "queue", "type", "lapses", "mod", "deckName" } }); }
-            catch (InvalidOperationException error) when (error.Message.Contains("unexpected keyword argument") && error.Message.Contains("fields"))
-            { info = await client.Call<JsonElement[]>("cardsInfo", new { cards = batch }); }
-            if (info.Length != batch.Length || !info.Select(c => c.TryGetProperty("cardId", out var id) ? id.GetInt64() : 0).ToHashSet().SetEquals(batch)) throw Changed();
-            foreach (var card in info) { cards.Add(card); noteIds.Add(card.GetProperty("note").GetInt64()); }
-            var history = await client.Call<Dictionary<string, JsonElement[]>>("getReviewsOfCards", new { cards = batch });
-            if (!history.Keys.Select(long.Parse).ToHashSet().SetEquals(batch)) throw Changed();
-            foreach (var entry in history)
-                foreach (var review in entry.Value)
-                    reviews.Add(new(review.GetProperty("id").GetInt64(), long.Parse(entry.Key), review.GetProperty("ease").GetInt32(), review.GetProperty("time").GetInt32(), review.GetProperty("type").GetInt32()));
+            progress?.Report($"Checking modification times for {expectedDecks.Count:N0} live cards…");
+            initialCardMods = await ReadMods(expectedDecks.Keys, "cardsModTime", "cards", "cardId");
+            // Anki can unbury cards at rollover without advancing their modification time.
+            buried = await FindCards("is:buried", expectedDecks.ContainsKey);
+            foreach (var (id, mod) in initialCardMods)
+                if (index.Cards.TryGetValue(id, out var cached) && cached.Modified == mod && mod < overlap
+                    && cached.Card.Deck == expectedDecks[id] && buried.Contains(id) == IsBuried(cached.Card))
+                    cards.Add(id, cached);
+            changedCards = expectedDecks.Keys.Where(id => !cards.ContainsKey(id)).ToArray();
         }
-        var notes = new List<JsonElement>();
-        var noteMods = await NoteMods(noteIds);
-        foreach (var batch in noteIds.Chunk(500))
+        await ReadCards(cards, changedCards, expectedDecks, initialCardMods, progress);
+        if (index is not null && changedCards.Any(id => buried.Contains(id) != IsBuried(cards[id].Card))) throw Changed();
+
+        progress?.Report("Checking live note changes…");
+        var noteMods = await ReadMods(cards.Values.Select(c => c.Card.NoteId).Distinct(), "notesModTime", "notes", "noteId");
+        var notes = new Dictionary<long, LiveNote>();
+        if (index is not null)
+            foreach (var (id, mod) in noteMods)
+                if (index.Notes.TryGetValue(id, out var cached) && cached.Modified == mod && mod < overlap)
+                    notes.Add(id, cached);
+        await ReadNotes(notes, noteMods, inventory.Metadata, progress);
+
+        var stats = await Task.Run(() => Project(settings, inventory.Metadata, cards, notes, progress));
+        var statsIds = stats.Cards.Select(c => c.Id).ToHashSet();
+        var reviewIds = new HashSet<long>();
+        var recent = new HashSet<long>();
+        var recentQuery = "";
+        if (!mediaOnly)
         {
-            var info = await client.Call<JsonElement[]>("notesInfo", new { notes = batch });
-            if (info.Length != batch.Length || !info.Select(n => n.TryGetProperty("noteId", out var id) ? id.GetInt64() : 0).ToHashSet().SetEquals(batch)) throw Changed();
-            notes.AddRange(info);
-        }
-        // Reject detectable edits/profile switches instead of replacing a good cache
-        // with a mixture of deck scopes or scheduling states from different reads.
-        var after = await InventoryFor(settings.ProfileFolder);
-        var noteModsAfter = await NoteMods(noteIds);
-        if (JsonSerializer.Serialize(after.Metadata) != JsonSerializer.Serialize(inventory.Metadata)
-            || after.HomeDecks.Count != inventory.HomeDecks.Count || after.HomeDecks.Any(c => !inventory.HomeDecks.TryGetValue(c.Key, out var name) || name != c.Value)
-            || noteMods.Count != noteModsAfter.Count || noteMods.Any(n => !noteModsAfter.TryGetValue(n.Key, out var mod) || mod != n.Value)) throw Changed();
-        foreach (var batch in cards.Chunk(500))
-        {
-            var mods = await client.Call<JsonElement[]>("cardsModTime", new { cards = batch.Select(c => c.GetProperty("cardId").GetInt64()).ToArray() });
-            var expected = batch.ToDictionary(c => c.GetProperty("cardId").GetInt64(), c => c.GetProperty("mod").GetInt64());
-            if (mods.Length != batch.Length || !mods.Select(c => c.TryGetProperty("cardId", out var id) ? id.GetInt64() : 0).ToHashSet().SetEquals(expected.Keys)
-                || mods.Any(c => !c.TryGetProperty("cardId", out var id) || !expected.TryGetValue(id.GetInt64(), out var mod) || c.GetProperty("mod").GetInt64() != mod)) throw Changed();
-        }
-        var expectedReviews = reviews.GroupBy(r => r.CardId).ToDictionary(g => g.Key, g => g.OrderBy(r => r.Id).ToArray());
-        foreach (var batch in selected.Chunk(200))
-        {
-            var history = await client.Call<Dictionary<string, JsonElement[]>>("getReviewsOfCards", new { cards = batch });
-            if (!history.Keys.Select(long.Parse).ToHashSet().SetEquals(batch)) throw Changed();
-            foreach (var entry in history)
+            if (index is null) reviewIds = statsIds;
+            else
             {
-                var id = long.Parse(entry.Key);
-                var current = entry.Value.Select(r => new ReviewRecord(r.GetProperty("id").GetInt64(), id, r.GetProperty("ease").GetInt32(), r.GetProperty("time").GetInt32(), r.GetProperty("type").GetInt32())).OrderBy(r => r.Id);
-                if (!current.SequenceEqual(expectedReviews.GetValueOrDefault(id) ?? [])) throw Changed();
+                var days = RecentReviewDays + (int)Math.Ceiling((started - index.ReadStartedAt).TotalDays);
+                recentQuery = FormattableString.Invariant($"rated:{days}");
+                recent = await FindCards(recentQuery, statsIds.Contains);
+                var priorStatsIds = previous!.Cards.Select(c => c.Id).ToHashSet();
+                var cachedReviewCutoff = index.ReadStartedAt.AddDays(-RecentReviewDays).ToUnixTimeMilliseconds();
+                reviewIds.UnionWith(changedCards.Where(statsIds.Contains));
+                reviewIds.UnionWith(statsIds.Where(id => !priorStatsIds.Contains(id)));
+                reviewIds.UnionWith(recent);
+                // An undone review can be absent from the current rated search.
+                reviewIds.UnionWith(previous.Reviews.Where(r => r.Id >= cachedReviewCutoff && statsIds.Contains(r.CardId)).Select(r => r.CardId));
             }
         }
+        var histories = await ReadReviews(reviewIds, progress);
+
+        progress?.Report("Verifying the live Anki read…");
+        var after = await InventoryFor(settings.ProfileFolder);
+        if (!SameNoteTypes(after.Metadata, inventory.Metadata) || !after.Metadata.Decks.SequenceEqual(inventory.Metadata.Decks)
+            || !SameEntries(inventory.HomeDecks, after.HomeDecks)) throw Changed();
+        var cardModsAfter = await ReadMods(cards.Keys, "cardsModTime", "cards", "cardId");
+        if (cardModsAfter.Any(c => cards[c.Key].Modified != c.Value)) throw Changed();
+        var noteModsAfter = await ReadMods(noteMods.Keys, "notesModTime", "notes", "noteId");
+        if (!SameEntries(noteMods, noteModsAfter)) throw Changed();
+        await ReadReviews(reviewIds, expected: histories);
+        if (index is not null && (!recent.SetEquals(await FindCards(recentQuery, statsIds.Contains))
+            || !buried.SetEquals(await FindCards("is:buried", expectedDecks.ContainsKey)))) throw Changed();
         await Verify(settings.ProfileFolder);
-        return await Task.Run(() => Project(settings, inventory, cards, notes, reviews));
+
+        return await Task.Run(() =>
+        {
+            var reviews = histories.Values.SelectMany(r => r);
+            if (index is not null)
+                reviews = reviews.Concat(previous!.Reviews.Where(r => statsIds.Contains(r.CardId) && !reviewIds.Contains(r.CardId)));
+            stats.Reviews = reviews.OrderBy(r => r.Id).ToList();
+            stats.UnknownReviewKinds = stats.Reviews.Count(r => r.Kind is < 0 or > 5);
+            stats.RefreshedAt = DateTimeOffset.UtcNow;
+            stats.IsIncremental = index is not null;
+            if (!mediaOnly) stats.LiveIndex = new(IndexVersion, started, cards, notes);
+
+            var media = includeMedia ? Project(MediaAnalysis.CollectionSettings(settings, inventory.Metadata),
+                inventory.Metadata, cards, notes) : null;
+            return new CollectionRefresh(stats, media);
+        });
     }
 
-    private async Task<Dictionary<long, long>> NoteMods(IEnumerable<long> ids)
+    private async Task<HashSet<long>> FindCards(string query, Func<long, bool> includes)
+    {
+        var ids = await client.Call<long[]>("findCards", new { query });
+        return ids.Where(includes).ToHashSet();
+    }
+
+    private static bool IsBuried(CardRecord card) => card.Queue is -2 or -3;
+
+    private static bool SameNoteTypes(CollectionMetadata left, CollectionMetadata right) =>
+        left.NoteTypes.Count == right.NoteTypes.Count && left.NoteTypes.Zip(right.NoteTypes).All(pair =>
+            pair.First.Id == pair.Second.Id && pair.First.Name == pair.Second.Name && pair.First.Fields.SequenceEqual(pair.Second.Fields));
+
+    private static bool SameEntries<T>(Dictionary<long, T> left, Dictionary<long, T> right) where T : IEquatable<T> =>
+        left.Count == right.Count && left.All(p => right.TryGetValue(p.Key, out var value) && p.Value.Equals(value));
+
+    private async Task<Dictionary<long, long>> ReadMods(IEnumerable<long> ids, string action, string parameter, string idProperty)
     {
         var result = new Dictionary<long, long>();
         foreach (var batch in ids.Chunk(500))
         {
-            var mods = await client.Call<JsonElement[]>("notesModTime", new { notes = batch });
-            if (mods.Length != batch.Length) throw Changed();
+            var remaining = batch.ToHashSet();
+            var mods = await client.Call<JsonElement[]>(action, new Dictionary<string, long[]> { [parameter] = batch });
             foreach (var item in mods)
-                if (!item.TryGetProperty("noteId", out var id) || !batch.Contains(id.GetInt64()) || !result.TryAdd(id.GetInt64(), item.GetProperty("mod").GetInt64())) throw Changed();
+            {
+                if (!item.TryGetProperty(idProperty, out var id) || !remaining.Remove(id.GetInt64())) throw Changed();
+                result.Add(id.GetInt64(), item.GetProperty("mod").GetInt64());
+            }
+            if (remaining.Count > 0) throw Changed();
         }
         return result;
     }
 
-    private static ImportedCollection Project(Settings settings, Inventory inventory, List<JsonElement> cards, List<JsonElement> notes, List<ReviewRecord> reviews)
+    private async Task ReadCards(Dictionary<long, LiveCard> cards, long[] ids, Dictionary<long, string> decks,
+        Dictionary<long, long>? expectedMods, IProgress<string>? progress)
     {
-        // An app-owned in-memory schema reuses the existing mapping validation,
-        // text extraction, filtered-deck scope, and review-kind rules unchanged.
-        using var db = new SqliteConnection("Data Source=:memory:"); db.Open();
-        using var command = db.CreateCommand();
-        command.CommandText = "CREATE TABLE col(ver INTEGER); INSERT INTO col VALUES(18); CREATE TABLE decks(id INTEGER,name TEXT); CREATE TABLE notetypes(id INTEGER,name TEXT); CREATE TABLE fields(ntid INTEGER,ord INTEGER,name TEXT); CREATE TABLE cards(id INTEGER,nid INTEGER,did INTEGER,odid INTEGER,queue INTEGER,type INTEGER,lapses INTEGER); CREATE TABLE notes(id INTEGER,mid INTEGER,flds TEXT); CREATE TABLE revlog(id INTEGER,cid INTEGER,ease INTEGER,time INTEGER,type INTEGER);";
-        command.ExecuteNonQuery();
-        using var transaction = db.BeginTransaction(); command.Transaction = transaction;
-        void Insert(string sql, params object[] values)
+        var selective = true;
+        var read = 0;
+        foreach (var batch in ids.Chunk(200))
         {
-            command.CommandText = sql; command.Parameters.Clear();
-            for (var i = 0; i < values.Length; i++) command.Parameters.AddWithValue("$p" + i, values[i]);
-            command.ExecuteNonQuery();
+            progress?.Report($"Reading live card details… {read:N0} / {ids.Length:N0}");
+            JsonElement[] info;
+            try
+            {
+                info = selective ? await client.Call<JsonElement[]>("cardsInfo",
+                    new { cards = batch, fields = new[] { "cardId", "note", "queue", "type", "lapses", "mod" } })
+                    : await client.Call<JsonElement[]>("cardsInfo", new { cards = batch });
+            }
+            catch (InvalidOperationException error) when (selective && error.Message.Contains("unexpected keyword argument") && error.Message.Contains("fields"))
+            {
+                selective = false;
+                info = await client.Call<JsonElement[]>("cardsInfo", new { cards = batch });
+            }
+            var remaining = batch.ToHashSet();
+            foreach (var item in info)
+            {
+                if (!item.TryGetProperty("cardId", out var key) || !remaining.Remove(key.GetInt64())) throw Changed();
+                var id = key.GetInt64();
+                var mod = item.GetProperty("mod").GetInt64();
+                if (expectedMods is not null && expectedMods[id] != mod) throw Changed();
+                cards.Add(id, new(new(id, item.GetProperty("note").GetInt64(), decks[id],
+                    item.GetProperty("queue").GetInt32(), item.GetProperty("type").GetInt32(), item.GetProperty("lapses").GetInt32()), mod));
+            }
+            if (remaining.Count > 0) throw Changed();
+            read += batch.Length;
         }
-        foreach (var deck in inventory.Metadata.Decks) Insert("INSERT INTO decks VALUES($p0,$p1)", deck.Id, deck.Name);
-        foreach (var type in inventory.Metadata.NoteTypes)
+    }
+
+    private async Task ReadNotes(Dictionary<long, LiveNote> notes, Dictionary<long, long> mods, CollectionMetadata metadata,
+        IProgress<string>? progress)
+    {
+        var types = metadata.NoteTypes.ToDictionary(t => t.Name);
+        var changed = mods.Keys.Where(id => !notes.ContainsKey(id)).ToArray();
+        var read = 0;
+        foreach (var batch in changed.Chunk(500))
         {
-            Insert("INSERT INTO notetypes VALUES($p0,$p1)", type.Id, type.Name);
-            for (var i = 0; i < type.Fields.Count; i++) Insert("INSERT INTO fields VALUES($p0,$p1,$p2)", type.Id, i, type.Fields[i]);
+            progress?.Report($"Reading live note fields… {read:N0} / {changed.Length:N0}");
+            var info = await client.Call<JsonElement[]>("notesInfo", new { notes = batch });
+            var remaining = batch.ToHashSet();
+            foreach (var item in info)
+            {
+                if (!item.TryGetProperty("noteId", out var key) || !remaining.Remove(key.GetInt64())) throw Changed();
+                var id = key.GetInt64();
+                if (!types.TryGetValue(item.GetProperty("modelName").GetString() ?? "", out var type)) throw Changed();
+                var fields = item.GetProperty("fields");
+                if (type.Fields.Any(f => !fields.TryGetProperty(f, out _))) throw Changed();
+                notes.Add(id, new(new(id, type.Id, string.Join('\u001f',
+                    type.Fields.Select(f => fields.GetProperty(f).GetProperty("value").GetString() ?? ""))), mods[id]));
+            }
+            if (remaining.Count > 0) throw Changed();
+            read += batch.Length;
         }
-        // Include all cards for metadata counts; only selected cards need scheduling.
-        var details = cards.ToDictionary(c => c.GetProperty("cardId").GetInt64());
-        var deckIds = inventory.Metadata.Decks.ToDictionary(d => d.Name, d => d.Id);
-        foreach (var card in inventory.HomeDecks)
+    }
+
+    private async Task<Dictionary<long, ReviewRecord[]>> ReadReviews(HashSet<long> ids, IProgress<string>? progress = null,
+        Dictionary<long, ReviewRecord[]>? expected = null)
+    {
+        var result = new Dictionary<long, ReviewRecord[]>();
+        foreach (var batch in ids.Chunk(200))
         {
-            var present = details.TryGetValue(card.Key, out var detail);
-            Insert("INSERT INTO cards VALUES($p0,$p1,$p2,0,$p3,$p4,$p5)", card.Key, present ? detail.GetProperty("note").GetInt64() : 0L, deckIds[card.Value],
-                present ? detail.GetProperty("queue").GetInt32() : 0, present ? detail.GetProperty("type").GetInt32() : 0, present ? detail.GetProperty("lapses").GetInt32() : 0);
+            progress?.Report($"Reading live review history… {result.Count:N0} / {ids.Count:N0} cards");
+            var history = await client.Call<Dictionary<string, JsonElement[]>>("getReviewsOfCards", new { cards = batch });
+            var remaining = batch.ToHashSet();
+            foreach (var entry in history)
+            {
+                if (!long.TryParse(entry.Key, out var id) || !remaining.Remove(id)) throw Changed();
+                var rows = entry.Value.Select(r => new ReviewRecord(r.GetProperty("id").GetInt64(), id,
+                    r.GetProperty("ease").GetInt32(), r.GetProperty("time").GetInt32(), r.GetProperty("type").GetInt32()))
+                    .OrderBy(r => r.Id).ToArray();
+                if (expected is null) result.Add(id, rows);
+                else if (!rows.SequenceEqual(expected[id])) throw Changed();
+            }
+            if (remaining.Count > 0) throw Changed();
         }
-        foreach (var note in notes)
-        {
-            var type = inventory.Metadata.NoteTypes.SingleOrDefault(t => t.Name == note.GetProperty("modelName").GetString()) ?? throw Changed();
-            var fields = note.GetProperty("fields");
-            if (type.Fields.Any(f => !fields.TryGetProperty(f, out _))) throw Changed();
-            Insert("INSERT INTO notes VALUES($p0,$p1,$p2)", note.GetProperty("noteId").GetInt64(), type.Id,
-                string.Join('\u001f', type.Fields.Select(f => fields.GetProperty(f).GetProperty("value").GetString() ?? "")));
-        }
-        foreach (var review in reviews) Insert("INSERT INTO revlog VALUES($p0,$p1,$p2,$p3,$p4)", review.Id, review.CardId, review.Rating, review.Milliseconds, review.Kind);
-        transaction.Commit();
-        var result = CollectionImporter.ReadCollection(db, settings);
-        result.Metadata = inventory.Metadata;
+        return result;
+    }
+
+    private static ImportedCollection Project(Settings settings, CollectionMetadata metadata, Dictionary<long, LiveCard> cards,
+        Dictionary<long, LiveNote> notes, IProgress<string>? progress = null)
+    {
+        var selectedDecks = metadata.Decks.Where(d => settings.Includes(d.Name)).Select(d => d.Name).ToHashSet();
+        var result = CollectionImporter.Project(settings, metadata, cards.Values.Select(c => c.Card).Where(c => selectedDecks.Contains(c.Deck)),
+            notes.Values.Select(n => n.Note), progress);
         // AnkiConnect cannot enumerate review rows whose cards have been deleted.
         result.UnresolvedReviewsAvailable = false;
         result.ImportMethod = "AnkiConnect";

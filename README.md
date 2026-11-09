@@ -50,7 +50,7 @@ On first launch:
 4. Confirm each note type's category and fields. Only Vocabulary types contribute to the vocabulary inventory; Grammar and Kanji types can contribute review events.
 5. Select **Preview selection**, check the extracted expressions, then **Save and refresh**.
 
-Subsequent launches refresh the saved selection automatically, with Anki open or closed. Keep AnkiConnect enabled on the matching profile for live access while Anki is open. A failed refresh leaves the latest successful import available with its original scope and timestamp.
+Subsequent launches run **Fast Refresh** automatically. With Anki open, it checks for changed cards and notes and rechecks recent review history using AnkiConnect. Use **Full Refresh** to reconcile older review history after a restore, bulk history edit, or sync that brought in older reviews. With Anki closed, either button reads a safe, complete file snapshot. A failed refresh leaves the latest successful import available with its original scope and timestamp.
 
 ## Deck profiles
 
@@ -199,7 +199,7 @@ later batches. With Anki open, use **Check pending additions** to acknowledge
 identified notes or release entries that were not created. This check never creates
 or deletes notes. Successfully added entries remain excluded from future batches.
 After creation, statistics and coverage refresh automatically, including after a
-partial batch. If refresh fails, the creation result remains visible and **Refresh**
+partial batch. If refresh fails, the creation result remains visible and **Fast Refresh**
 retries the import with Anki still open. Edit or delete unwanted notes manually in Anki.
 
 Older app versions added `ankistats::generated` and `ankistats::jmdict::<ID>` tags.
@@ -210,7 +210,7 @@ attribution identity used for recovery. Legacy tags are still recognized if reta
 
 The file importer copies an idle collection under an exclusive read-only file handle, refusing active journals. SQLite opens only the temporary private copy, never the original collection or its sidecars. The app never bypasses locks, checkpoints, or repairs the source. Unavailable collections and unsupported schemas produce a recovery message. Refresh, analysis, exports, and local mapping links do not change Anki records. Explicit Create adds new notes through AnkiConnect. The [Mappings popup](.docs/mappings.md#correcting-typos-in-existing-anki-notes) can also update an existing note's displayed expression/reading when its correction checkbox is enabled, with guarded Undo and read-back verification. It preserves your meaning and other fields. The app never writes the source database, sends scheduling changes, or runs card HTML or JavaScript. Anki changes can sync normally through Anki.
 
-When Anki holds the collection or has an active journal, the shared reader imports through local AnkiConnect instead. It checks the running profile, reads current notes/cards/full review history, preserves filtered cards' home decks, and rejects detected changes during the read. These batched API reads are not one database transaction. AnkiConnect cannot report orphaned reviews whose cards were deleted; live imports label that count unavailable. Isolated/synthetic sessions never fall back to the user's running Anki.
+When Anki holds the collection or has an active journal, the shared reader imports through local AnkiConnect instead. It checks the running profile, preserves filtered cards' home decks, and rejects detected changes during the read. A first live read builds a baseline, which Fast Refresh uses on later runs. These batched API reads are not one database transaction. AnkiConnect cannot report orphaned reviews whose cards were deleted. Live imports label that count unavailable. Isolated/synthetic sessions never fall back to the user's running Anki.
 
 Settings, the latest imported data, reference data, matching decisions, creation journals, and insight rotation history stay in the per-user local application-data `AnkiStats` folder, accessible from Settings. There is no telemetry. Reference installation downloads public data; live imports and note creation communicate with local AnkiConnect; cached analysis works offline. Source files, personal settings, caches, and exports must not be committed.
 
